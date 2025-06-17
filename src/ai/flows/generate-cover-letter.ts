@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const GenerateCoverLetterInputSchema = z.object({
+const GenerateCoverLetterInputSchema = z.object({
   masterResumeDataUri: z
     .string()
     .describe(
@@ -30,7 +30,7 @@ export const GenerateCoverLetterInputSchema = z.object({
 });
 export type GenerateCoverLetterInput = z.infer<typeof GenerateCoverLetterInputSchema>;
 
-export const GenerateCoverLetterOutputSchema = z.object({
+const GenerateCoverLetterOutputSchema = z.object({
   coverLetter: z.string().describe('The generated cover letter text.'),
 });
 export type GenerateCoverLetterOutput = z.infer<typeof GenerateCoverLetterOutputSchema>;

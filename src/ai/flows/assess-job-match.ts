@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const AssessJobMatchInputSchema = z.object({
+const AssessJobMatchInputSchema = z.object({
   masterResumeDataUri: z
     .string()
     .describe(
@@ -27,7 +27,7 @@ export const AssessJobMatchInputSchema = z.object({
 });
 export type AssessJobMatchInput = z.infer<typeof AssessJobMatchInputSchema>;
 
-export const AssessJobMatchOutputSchema = z.object({
+const AssessJobMatchOutputSchema = z.object({
   matchScore: z.number().min(0).max(100).describe('A percentage (0-100) indicating how well the resume matches the job specification.'),
   summary: z.string().describe("A brief (1-2 sentences) overall assessment of the candidate's fit for the role."),
   strengths: z.array(z.string()).describe('Specific skills, experiences, or qualifications from the resume that are highly relevant to the job specification.'),
