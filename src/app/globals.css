@@ -8,83 +8,83 @@ body {
 
 @layer base {
   :root {
-    --background: 210 20% 95%; /* #F0F4F7 */
-    --foreground: 210 25% 15%; /* Darker text for better contrast on light bg */
+    --background: 200 100% 97%; /* Very pale sky blue */
+    --foreground: 210 40% 25%; /* Darker, slightly desaturated blue-grey */
 
-    --card: 210 20% 100%; /* White cards */
-    --card-foreground: 210 25% 15%;
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 210 40% 25%;
 
-    --popover: 210 20% 100%;
-    --popover-foreground: 210 25% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 40% 25%;
 
-    --primary: 210 70% 45%; /* #2289C3 */
-    --primary-foreground: 0 0% 100%; /* White text on primary */
+    --primary: 35 100% 60%; /* Sunrise orange-gold */
+    --primary-foreground: 20 50% 10%; /* Dark brown/off-black for readability */
 
-    --secondary: 180 50% 85%; /* Lighter version of accent for secondary elements */
-    --secondary-foreground: 180 60% 25%; /* Darker text on secondary */
+    --secondary: 35 80% 90%; /* Pale peach */
+    --secondary-foreground: 35 60% 40%; /* Darker peach/brown */
 
-    --muted: 210 20% 88%; /* Slightly darker muted */
-    --muted-foreground: 210 15% 45%;
+    --muted: 200 60% 92%; /* Slightly darker pale blue */
+    --muted-foreground: 200 30% 50%; /* Muted blue-grey */
 
-    --accent: 180 60% 40%; /* #1AA3A3 */
+    --accent: 210 70% 55%; /* Deeper sky blue */
     --accent-foreground: 0 0% 100%; /* White text on accent */
 
     --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 20% 80%;
-    --input: 210 20% 85%;
-    --ring: 210 70% 45%; /* Use primary color for rings */
+    --border: 200 50% 85%; /* Light blue-grey border */
+    --input: 200 50% 90%; /* Slightly lighter for input fields */
+    --ring: 35 100% 60%; /* Primary color for rings */
 
     --radius: 0.75rem; /* Slightly more rounded corners */
 
-    --sidebar-background: 210 20% 98%;
-    --sidebar-foreground: 210 25% 26.1%;
-    --sidebar-primary: 210 70% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 180 50% 90%;
-    --sidebar-accent-foreground: 180 60% 25%;
-    --sidebar-border: 210 20% 85%;
-    --sidebar-ring: 210 70% 45%;
+    --sidebar-background: 200 80% 95%; /* Slightly more saturated pale blue */
+    --sidebar-foreground: 210 40% 25%;
+    --sidebar-primary: 35 100% 60%;
+    --sidebar-primary-foreground: 20 50% 10%;
+    --sidebar-accent: 35 80% 85%; /* Lighter peach for sidebar accent */
+    --sidebar-accent-foreground: 35 60% 40%;
+    --sidebar-border: 200 50% 80%;
+    --sidebar-ring: 35 100% 60%;
   }
 
   .dark {
-    --background: 210 15% 10%;
-    --foreground: 210 10% 85%;
+    --background: 220 40% 10%; /* Dark night sky blue */
+    --foreground: 200 30% 85%; /* Light grey-blue text */
 
-    --card: 210 15% 15%;
-    --card-foreground: 210 10% 85%;
+    --card: 220 35% 15%; /* Slightly lighter dark blue for cards */
+    --card-foreground: 200 30% 85%;
 
-    --popover: 210 15% 10%;
-    --popover-foreground: 210 10% 85%;
+    --popover: 220 40% 10%;
+    --popover-foreground: 200 30% 85%;
 
-    --primary: 210 70% 55%; /* Slightly lighter primary for dark mode */
-    --primary-foreground: 210 20% 5%;
+    --primary: 30 95% 58%; /* Warm sunrise/sunset glow */
+    --primary-foreground: 20 30% 5%; /* Very dark brown/off-black */
 
-    --secondary: 180 50% 30%;
-    --secondary-foreground: 180 10% 90%;
+    --secondary: 200 40% 30%; /* Dark, muted teal/blue */
+    --secondary-foreground: 200 20% 75%; /* Light grey-blue for contrast */
 
-    --muted: 210 15% 20%;
-    --muted-foreground: 210 10% 60%;
+    --muted: 220 30% 20%; /* Slightly lighter dark blue */
+    --muted-foreground: 220 20% 60%; /* Medium grey-blue */
 
-    --accent: 180 60% 50%; /* Slightly lighter accent for dark mode */
-    --accent-foreground: 180 20% 5%;
+    --accent: 200 60% 50%; /* Muted twilight blue */
+    --accent-foreground: 200 10% 95%; /* Very light grey-blue/off-white */
 
     --destructive: 0 60% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 15% 25%;
-    --input: 210 15% 22%;
-    --ring: 210 70% 55%;
+    --border: 220 25% 25%; /* Dark blue-grey border */
+    --input: 220 25% 22%; /* Slightly darker for input */
+    --ring: 30 95% 58%; /* Primary color for rings */
 
-    --sidebar-background: 210 15% 12%;
-    --sidebar-foreground: 210 10% 80%;
-    --sidebar-primary: 210 70% 55%;
-    --sidebar-primary-foreground: 210 20% 5%;
-    --sidebar-accent: 180 50% 25%;
-    --sidebar-accent-foreground: 180 10% 85%;
-    --sidebar-border: 210 15% 20%;
-    --sidebar-ring: 210 70% 55%;
+    --sidebar-background: 220 38% 12%; /* Slightly different dark blue for sidebar */
+    --sidebar-foreground: 200 30% 80%;
+    --sidebar-primary: 30 95% 58%;
+    --sidebar-primary-foreground: 20 30% 5%;
+    --sidebar-accent: 200 40% 25%; /* Darker muted teal/blue for sidebar accent */
+    --sidebar-accent-foreground: 200 20% 80%;
+    --sidebar-border: 220 25% 20%;
+    --sidebar-ring: 30 95% 58%;
   }
 }
 
