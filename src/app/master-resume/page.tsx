@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -7,7 +8,7 @@ import { reformatResume, type ReformatResumeOutput } from '@/ai/flows/reformat-r
 import { fileToDataURI } from '@/lib/file-utils';
 import { ResumeSection } from '@/components/feature/resume-section';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, FileText, HelpCircle, ListChecks, Briefcase, GraduationCap, User, AlertTriangle } from 'lucide-react';
+import { Lightbulb, FileText, HelpCircle, AlertTriangle, UploadCloud, Download } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -30,7 +31,7 @@ export default function MasterResumePage() {
       setAiOutput(result);
       toast({
         title: "Resume Processed Successfully!",
-        description: "Your master resume has been reformatted.",
+        description: "Your master resume has been reformatted by AI.",
       });
     } catch (e: any) {
       console.error("Error reformatting resume:", e);
@@ -45,12 +46,22 @@ export default function MasterResumePage() {
     }
   };
 
+  const downloadTextFile = (filename: string, text: string) => {
+    const element = document.createElement("a");
+    const file = new Blob([text], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = filename;
+    document.body.appendChild(element); 
+    element.click();
+    document.body.removeChild(element);
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold tracking-tight font-headline text-primary">Master Resume Builder</h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Upload your existing resume (Word or PDF). Our AI will analyze and reformat it into a modern, professional template.
+          Upload your existing resume (Word or PDF). Our AI will analyze and reformat it into a modern, professional template. This becomes your Master Resume.
         </p>
       </div>
 
@@ -92,7 +103,7 @@ export default function MasterResumePage() {
 
             {aiOutput.missingInformation && aiOutput.missingInformation.length > 0 && (
               <ResumeSection
-                title="Missing Information"
+                title="Missing Information (Suggestions from AI)"
                 icon={<HelpCircle className="h-6 w-6 text-yellow-500" />}
                 content={aiOutput.missingInformation}
                 className="border-yellow-500/50"
@@ -103,7 +114,7 @@ export default function MasterResumePage() {
 
             {aiOutput.questions && aiOutput.questions.length > 0 && (
               <ResumeSection
-                title="Clarifying Questions"
+                title="Clarifying Questions from AI"
                 icon={<Lightbulb className="h-6 w-6 text-blue-500" />}
                 content={aiOutput.questions}
                 className="border-blue-500/50"
@@ -111,9 +122,10 @@ export default function MasterResumePage() {
             )}
             
             <div className="mt-8 text-center">
-                <Button size="lg">
-                    <Download className="mr-2 h-5 w-5" /> Download Resume (Coming Soon)
+                <Button size="lg" onClick={() => downloadTextFile("master_resume.txt", aiOutput.reformattedResume)} disabled={!aiOutput.reformattedResume}>
+                    <Download className="mr-2 h-5 w-5" /> Download Master Resume (TXT)
                 </Button>
+                <p className="text-xs text-muted-foreground mt-2">Full PDF/Word download coming soon. Editing capabilities are available via the 'My Resumes' dashboard (feature in development).</p>
             </div>
           </div>
         </ScrollArea>
@@ -121,12 +133,3 @@ export default function MasterResumePage() {
     </div>
   );
 }
-
-// Dummy Download icon if not available, replace with actual if needed
-const Download = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-);
-
-const UploadCloud = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
-);

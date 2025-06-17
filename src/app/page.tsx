@@ -1,14 +1,15 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { ArrowRight, BotMessageSquare, Briefcase, FileText, Link as LinkIcon, Sparkles, UploadCloud } from 'lucide-react';
+import { ArrowRight, BotMessageSquare, Briefcase, FileText, Link as LinkIcon, Sparkles, UploadCloud, UserCheck } from 'lucide-react';
 import Image from 'next/image';
 
 const features = [
   {
     icon: <Sparkles className="h-10 w-10 text-primary" />,
     title: "AI Resume Restructuring",
-    description: "Upload your existing resume (Word or PDF). Our AI analyzes and reformats it into a modern, professional template based on industry best practices. It identifies missing information and asks clarifying questions to help you build a comprehensive Master Resume.",
+    description: "Upload your existing resume. Our AI analyzes and reformats it into a modern, professional template, identifying missing info and asking clarifying questions to build your Master Resume.",
     link: "/master-resume",
     linkText: "Build Master Resume",
     imgSrc: "https://placehold.co/600x400.png",
@@ -16,11 +17,11 @@ const features = [
     aiHint: "resume analysis",
   },
   {
-    icon: <BotMessageSquare className="h-10 w-10 text-primary" />,
-    title: "AI Job Spec Targeting",
-    description: "Upload a job specification (Word, PDF, or URL). Our AI tailors your Master Resume to perfectly match the job, highlighting relevant skills and experience. It assesses your fit and provides suggestions for improvement.",
-    link: "/targeted-resume",
-    linkText: "Target Your Resume",
+    icon: <UserCheck className="h-10 w-10 text-primary" />,
+    title: "AI Job Matching",
+    description: "Upload a job spec. AI assesses your Master Resume against it, provides a match score, and highlights key alignments. Then, optionally tailor your resume and generate a cover letter specifically for that job.",
+    link: "/targeted-resume", // Link remains the same, page content and title changes
+    linkText: "Match Your Resume to Jobs",
     imgSrc: "https://placehold.co/600x400.png",
     imgAlt: "Resume targeting job spec",
     aiHint: "job matching",
@@ -28,7 +29,7 @@ const features = [
   {
     icon: <FileText className="h-10 w-10 text-primary" />,
     title: "Online Resume Generator",
-    description: "Create a stunning, shareable online resume. Embed it on your website or share the link directly with potential employers. Showcase your profile professionally and accessibly.",
+    description: "Create a stunning, shareable online resume from your Master Resume. Embed it on your website or share the link directly. Showcase your profile professionally and accessibly.",
     link: "/online-resume",
     linkText: "View Sample Online Resume",
     imgSrc: "https://placehold.co/600x400.png",
@@ -38,7 +39,7 @@ const features = [
   {
     icon: <LinkIcon className="h-10 w-10 text-primary" />,
     title: "LinkTree Bio Generator",
-    description: "Generate a personalized 'link in bio' page to consolidate all your important professional links. Perfect for social media profiles, email signatures, and networking.",
+    description: "Generate a personalized 'link in bio' page to consolidate all your important professional links. Perfect for social media, email signatures, and networking. Links can also appear on your Online Resume.",
     link: "/linktree-bio",
     linkText: "View Sample LinkTree",
     imgSrc: "https://placehold.co/600x400.png",
@@ -140,8 +141,8 @@ export default function HomePage() {
             </Button>
             <p className="text-xs text-muted-foreground">
               Get started with our core features for free.
-              <Link href="/pricing" className="underline underline-offset-2 ml-1">
-                Terms & Conditions
+              <Link href="/pricing" className="underline underline-offset-2 ml-1"> 
+                Pricing & Plans
               </Link>
             </p>
           </div>

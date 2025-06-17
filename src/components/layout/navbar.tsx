@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Briefcase, BotMessageSquare, Sparkles } from "lucide-react";
+import { Menu, Briefcase, BotMessageSquare, Sparkles, Link as LinkIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
   { href: "/master-resume", label: "Master Resume", icon: <Sparkles className="h-5 w-5" /> },
-  { href: "/targeted-resume", label: "Targeted Resume", icon: <BotMessageSquare className="h-5 w-5" /> },
+  { href: "/targeted-resume", label: "Job Matching", icon: <BotMessageSquare className="h-5 w-5" /> },
   { href: "/online-resume", label: "Online Resume", icon: <Briefcase className="h-5 w-5" /> },
-  { href: "/linktree-bio", label: "LinkTree Bio", icon: <Link className="h-5 w-5" /> },
+  { href: "/linktree-bio", label: "LinkTree Bio", icon: <LinkIcon className="h-5 w-5" /> },
 ];
 
 export function Navbar() {
