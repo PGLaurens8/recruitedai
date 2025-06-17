@@ -12,29 +12,24 @@ import { generateCoverLetter, type GenerateCoverLetterInput, type GenerateCoverL
 import { fileToDataURI, textToDataURI } from '@/lib/file-utils';
 import { ResumeSection } from '@/components/feature/resume-section';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, FileText, Briefcase, AlertTriangle, Target, UploadCloud, Download, Sparkles, UserCheck, FileSignature, PercentCircle, BarChartBig, Brain } from 'lucide-react';
+import { Lightbulb, FileText, Briefcase, AlertTriangle, Target, UploadCloud, Download, Sparkles, UserCheck, FileSignature, PercentCircle, BarChartBig, Brain, HelpCircle as HelpCircleIcon } from 'lucide-react'; // Renamed HelpCircle to avoid conflict
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
 
 type JobSpecInputType = "file" | "text" | "url";
 
 export default function JobMatchingPage() {
   const [masterResumeText, setMasterResumeText] = useState('');
-  // Note: Ideally, masterResumeText would be pre-filled from the user's saved Master Resume.
-  // For now, it's a manual paste.
-
   const [jobSpecInputType, setJobSpecInputType] = useState<JobSpecInputType>("text");
   const [jobSpecFile, setJobSpecFile] = useState<File | null>(null);
   const [jobSpecText, setJobSpecText] = useState('');
   const [jobSpecUrl, setJobSpecUrl] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [jobTitleForCoverLetter, setJobTitleForCoverLetter] = useState('');
-
 
   const [isLoadingAssessment, setIsLoadingAssessment] = useState(false);
   const [isLoadingTailoring, setIsLoadingTailoring] = useState(false);
@@ -62,12 +57,11 @@ export default function JobMatchingPage() {
 
     if (jobSpecInputType === "file" && jobSpecFile) {
       jobSpecInputDataUri = await fileToDataURI(jobSpecFile);
-      jobSpecInputTextValue = undefined; // Prefer file
+      jobSpecInputTextValue = undefined; 
       hasValidInput = true;
     } else if (jobSpecInputType === "text" && jobSpecText.trim()) {
       hasValidInput = true;
     } else if (jobSpecInputType === "url" && jobSpecUrl.trim()) {
-      // For MVP, passing URL as text. Actual fetching is more complex.
       jobSpecInputTextValue = `Job Specification from URL: ${jobSpecUrl.trim()}`;
       toast({ title: "URL as Text", description: "Job spec URL content will be treated as text. For best results, paste content directly or upload a file."});
       hasValidInput = true;
@@ -78,7 +72,7 @@ export default function JobMatchingPage() {
   
   const handleAssessMatch = async () => {
     if (!masterResumeText.trim()) {
-      toast({ variant: "destructive", title: "Missing Master Resume", description: "Please paste your master resume text." });
+      toast({ variant: "destructive", title: "Missing Master Resume", description: "Please paste your master resume text into the designated area." });
       return;
     }
     const { jobSpecDataUri, jobSpecText: currentJobSpecText, hasInput } = await getJobSpecInputs();
@@ -110,12 +104,12 @@ export default function JobMatchingPage() {
 
   const handleTailorAndGenerateCoverLetter = async () => {
     if (!masterResumeText.trim()) {
-      toast({ variant: "destructive", title: "Missing Master Resume" });
+      toast({ variant: "destructive", title: "Missing Master Resume", description: "Please paste your master resume text into the designated area." });
       return;
     }
     const { jobSpecDataUri, jobSpecText: currentJobSpecText, hasInput } = await getJobSpecInputs();
     if (!hasInput) {
-       toast({ variant: "destructive", title: "Missing Job Specification" });
+       toast({ variant: "destructive", title: "Missing Job Specification", description: "Please provide the job specification (file, text, or URL)." });
       return;
     }
 
@@ -128,13 +122,11 @@ export default function JobMatchingPage() {
     const masterResumeDataUriVal = textToDataURI(masterResumeText);
 
     try {
-      // Tailor Resume
       const tailorInput = { masterResumeDataUri: masterResumeDataUriVal, jobSpecDataUri, jobSpecText: currentJobSpecText };
       const tailoredResult = await tailorResumeToJobSpec(tailorInput);
       setTailoredResumeOutput(tailoredResult);
       toast({ title: "Resume Tailored!", description: "Your resume has been customized." });
 
-      // Generate Cover Letter
       const coverLetterInput: GenerateCoverLetterInput = {
         masterResumeDataUri: masterResumeDataUriVal,
         jobSpecDataUri,
@@ -159,10 +151,10 @@ export default function JobMatchingPage() {
   
   const downloadTextFile = (filename: string, text: string) => {
     const element = document.createElement("a");
-    const file = new Blob([text], {type: 'text/plain'});
-    element.href = URL.createObjectURL(file);
+    const fileBlob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+    element.href = URL.createObjectURL(fileBlob);
     element.download = filename;
-    document.body.appendChild(element); // Required for this to work in FireFox
+    document.body.appendChild(element); 
     element.click();
     document.body.removeChild(element);
   };
@@ -181,7 +173,7 @@ export default function JobMatchingPage() {
         <Card className="w-full">
           <CardHeader>
             <CardTitle className="flex items-center"><Briefcase className="mr-2 h-6 w-6 text-primary"/> Your Master Resume</CardTitle>
-            <CardDescription>Paste the text of your master resume. This will be used for matching and tailoring. Ideally, this would be pre-loaded from your saved Master Resume.</CardDescription>
+            <CardDescription>Paste the text of your AI-crafted Master Resume here. In future versions, you'll be able to select from your saved resumes.</CardDescription>
           </CardHeader>
           <CardContent>
             <Textarea
@@ -197,7 +189,7 @@ export default function JobMatchingPage() {
         <Card className="w-full">
           <CardHeader>
             <CardTitle className="flex items-center"><Target className="mr-2 h-6 w-6 text-primary"/> Job Specification</CardTitle>
-            <CardDescription>Provide the job specification (upload file, paste text, or enter URL).</CardDescription>
+            <CardDescription>Provide the job specification by uploading a file, pasting text, or entering a URL.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Tabs defaultValue="text" onValueChange={(value) => setJobSpecInputType(value as JobSpecInputType)}>
@@ -237,14 +229,14 @@ export default function JobMatchingPage() {
                 />
               </TabsContent>
             </Tabs>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <Label htmlFor="companyName">Company Name (Optional)</Label>
-                    <Input id="companyName" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="e.g. Google" />
+                    <Label htmlFor="companyName" className="text-sm font-medium">Company Name (Optional)</Label>
+                    <Input id="companyName" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="e.g. Innovatech" className="mt-1"/>
                 </div>
                 <div>
-                    <Label htmlFor="jobTitleForCoverLetter">Job Title (Optional)</Label>
-                    <Input id="jobTitleForCoverLetter" value={jobTitleForCoverLetter} onChange={(e) => setJobTitleForCoverLetter(e.target.value)} placeholder="e.g. Software Engineer" />
+                    <Label htmlFor="jobTitleForCoverLetter" className="text-sm font-medium">Job Title (Optional)</Label>
+                    <Input id="jobTitleForCoverLetter" value={jobTitleForCoverLetter} onChange={(e) => setJobTitleForCoverLetter(e.target.value)} placeholder="e.g. Software Engineer" className="mt-1"/>
                 </div>
             </div>
           </CardContent>
@@ -252,7 +244,7 @@ export default function JobMatchingPage() {
       </div>
 
       <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
-        <Button onClick={handleAssessMatch} disabled={isLoadingAssessment || isLoadingTailoring} size="lg">
+        <Button onClick={handleAssessMatch} disabled={isLoadingAssessment || isLoadingTailoring || isLoadingCoverLetter} size="lg">
           {isLoadingAssessment ? <Spinner size={20} className="mr-2" /> : <UserCheck className="mr-2 h-5 w-5" />}
           Assess Match First
         </Button>
@@ -278,39 +270,41 @@ export default function JobMatchingPage() {
       )}
 
       {assessmentOutput && !isLoadingAssessment && (
-        <Card className="mt-12 shadow-lg">
-          <CardHeader>
+        <Card className="mt-12 shadow-lg border-primary">
+          <CardHeader className="bg-primary/10">
             <CardTitle className="flex items-center text-2xl font-headline text-primary"><Brain className="mr-3 h-7 w-7"/>AI Match Assessment</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 p-6">
             <div className="text-center">
-              <p className="text-muted-foreground text-lg">Match Score</p>
+              <p className="text-muted-foreground text-lg">Overall Match Score</p>
               <div className="relative mx-auto my-2 h-32 w-32">
-                 <svg className="h-full w-full" viewBox="0 0 36 36">
-                    <path
-                      className="text-muted/30"
+                 <svg className="h-full w-full origin-center -rotate-90 transform" viewBox="0 0 36 36">
+                    <circle
+                      className="text-muted/20"
                       strokeWidth="3.5"
-                      fill="none"
-                      d="M18 2.0845
-                        a 15.9155 15.9155 0 0 1 0 31.831
-                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                      stroke="currentColor"
+                      fill="transparent"
+                      r="15.9155"
+                      cx="18"
+                      cy="18"
                     />
-                    <path
+                    <circle
                       className="text-primary"
                       strokeWidth="3.5"
                       strokeDasharray={`${assessmentOutput.matchScore}, 100`}
                       strokeLinecap="round"
-                      fill="none"
-                      d="M18 2.0845
-                        a 15.9155 15.9155 0 0 1 0 31.831
-                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                      stroke="currentColor"
+                      fill="transparent"
+                      r="15.9155"
+                      cx="18"
+                      cy="18"
                     />
                   </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-3xl font-bold text-primary">{assessmentOutput.matchScore}%</span>
                 </div>
               </div>
-              <p className="text-lg font-semibold">{assessmentOutput.summary}</p>
+              <p className="text-lg font-semibold text-foreground/90">{assessmentOutput.summary}</p>
             </div>
             <Separator />
             <ResumeSection
@@ -327,41 +321,61 @@ export default function JobMatchingPage() {
         </Card>
       )}
 
-      {tailoredResumeOutput && !isLoadingTailoring && (
-        <ScrollArea className="mt-8 p-1 rounded-lg border bg-card shadow-lg max-h-[80vh]">
-          <div className="p-6 space-y-8">
-            <h2 className="text-3xl font-bold text-center font-headline text-primary">Your Tailored Resume & Cover Letter</h2>
+      {(tailoredResumeOutput || coverLetterOutput) && !(isLoadingTailoring || isLoadingCoverLetter) && (
+        <ScrollArea className="mt-8 p-1 rounded-lg border bg-background shadow-lg max-h-[100vh]">
+          <div className="p-4 sm:p-6 space-y-8">
+            <h2 className="text-3xl font-bold text-center font-headline text-primary">Your Tailored Application Documents</h2>
             
-            <ResumeSection
-              title="AI Tailored Resume"
-              icon={<FileText className="h-6 w-6 text-accent" />}
-              content={tailoredResumeOutput.tailoredResume || "No tailored resume content provided."}
-            />
-             <div className="text-center">
-                <Button size="lg" onClick={() => downloadTextFile("tailored_resume.txt", tailoredResumeOutput.tailoredResume)}>
-                    <Download className="mr-2 h-5 w-5" /> Download Tailored Resume (TXT)
-                </Button>
-            </div>
-
-            <Separator />
-            
-            {tailoredResumeOutput.questions && tailoredResumeOutput.questions.length > 0 && (
-              <ResumeSection
-                title="Clarifying Questions from AI (for Tailoring)"
-                icon={<HelpCircle className="h-6 w-6 text-blue-500" />}
-                content={tailoredResumeOutput.questions}
-                className="border-blue-500/50"
-              />
+            {tailoredResumeOutput && !isLoadingTailoring && (
+              <>
+                <Card className="bg-card shadow-xl overflow-hidden border-accent">
+                   <CardHeader className="bg-accent/10">
+                    <CardTitle className="flex items-center text-accent">
+                        <FileText className="h-5 w-5 mr-2" />
+                        AI Tailored Resume
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-6">
+                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/30 p-4 rounded-md border">
+                        {tailoredResumeOutput.tailoredResume || "No tailored resume content provided."}
+                    </pre>
+                  </CardContent>
+                </Card>
+                <div className="text-center">
+                    <Button size="lg" onClick={() => downloadTextFile("tailored_resume.txt", tailoredResumeOutput.tailoredResume)}>
+                        <Download className="mr-2 h-5 w-5" /> Download Tailored Resume (TXT)
+                    </Button>
+                </div>
+                {tailoredResumeOutput.questions && tailoredResumeOutput.questions.length > 0 && (
+                  <>
+                    <Separator />
+                    <ResumeSection
+                      title="Clarifying Questions from AI (for Tailoring)"
+                      icon={<HelpCircleIcon className="h-6 w-6 text-blue-500" />}
+                      content={tailoredResumeOutput.questions}
+                      className="border-blue-500/50"
+                    />
+                  </>
+                )}
+              </>
             )}
             
             {coverLetterOutput && !isLoadingCoverLetter && (
               <>
                 <Separator />
-                <ResumeSection
-                  title="AI Generated Cover Letter"
-                  icon={<FileSignature className="h-6 w-6 text-accent" />}
-                  content={coverLetterOutput.coverLetter || "No cover letter content provided."}
-                />
+                 <Card className="bg-card shadow-xl overflow-hidden border-accent">
+                   <CardHeader className="bg-accent/10">
+                    <CardTitle className="flex items-center text-accent">
+                        <FileSignature className="h-5 w-5 mr-2" />
+                        AI Generated Cover Letter
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-6">
+                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/30 p-4 rounded-md border">
+                        {coverLetterOutput.coverLetter || "No cover letter content provided."}
+                    </pre>
+                  </CardContent>
+                </Card>
                  <div className="text-center">
                     <Button size="lg" onClick={() => downloadTextFile("cover_letter.txt", coverLetterOutput.coverLetter)}>
                         <Download className="mr-2 h-5 w-5" /> Download Cover Letter (TXT)
@@ -375,8 +389,3 @@ export default function JobMatchingPage() {
     </div>
   );
 }
-
-// Placeholder HelpCircle if not in lucide-react (it is, but for safety)
-const HelpCircle = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-);

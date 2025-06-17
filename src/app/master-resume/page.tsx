@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { FileUploadCard } from '@/components/feature/file-upload-card';
 import { reformatResume, type ReformatResumeOutput } from '@/ai/flows/reformat-resume';
 import { fileToDataURI } from '@/lib/file-utils';
@@ -13,22 +14,28 @@ import { Spinner } from '@/components/ui/spinner';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 
 export default function MasterResumePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [aiOutput, setAiOutput] = useState<ReformatResumeOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const [resumeTitle, setResumeTitle] = useState("My Master Resume");
+  const [processedTimestamp, setProcessedTimestamp] = useState<string | null>(null);
 
   const handleFileUpload = async (file: File) => {
     setIsLoading(true);
     setAiOutput(null);
     setError(null);
+    setProcessedTimestamp(null);
 
     try {
       const resumeDataUri = await fileToDataURI(file);
       const result = await reformatResume({ resumeDataUri });
       setAiOutput(result);
+      setProcessedTimestamp(new Date().toLocaleString());
       toast({
         title: "Resume Processed Successfully!",
         description: "Your master resume has been reformatted by AI.",
@@ -48,8 +55,8 @@ export default function MasterResumePage() {
 
   const downloadTextFile = (filename: string, text: string) => {
     const element = document.createElement("a");
-    const file = new Blob([text], {type: 'text/plain'});
-    element.href = URL.createObjectURL(file);
+    const fileBlob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+    element.href = URL.createObjectURL(fileBlob);
     element.download = filename;
     document.body.appendChild(element); 
     element.click();
@@ -61,13 +68,13 @@ export default function MasterResumePage() {
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold tracking-tight font-headline text-primary">Master Resume Builder</h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Upload your existing resume (Word or PDF). Our AI will analyze and reformat it into a modern, professional template. This becomes your Master Resume.
+          Upload your existing resume. Our AI will analyze and reformat it. This becomes your Master Resume.
         </p>
       </div>
 
       <FileUploadCard
         title="Upload Your Resume"
-        description="Let our AI craft your master resume. Supports PDF, DOC, DOCX files."
+        description="Supports PDF, DOC, DOCX files. The AI will reformat it into a professional template."
         onFileUpload={handleFileUpload}
         ctaText={isLoading ? "Processing..." : "Reformat Resume"}
         icon={<UploadCloud className="h-10 w-10 text-primary mb-2" />}
@@ -89,15 +96,32 @@ export default function MasterResumePage() {
       )}
 
       {aiOutput && (
-        <ScrollArea className="mt-12 p-1 rounded-lg border bg-card shadow-lg max-h-[80vh]">
-          <div className="p-6 space-y-8">
-            <h2 className="text-3xl font-bold text-center font-headline text-primary">Your New Master Resume</h2>
-            
-            <ResumeSection
-                title="AI Processed Resume"
-                icon={<FileText className="h-6 w-6 text-accent" />}
-                content={aiOutput.reformattedResume || "No reformatted resume content provided."}
+        <ScrollArea className="mt-12 p-1 rounded-lg border bg-background shadow-lg max-h-[100vh]">
+          <div className="p-4 sm:p-6 space-y-8">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
+              <Input 
+                value={resumeTitle} 
+                onChange={(e) => setResumeTitle(e.target.value)} 
+                placeholder="Enter Your Resume Title"
+                className="text-xl font-semibold !text-primary flex-grow border-primary focus:!border-primary focus:!ring-primary"
+                aria-label="Resume Title"
               />
+              {processedTimestamp && <p className="text-sm text-muted-foreground text-left sm:text-right shrink-0 pt-2 sm:pt-0">Processed: {processedTimestamp}</p>}
+            </div>
+            
+            <Card className="bg-card shadow-xl overflow-hidden border-primary">
+              <CardHeader className="bg-primary/10">
+                <CardTitle className="flex items-center text-primary">
+                  <FileText className="h-5 w-5 mr-2" />
+                  Your AI-Crafted Master Resume
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6">
+                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-background p-4 rounded-md border">
+                  {aiOutput.reformattedResume || "The AI didn't return any resume content. Please check your uploaded file."}
+                </pre>
+              </CardContent>
+            </Card>
             
             <Separator />
 
@@ -122,7 +146,7 @@ export default function MasterResumePage() {
             )}
             
             <div className="mt-8 text-center">
-                <Button size="lg" onClick={() => downloadTextFile("master_resume.txt", aiOutput.reformattedResume)} disabled={!aiOutput.reformattedResume}>
+                <Button size="lg" onClick={() => downloadTextFile(`${resumeTitle.replace(/\s+/g, '_') || 'master_resume'}.txt`, aiOutput.reformattedResume)} disabled={!aiOutput.reformattedResume}>
                     <Download className="mr-2 h-5 w-5" /> Download Master Resume (TXT)
                 </Button>
                 <p className="text-xs text-muted-foreground mt-2">Full PDF/Word download coming soon. Editing capabilities are available via the 'My Resumes' dashboard (feature in development).</p>
