@@ -23,7 +23,7 @@ export type ReformatResumeInput = z.infer<typeof ReformatResumeInputSchema>;
 const ReformatResumeOutputSchema = z.object({
   reformattedResume: z
     .string()
-    .describe('The reformatted resume in a modern, professional format.'),
+    .describe('The reformatted resume in a modern, professional, human-readable text format, ready for display. This should NOT be a JSON string.'),
   missingInformation: z
     .array(z.string())
     .describe('An array of strings indicating missing information in the resume.'),
@@ -42,10 +42,12 @@ const reformatResumePrompt = ai.definePrompt({
   input: {schema: ReformatResumeInputSchema},
   output: {schema: ReformatResumeOutputSchema},
   prompt: `You are an AI resume expert. You will reformat the provided resume into a modern, professional template.
+The 'reformattedResume' output field MUST be a human-readable text version of the resume, well-formatted with appropriate sections, line breaks, and spacing.
+It should be suitable for direct display to a user and for them to copy and paste.
+DO NOT output a JSON string or any code-like structure for the 'reformattedResume' field itself.
 
-You will identify any missing information in the resume and provide an array of strings indicating what is missing.
-
-You will also provide an array of questions to prompt the user to complete the resume with the missing information.
+You will also identify any missing information in the resume and provide an array of strings indicating what is missing.
+Additionally, provide an array of questions to prompt the user to complete the resume with the missing information.
 
 Resume:
 {{media url=resumeDataUri}}`,

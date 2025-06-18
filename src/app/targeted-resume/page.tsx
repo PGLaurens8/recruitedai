@@ -1,18 +1,18 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { tailorResumeToJobSpec, type TailorResumeToJobSpecOutput } from '@/ai/flows/tailor-resume-to-job-spec';
 import { assessJobMatch, type AssessJobMatchInput, type AssessJobMatchOutput } from '@/ai/flows/assess-job-match';
 import { generateCoverLetter, type GenerateCoverLetterInput, type GenerateCoverLetterOutput } from '@/ai/flows/generate-cover-letter';
 import { fileToDataURI, textToDataURI } from '@/lib/file-utils';
 import { ResumeSection } from '@/components/feature/resume-section';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, FileText, Briefcase, AlertTriangle, Target, UploadCloud, Download, Sparkles, UserCheck, FileSignature, PercentCircle, BarChartBig, Brain, HelpCircle as HelpCircleIcon } from 'lucide-react'; // Renamed HelpCircle to avoid conflict
+import { Lightbulb, FileText, Briefcase, AlertTriangle, Target, UploadCloud, Download, Sparkles, UserCheck, FileSignature, PercentCircle, BarChartBig, Brain, HelpCircle as HelpCircleIcon, Edit3, CheckCircle } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,8 +22,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type JobSpecInputType = "file" | "text" | "url";
 
+const LOCAL_STORAGE_KEYS = {
+  MASTER_RESUME_TEXT: 'masterResume_text',
+  MASTER_RESUME_TITLE: 'masterResume_title',
+  MASTER_RESUME_TIMESTAMP: 'masterResume_timestamp',
+};
+
 export default function JobMatchingPage() {
   const [masterResumeText, setMasterResumeText] = useState('');
+  const [masterResumeTitle, setMasterResumeTitle] = useState('');
+  const [masterResumeTimestamp, setMasterResumeTimestamp] = useState('');
+  const [isMasterResumeFromStorage, setIsMasterResumeFromStorage] = useState(false);
+  
   const [jobSpecInputType, setJobSpecInputType] = useState<JobSpecInputType>("text");
   const [jobSpecFile, setJobSpecFile] = useState<File | null>(null);
   const [jobSpecText, setJobSpecText] = useState('');
@@ -41,6 +51,33 @@ export default function JobMatchingPage() {
   
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const storedText = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
+    const storedTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE);
+    const storedTimestamp = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP);
+
+    if (storedText && storedTitle && storedTimestamp) {
+      setMasterResumeText(storedText);
+      setMasterResumeTitle(storedTitle);
+      setMasterResumeTimestamp(storedTimestamp);
+      setIsMasterResumeFromStorage(true);
+    } else {
+      setIsMasterResumeFromStorage(false);
+    }
+  }, []);
+
+  const handleClearStoredMasterResume = () => {
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP);
+    setMasterResumeText('');
+    setMasterResumeTitle('');
+    setMasterResumeTimestamp('');
+    setIsMasterResumeFromStorage(false);
+    toast({ title: "Stored Master Resume Cleared", description: "You can now paste new resume content." });
+  };
+
 
   const handleJobSpecFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -62,6 +99,8 @@ export default function JobMatchingPage() {
     } else if (jobSpecInputType === "text" && jobSpecText.trim()) {
       hasValidInput = true;
     } else if (jobSpecInputType === "url" && jobSpecUrl.trim()) {
+      // For URLs, we'll pass the URL itself as text. The AI might be able to fetch or interpret.
+      // Or, a more advanced implementation could fetch the content here. For now, pass as text.
       jobSpecInputTextValue = `Job Specification from URL: ${jobSpecUrl.trim()}`;
       toast({ title: "URL as Text", description: "Job spec URL content will be treated as text. For best results, paste content directly or upload a file."});
       hasValidInput = true;
@@ -72,7 +111,7 @@ export default function JobMatchingPage() {
   
   const handleAssessMatch = async () => {
     if (!masterResumeText.trim()) {
-      toast({ variant: "destructive", title: "Missing Master Resume", description: "Please paste your master resume text into the designated area." });
+      toast({ variant: "destructive", title: "Missing Master Resume", description: "Please provide your master resume text or create one on the Master Resume page." });
       return;
     }
     const { jobSpecDataUri, jobSpecText: currentJobSpecText, hasInput } = await getJobSpecInputs();
@@ -83,8 +122,8 @@ export default function JobMatchingPage() {
 
     setIsLoadingAssessment(true);
     setAssessmentOutput(null);
-    setTailoredResumeOutput(null);
-    setCoverLetterOutput(null);
+    setTailoredResumeOutput(null); // Clear previous results
+    setCoverLetterOutput(null);  // Clear previous results
     setError(null);
 
     try {
@@ -104,7 +143,7 @@ export default function JobMatchingPage() {
 
   const handleTailorAndGenerateCoverLetter = async () => {
     if (!masterResumeText.trim()) {
-      toast({ variant: "destructive", title: "Missing Master Resume", description: "Please paste your master resume text into the designated area." });
+      toast({ variant: "destructive", title: "Missing Master Resume", description: "Please provide your master resume text or create one on the Master Resume page." });
       return;
     }
     const { jobSpecDataUri, jobSpecText: currentJobSpecText, hasInput } = await getJobSpecInputs();
@@ -115,31 +154,33 @@ export default function JobMatchingPage() {
 
     setIsLoadingTailoring(true);
     setIsLoadingCoverLetter(true);
-    setTailoredResumeOutput(null);
-    setCoverLetterOutput(null);
+    // setTailoredResumeOutput(null); // Keep assessment if user clicks this after assessing
+    // setCoverLetterOutput(null);
     setError(null);
 
     const masterResumeDataUriVal = textToDataURI(masterResumeText);
 
     try {
+      // Tailor Resume
       const tailorInput = { masterResumeDataUri: masterResumeDataUriVal, jobSpecDataUri, jobSpecText: currentJobSpecText };
       const tailoredResult = await tailorResumeToJobSpec(tailorInput);
       setTailoredResumeOutput(tailoredResult);
-      toast({ title: "Resume Tailored!", description: "Your resume has been customized." });
+      toast({ title: "Resume Tailored!", description: "Your resume has been customized for the job." });
 
+      // Generate Cover Letter
       const coverLetterInput: GenerateCoverLetterInput = {
         masterResumeDataUri: masterResumeDataUriVal,
         jobSpecDataUri,
         jobSpecText: currentJobSpecText,
         companyName: companyName.trim() || undefined,
         jobTitle: jobTitleForCoverLetter.trim() || undefined,
-        tailoredResumeText: tailoredResult.tailoredResume,
+        tailoredResumeText: tailoredResult.tailoredResume, // Use the newly tailored resume
       };
       const coverLetterResult = await generateCoverLetter(coverLetterInput);
       setCoverLetterOutput(coverLetterResult);
       toast({ title: "Cover Letter Generated!", description: "AI has drafted a cover letter for you." });
 
-    } catch (e: any) {
+    } catch (e: any)      {
       console.error("Error in tailoring/cover letter generation:", e);
       setError(e.message || "An unexpected error occurred.");
       toast({ variant: "destructive", title: "Processing Error", description: e.message });
@@ -173,16 +214,36 @@ export default function JobMatchingPage() {
         <Card className="w-full">
           <CardHeader>
             <CardTitle className="flex items-center"><Briefcase className="mr-2 h-6 w-6 text-primary"/> Your Master Resume</CardTitle>
-            <CardDescription>Paste the text of your AI-crafted Master Resume here. In future versions, you'll be able to select from your saved resumes.</CardDescription>
+            {!isMasterResumeFromStorage && (
+              <CardDescription>Paste the text of your AI-crafted Master Resume here. Or, create/update one on the 'Master Resume' page to use it automatically.</CardDescription>
+            )}
           </CardHeader>
           <CardContent>
-            <Textarea
-              placeholder="Paste your master resume content here..."
-              value={masterResumeText}
-              onChange={(e) => setMasterResumeText(e.target.value)}
-              className="min-h-[300px] font-mono text-sm"
-              aria-label="Master Resume Text Area"
-            />
+            {isMasterResumeFromStorage ? (
+              <Card className="bg-primary/5 border-primary">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center text-primary-dark">
+                    <CheckCircle className="mr-2 h-5 w-5 text-green-500" /> Loaded: {masterResumeTitle}
+                  </CardTitle>
+                  <CardDescription>
+                    Last processed: {masterResumeTimestamp}
+                  </CardDescription>
+                </CardHeader>
+                <CardFooter>
+                  <Button variant="outline" size="sm" onClick={handleClearStoredMasterResume}>
+                    <Edit3 className="mr-2 h-4 w-4" /> Use Different Resume
+                  </Button>
+                </CardFooter>
+              </Card>
+            ) : (
+              <Textarea
+                placeholder="Paste your master resume content here..."
+                value={masterResumeText}
+                onChange={(e) => setMasterResumeText(e.target.value)}
+                className="min-h-[300px] font-mono text-sm"
+                aria-label="Master Resume Text Area"
+              />
+            )}
           </CardContent>
         </Card>
 

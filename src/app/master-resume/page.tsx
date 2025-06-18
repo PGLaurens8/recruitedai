@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FileUploadCard } from '@/components/feature/file-upload-card';
@@ -16,6 +16,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+const LOCAL_STORAGE_KEYS = {
+  MASTER_RESUME_TEXT: 'masterResume_text',
+  MASTER_RESUME_TITLE: 'masterResume_title',
+  MASTER_RESUME_TIMESTAMP: 'masterResume_timestamp',
+};
 
 export default function MasterResumePage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -25,24 +30,51 @@ export default function MasterResumePage() {
   const [resumeTitle, setResumeTitle] = useState("My Master Resume");
   const [processedTimestamp, setProcessedTimestamp] = useState<string | null>(null);
 
+  useEffect(() => {
+    // Load title and timestamp from localStorage on initial mount if they exist
+    const storedTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE);
+    const storedTimestamp = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP);
+    if (storedTitle) {
+      setResumeTitle(storedTitle);
+    }
+    if (storedTimestamp) {
+      // Potentially load the full AI output too if we want to repopulate the page
+      // For now, just the title and timestamp for display consistency
+      const storedText = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
+      if(storedText && storedTimestamp && storedTitle) { // if all parts are there
+        setAiOutput({ reformattedResume: storedText, missingInformation: [], questions: [] }); // Simplified, real app might store full object
+        setProcessedTimestamp(storedTimestamp);
+      }
+    }
+  }, []);
+
+
   const handleFileUpload = async (file: File) => {
     setIsLoading(true);
     setAiOutput(null);
     setError(null);
-    setProcessedTimestamp(null);
+    
+    const currentTimestamp = new Date().toLocaleString();
+    setProcessedTimestamp(currentTimestamp);
+
 
     try {
       const resumeDataUri = await fileToDataURI(file);
       const result = await reformatResume({ resumeDataUri });
       setAiOutput(result);
-      setProcessedTimestamp(new Date().toLocaleString());
+      
+      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT, result.reformattedResume);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE, resumeTitle);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP, currentTimestamp);
+
       toast({
         title: "Resume Processed Successfully!",
-        description: "Your master resume has been reformatted by AI.",
+        description: "Your master resume has been reformatted and saved for this session.",
       });
     } catch (e: any) {
       console.error("Error reformatting resume:", e);
       setError(e.message || "An unexpected error occurred.");
+      setProcessedTimestamp(null); // Clear timestamp on error
       toast({
         variant: "destructive",
         title: "Error Processing Resume",
@@ -52,6 +84,16 @@ export default function MasterResumePage() {
       setIsLoading(false);
     }
   };
+  
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setResumeTitle(newTitle);
+    // If a resume is already processed, update its title in localStorage
+    if (aiOutput && aiOutput.reformattedResume) {
+      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE, newTitle);
+    }
+  };
+
 
   const downloadTextFile = (filename: string, text: string) => {
     const element = document.createElement("a");
@@ -101,7 +143,7 @@ export default function MasterResumePage() {
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
               <Input 
                 value={resumeTitle} 
-                onChange={(e) => setResumeTitle(e.target.value)} 
+                onChange={handleTitleChange} 
                 placeholder="Enter Your Resume Title"
                 className="text-xl font-semibold !text-primary flex-grow border-primary focus:!border-primary focus:!ring-primary"
                 aria-label="Resume Title"
@@ -117,7 +159,7 @@ export default function MasterResumePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 sm:p-6">
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-background p-4 rounded-md border">
+                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/20 p-4 rounded-md border">
                   {aiOutput.reformattedResume || "The AI didn't return any resume content. Please check your uploaded file."}
                 </pre>
               </CardContent>
