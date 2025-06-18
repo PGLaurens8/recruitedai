@@ -31,20 +31,16 @@ export default function MasterResumePage() {
   const [processedTimestamp, setProcessedTimestamp] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load title and timestamp from localStorage on initial mount if they exist
     const storedTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE);
     const storedTimestamp = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP);
+    const storedText = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
+
     if (storedTitle) {
       setResumeTitle(storedTitle);
     }
-    if (storedTimestamp) {
-      // Potentially load the full AI output too if we want to repopulate the page
-      // For now, just the title and timestamp for display consistency
-      const storedText = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
-      if(storedText && storedTimestamp && storedTitle) { // if all parts are there
-        setAiOutput({ reformattedResume: storedText, missingInformation: [], questions: [] }); // Simplified, real app might store full object
+    if (storedTimestamp && storedText) {
+        setAiOutput({ reformattedResume: storedText, missingInformation: [], questions: [] });
         setProcessedTimestamp(storedTimestamp);
-      }
     }
   }, []);
 
@@ -64,7 +60,7 @@ export default function MasterResumePage() {
       setAiOutput(result);
       
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT, result.reformattedResume);
-      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE, resumeTitle);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE, resumeTitle); // Use current resumeTitle state
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP, currentTimestamp);
 
       toast({
@@ -74,7 +70,7 @@ export default function MasterResumePage() {
     } catch (e: any) {
       console.error("Error reformatting resume:", e);
       setError(e.message || "An unexpected error occurred.");
-      setProcessedTimestamp(null); // Clear timestamp on error
+      setProcessedTimestamp(null); 
       toast({
         variant: "destructive",
         title: "Error Processing Resume",
@@ -88,8 +84,8 @@ export default function MasterResumePage() {
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setResumeTitle(newTitle);
-    // If a resume is already processed, update its title in localStorage
-    if (aiOutput && aiOutput.reformattedResume) {
+    // If a resume is already processed and its text exists in localStorage, update its title there too
+    if (localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT)) {
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE, newTitle);
     }
   };
@@ -138,7 +134,7 @@ export default function MasterResumePage() {
       )}
 
       {aiOutput && (
-        <ScrollArea className="mt-12 p-1 rounded-lg border bg-background shadow-lg max-h-[100vh]">
+        <ScrollArea className="mt-12 p-1 rounded-lg border bg-background shadow-lg max-h-[75vh]">
           <div className="p-4 sm:p-6 space-y-8">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
               <Input 

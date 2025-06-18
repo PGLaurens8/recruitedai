@@ -75,6 +75,9 @@ export default function JobMatchingPage() {
     setMasterResumeTitle('');
     setMasterResumeTimestamp('');
     setIsMasterResumeFromStorage(false);
+    setAssessmentOutput(null); // Clear results as master resume changed
+    setTailoredResumeOutput(null);
+    setCoverLetterOutput(null);
     toast({ title: "Stored Master Resume Cleared", description: "You can now paste new resume content." });
   };
 
@@ -99,8 +102,6 @@ export default function JobMatchingPage() {
     } else if (jobSpecInputType === "text" && jobSpecText.trim()) {
       hasValidInput = true;
     } else if (jobSpecInputType === "url" && jobSpecUrl.trim()) {
-      // For URLs, we'll pass the URL itself as text. The AI might be able to fetch or interpret.
-      // Or, a more advanced implementation could fetch the content here. For now, pass as text.
       jobSpecInputTextValue = `Job Specification from URL: ${jobSpecUrl.trim()}`;
       toast({ title: "URL as Text", description: "Job spec URL content will be treated as text. For best results, paste content directly or upload a file."});
       hasValidInput = true;
@@ -111,7 +112,7 @@ export default function JobMatchingPage() {
   
   const handleAssessMatch = async () => {
     if (!masterResumeText.trim()) {
-      toast({ variant: "destructive", title: "Missing Master Resume", description: "Please provide your master resume text or create one on the Master Resume page." });
+      toast({ variant: "destructive", title: "Missing Master Resume", description: "Please provide your master resume text using the 'Master Resume' page, or clear the stored resume to paste new content here." });
       return;
     }
     const { jobSpecDataUri, jobSpecText: currentJobSpecText, hasInput } = await getJobSpecInputs();
@@ -122,8 +123,8 @@ export default function JobMatchingPage() {
 
     setIsLoadingAssessment(true);
     setAssessmentOutput(null);
-    setTailoredResumeOutput(null); // Clear previous results
-    setCoverLetterOutput(null);  // Clear previous results
+    setTailoredResumeOutput(null); 
+    setCoverLetterOutput(null);  
     setError(null);
 
     try {
@@ -143,7 +144,7 @@ export default function JobMatchingPage() {
 
   const handleTailorAndGenerateCoverLetter = async () => {
     if (!masterResumeText.trim()) {
-      toast({ variant: "destructive", title: "Missing Master Resume", description: "Please provide your master resume text or create one on the Master Resume page." });
+       toast({ variant: "destructive", title: "Missing Master Resume", description: "Please provide your master resume text using the 'Master Resume' page, or clear the stored resume to paste new content here." });
       return;
     }
     const { jobSpecDataUri, jobSpecText: currentJobSpecText, hasInput } = await getJobSpecInputs();
@@ -174,7 +175,7 @@ export default function JobMatchingPage() {
         jobSpecText: currentJobSpecText,
         companyName: companyName.trim() || undefined,
         jobTitle: jobTitleForCoverLetter.trim() || undefined,
-        tailoredResumeText: tailoredResult.tailoredResume, // Use the newly tailored resume
+        tailoredResumeText: tailoredResult.tailoredResume, 
       };
       const coverLetterResult = await generateCoverLetter(coverLetterInput);
       setCoverLetterOutput(coverLetterResult);
@@ -215,7 +216,7 @@ export default function JobMatchingPage() {
           <CardHeader>
             <CardTitle className="flex items-center"><Briefcase className="mr-2 h-6 w-6 text-primary"/> Your Master Resume</CardTitle>
             {!isMasterResumeFromStorage && (
-              <CardDescription>Paste the text of your AI-crafted Master Resume here. Or, create/update one on the 'Master Resume' page to use it automatically.</CardDescription>
+              <CardDescription>Paste the content of your AI-crafted Master Resume here, or create one on the 'Master Resume' page to use it automatically. If a Master Resume is loaded from storage, it will be displayed below.</CardDescription>
             )}
           </CardHeader>
           <CardContent>
@@ -226,7 +227,7 @@ export default function JobMatchingPage() {
                     <CheckCircle className="mr-2 h-5 w-5 text-green-500" /> Loaded: {masterResumeTitle}
                   </CardTitle>
                   <CardDescription>
-                    Last processed: {masterResumeTimestamp}
+                    Processed: {masterResumeTimestamp}
                   </CardDescription>
                 </CardHeader>
                 <CardFooter>
@@ -383,7 +384,7 @@ export default function JobMatchingPage() {
       )}
 
       {(tailoredResumeOutput || coverLetterOutput) && !(isLoadingTailoring || isLoadingCoverLetter) && (
-        <ScrollArea className="mt-8 p-1 rounded-lg border bg-background shadow-lg max-h-[100vh]">
+        <ScrollArea className="mt-8 p-1 rounded-lg border bg-background shadow-lg max-h-[75vh]">
           <div className="p-4 sm:p-6 space-y-8">
             <h2 className="text-3xl font-bold text-center font-headline text-primary">Your Tailored Application Documents</h2>
             
@@ -403,7 +404,7 @@ export default function JobMatchingPage() {
                   </CardContent>
                 </Card>
                 <div className="text-center">
-                    <Button size="lg" onClick={() => downloadTextFile("tailored_resume.txt", tailoredResumeOutput.tailoredResume)}>
+                    <Button size="lg" onClick={() => downloadTextFile("tailored_resume.txt", tailoredResumeOutput.tailoredResume)} disabled={!tailoredResumeOutput.tailoredResume}>
                         <Download className="mr-2 h-5 w-5" /> Download Tailored Resume (TXT)
                     </Button>
                 </div>
@@ -437,8 +438,8 @@ export default function JobMatchingPage() {
                     </pre>
                   </CardContent>
                 </Card>
-                 <div className="text-center">
-                    <Button size="lg" onClick={() => downloadTextFile("cover_letter.txt", coverLetterOutput.coverLetter)}>
+                 <div className="text-center mt-4">
+                    <Button size="lg" onClick={() => downloadTextFile("cover_letter.txt", coverLetterOutput.coverLetter)} disabled={!coverLetterOutput.coverLetter}>
                         <Download className="mr-2 h-5 w-5" /> Download Cover Letter (TXT)
                     </Button>
                 </div>
