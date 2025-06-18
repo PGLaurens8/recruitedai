@@ -1,3 +1,4 @@
+
 "use client";
 
 import type React from 'react';
@@ -18,7 +19,7 @@ interface FileUploadCardProps {
 
 export function FileUploadCard({
   onFileUpload,
-  acceptedFileTypes = ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  acceptedFileTypes = ".pdf,.txt,application/pdf,text/plain", // Changed to PDF and TXT
   title,
   description,
   ctaText = "Upload File",
@@ -82,7 +83,7 @@ export function FileUploadCard({
                 <span className="font-semibold">Click to upload</span> or drag and drop
               </p>
               <p className={`text-xs ${dragActive ? "text-primary" : "text-muted-foreground"}`}>
-                PDF, DOC, DOCX (MAX. 5MB)
+                PDF, TXT (MAX. 5MB) {/* Changed text here */}
               </p>
             </div>
             <Input

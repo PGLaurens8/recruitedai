@@ -39,6 +39,8 @@ export default function MasterResumePage() {
       setResumeTitle(storedTitle);
     }
     if (storedTimestamp && storedText) {
+        // Only set aiOutput if there's text, otherwise it could show an empty pre block
+        // if user only had a title/timestamp from a previous non-text interaction
         setAiOutput({ reformattedResume: storedText, missingInformation: [], questions: [] });
         setProcessedTimestamp(storedTimestamp);
     }
@@ -51,16 +53,16 @@ export default function MasterResumePage() {
     setError(null);
     
     const currentTimestamp = new Date().toLocaleString();
-    setProcessedTimestamp(currentTimestamp);
-
+    
 
     try {
       const resumeDataUri = await fileToDataURI(file);
       const result = await reformatResume({ resumeDataUri });
       setAiOutput(result);
+      setProcessedTimestamp(currentTimestamp); // Set timestamp only on success
       
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT, result.reformattedResume);
-      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE, resumeTitle); // Use current resumeTitle state
+      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE, resumeTitle);
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP, currentTimestamp);
 
       toast({
@@ -84,7 +86,6 @@ export default function MasterResumePage() {
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setResumeTitle(newTitle);
-    // If a resume is already processed and its text exists in localStorage, update its title there too
     if (localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT)) {
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE, newTitle);
     }
@@ -112,7 +113,7 @@ export default function MasterResumePage() {
 
       <FileUploadCard
         title="Upload Your Resume"
-        description="Supports PDF, DOC, DOCX files. The AI will reformat it into a professional template."
+        description="Supports PDF and TXT files. The AI will reformat it into a professional template." // Updated description
         onFileUpload={handleFileUpload}
         ctaText={isLoading ? "Processing..." : "Reformat Resume"}
         icon={<UploadCloud className="h-10 w-10 text-primary mb-2" />}
