@@ -39,8 +39,6 @@ export default function MasterResumePage() {
       setResumeTitle(storedTitle);
     }
     if (storedTimestamp && storedText) {
-        // Only set aiOutput if there's text, otherwise it could show an empty pre block
-        // if user only had a title/timestamp from a previous non-text interaction
         setAiOutput({ reformattedResume: storedText, missingInformation: [], questions: [] });
         setProcessedTimestamp(storedTimestamp);
     }
@@ -59,7 +57,7 @@ export default function MasterResumePage() {
       const resumeDataUri = await fileToDataURI(file);
       const result = await reformatResume({ resumeDataUri });
       setAiOutput(result);
-      setProcessedTimestamp(currentTimestamp); // Set timestamp only on success
+      setProcessedTimestamp(currentTimestamp); 
       
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT, result.reformattedResume);
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE, resumeTitle);
@@ -107,16 +105,17 @@ export default function MasterResumePage() {
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold tracking-tight font-headline text-primary">Master Resume Builder</h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Upload your existing resume. Our AI will analyze and reformat it. This becomes your Master Resume.
+          Upload your existing resume (PDF or TXT). Our AI will analyze and reformat it. This becomes your Master Resume.
         </p>
       </div>
 
       <FileUploadCard
         title="Upload Your Resume"
-        description="Supports PDF and TXT files. The AI will reformat it into a professional template." // Updated description
+        description="Supports PDF and TXT files. The AI will reformat it into a professional template."
         onFileUpload={handleFileUpload}
         ctaText={isLoading ? "Processing..." : "Reformat Resume"}
         icon={<UploadCloud className="h-10 w-10 text-primary mb-2" />}
+        acceptedFileTypes=".pdf,.txt,application/pdf,text/plain"
       />
 
       {isLoading && (
