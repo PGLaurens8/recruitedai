@@ -1,3 +1,4 @@
+
 // src/ai/flows/tailor-resume-to-job-spec.ts
 'use server';
 
@@ -20,15 +21,16 @@ const TailorResumeToJobSpecInputSchema = z.object({
     ),
   jobSpecDataUri: z
     .string()
+    .optional() // Made this optional
     .describe(
-      'The job specification, as a data URI that must include a MIME type and use Base64 encoding. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.' 
+      'The job specification file (e.g., PDF, DOCX), as a data URI. Expected format: \'data:<mimetype>;base64,<encoded_data>\'.'
     ),
-  jobSpecText: z.string().optional().describe('The text of the job specification, if available.'),
+  jobSpecText: z.string().optional().describe('The text of the job specification, if a file is not provided or if a URL is provided.'),
 });
 export type TailorResumeToJobSpecInput = z.infer<typeof TailorResumeToJobSpecInputSchema>;
 
 const TailorResumeToJobSpecOutputSchema = z.object({
-  tailoredResume: z.string().describe('The tailored resume.'),
+  tailoredResume: z.string().describe('The tailored resume in a human-readable text format, ready for display. This should NOT be a JSON string.'),
   questions: z.array(z.string()).describe('Clarifying questions for the user to improve the match.'),
 });
 export type TailorResumeToJobSpecOutput = z.infer<typeof TailorResumeToJobSpecOutputSchema>;
@@ -42,6 +44,9 @@ const tailorResumeToJobSpecPrompt = ai.definePrompt({
   input: {schema: TailorResumeToJobSpecInputSchema},
   output: {schema: TailorResumeToJobSpecOutputSchema},
   prompt: `You are an expert resume tailor. Your goal is to tailor a master resume to a specific job description.
+The 'tailoredResume' output field MUST be a human-readable text version of the resume, well-formatted with appropriate sections, line breaks, and spacing.
+It should be suitable for direct display to a user and for them to copy and paste.
+DO NOT output a JSON string or any code-like structure for the 'tailoredResume' field itself.
 
 You will receive the master resume and the job specification.
 
@@ -53,7 +58,7 @@ Master Resume:
 {{media url=masterResumeDataUri}}
 
 Job Specification:
-{{#if jobSpecText}}{{{jobSpecText}}}{{else}}{{media url=jobSpecDataUri}}{{/if}}`,
+{{#if jobSpecText}}{{{jobSpecText}}}{{else}}{{#if jobSpecDataUri}}{{media url=jobSpecDataUri}}{{else}}No job specification text or file provided.{{/if}}{{/if}}`,
 });
 
 const tailorResumeToJobSpecFlow = ai.defineFlow(
@@ -62,8 +67,12 @@ const tailorResumeToJobSpecFlow = ai.defineFlow(
     inputSchema: TailorResumeToJobSpecInputSchema,
     outputSchema: TailorResumeToJobSpecOutputSchema,
   },
-  async input => {
+  async (input: TailorResumeToJobSpecInput) => {
+    if (!input.jobSpecDataUri && !input.jobSpecText) {
+      throw new Error('Either jobSpecDataUri or jobSpecText must be provided for the job specification.');
+    }
     const {output} = await tailorResumeToJobSpecPrompt(input);
     return output!;
   }
 );
+
