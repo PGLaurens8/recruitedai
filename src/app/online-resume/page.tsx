@@ -15,47 +15,48 @@ import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const LOCAL_STORAGE_KEYS = {
-  MASTER_RESUME_TEXT: 'masterResume_text',
-  MASTER_RESUME_TITLE: 'masterResume_title',
+  MASTER_RESUME_TEXT: 'careerCraft_masterResumeText',
+  MASTER_RESUME_USER_TITLE: 'careerCraft_masterResumeUserTitle', // User-defined title for the resume document
+  MASTER_RESUME_EXTRACTED_NAME: 'careerCraft_masterResumeExtractedName',
+  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'careerCraft_masterResumeExtractedJobTitle',
+  MASTER_RESUME_TIMESTAMP: 'careerCraft_masterResumeTimestamp', // Not directly used here but part of the set
 };
 
-// sampleResumeData will now act more as a fallback or for parts not covered by the loaded resume text
-const sampleResumeData = {
-  name: "Alex Johnson", // Will be overridden by loadedResumeTitle if available
-  title: "Senior Software Engineer",
+const sampleResumeData = { // Fallback data
+  name: "Your Name", 
+  title: "Your Professional Title",
   avatarUrl: "https://placehold.co/128x128.png",
-  avatarFallback: "AJ", // Will be derived from loadedResumeTitle or sampleResumeData.name
-  location: "San Francisco, CA",
-  phone: "(123) 456-7890",
-  email: "alex.johnson@example.com",
-  linkedin: "linkedin.com/in/alexjohnson", 
-  summary: "Highly skilled and innovative Senior Software Engineer with 8+ years of experience...", // This will be replaced by loadedResumeText
-  experience: [ // This structure will be replaced by loadedResumeText
+  avatarFallback: "YN", 
+  location: "City, State",
+  phone: "(000) 000-0000",
+  email: "youremail@example.com",
+  linkedin: "linkedin.com/in/yourprofile", 
+  summary: "This is a sample summary. Create a Master Resume to see your own content here.",
+  experience: [ 
     {
-      role: "Senior Software Engineer",
-      company: "Innovatech Solutions Inc.",
-      period: "Jan 2020 - Present",
-      location: "San Francisco, CA",
+      role: "Sample Role",
+      company: "Sample Company",
+      period: "Date - Date",
+      location: "Sample Location",
       responsibilities: [
-        "Led a team of 5 engineers...",
+        "Sample responsibility point.",
       ],
-      logo: "https://placehold.co/40x40.png?text=IS",
+      logo: "https://placehold.co/40x40.png?text=SC",
     },
   ],
-  education: [ // This structure will be replaced by loadedResumeText
+  education: [ 
     {
-      degree: "Master of Science in Computer Science",
-      institution: "Stanford University",
-      period: "2014 - 2016",
-      location: "Stanford, CA",
-      logo: "https://placehold.co/40x40.png?text=SU",
+      degree: "Sample Degree",
+      institution: "Sample Institution",
+      period: "Date - Date",
+      location: "Sample Location",
+      logo: "https://placehold.co/40x40.png?text=SI",
     },
   ],
-  skills: ["JavaScript", "Python", "Java", "Node.js", "React", "Angular", "Spring Boot", "Docker", "Kubernetes", "AWS", "Microservices", "Agile Methodologies", "SQL", "NoSQL"],
+  skills: ["Skill 1", "Skill 2", "Skill 3"],
   professionalLinks: [
-    { label: "Portfolio", url: "https://example.com/portfolio", icon: <Globe className="h-5 w-5" /> },
-    { label: "GitHub Projects", url: "https://github.com/exampleuser", icon: <Github className="h-5 w-5" /> },
-    { label: "Blog (Coming Soon)", url: "", icon: <LinkIconLucide className="h-5 w-5" /> },
+    { label: "Portfolio", url: "#", icon: <Globe className="h-5 w-5" /> },
+    { label: "GitHub", url: "#", icon: <Github className="h-5 w-5" /> },
   ],
 };
 
@@ -63,18 +64,23 @@ const sampleResumeData = {
 export default function OnlineResumePage() {
   const { toast } = useToast();
   const [loadedResumeText, setLoadedResumeText] = useState<string | null>(null);
-  const [loadedResumeTitle, setLoadedResumeTitle] = useState<string | null>(null);
+  const [loadedExtractedName, setLoadedExtractedName] = useState<string | null>(null);
+  const [loadedExtractedJobTitle, setLoadedExtractedJobTitle] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const text = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
-    const title = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE);
+    const extractedName = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME);
+    const extractedJobTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
     
     if (text) {
       setLoadedResumeText(text);
     }
-    if (title) {
-      setLoadedResumeTitle(title);
+    if (extractedName) {
+      setLoadedExtractedName(extractedName);
+    }
+    if (extractedJobTitle) {
+      setLoadedExtractedJobTitle(extractedJobTitle);
     }
     setIsLoading(false);
   }, []);
@@ -92,12 +98,13 @@ export default function OnlineResumePage() {
     }
   };
   
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = () => { // Placeholder for future PDF download
     toast({ title: "Coming Soon!", description: "PDF download functionality is under development." });
   }
 
-  const displayName = loadedResumeTitle || sampleResumeData.name;
-  const avatarFallbackText = displayName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() || sampleResumeData.avatarFallback;
+  const displayName = loadedExtractedName || sampleResumeData.name;
+  const displayJobTitle = loadedExtractedJobTitle || sampleResumeData.title;
+  const avatarFallbackText = displayName?.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() || sampleResumeData.avatarFallback;
 
   if (isLoading) {
     return (
@@ -113,12 +120,12 @@ export default function OnlineResumePage() {
       <header className="flex flex-col sm:flex-row items-center justify-between mb-10 pb-6 border-b">
         <div className="flex items-center mb-4 sm:mb-0">
           <Avatar className="h-24 w-24 mr-6 border-2 border-primary">
-            <AvatarImage src={sampleResumeData.avatarUrl} alt={displayName} data-ai-hint="professional portrait"/>
+            <AvatarImage src={sampleResumeData.avatarUrl} alt={displayName || "User Avatar"} data-ai-hint="professional portrait"/>
             <AvatarFallback className="text-3xl">{avatarFallbackText}</AvatarFallback>
           </Avatar>
           <div>
             <h1 className="text-4xl font-bold font-headline text-primary">{displayName}</h1>
-            <p className="text-xl text-muted-foreground">{sampleResumeData.title}</p> {/* Professional title still from sample */}
+            <p className="text-xl text-muted-foreground">{displayJobTitle}</p>
           </div>
         </div>
         <div className="flex space-x-2">
@@ -158,14 +165,14 @@ export default function OnlineResumePage() {
             </CardContent>
           </Card>
 
-          {sampleResumeData.professionalLinks && sampleResumeData.professionalLinks.filter(link => link.url).length > 0 && (
+          {sampleResumeData.professionalLinks && sampleResumeData.professionalLinks.filter(link => link.url && link.url !== '#').length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg font-semibold">My Links</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {sampleResumeData.professionalLinks.map((link) => 
-                  link.url ? (
+                  link.url && link.url !== '#' ? ( // Ensure URL is not just '#'
                     <Button
                       key={link.label}
                       variant="outline"
@@ -195,15 +202,15 @@ export default function OnlineResumePage() {
             </CardContent>
           </Card>
            {loadedResumeText && (
-             <p className="text-xs text-muted-foreground">Contact, links, and skills are illustrative. The main resume content is from your uploaded Master Resume.</p>
+             <p className="text-xs text-muted-foreground">Contact, links, and skills are illustrative. The main resume content and headlines are from your uploaded Master Resume.</p>
            )}
         </aside>
 
         <main className="md:col-span-2 space-y-10">
           {loadedResumeText ? (
             <section>
-              <h2 className="flex items-center text-2xl font-semibold font-headline text-primary mb-4">
-                <FileText className="mr-3 h-6 w-6" /> My Master Resume
+              <h2 className="flex items-center text-2xl font-semibold font-headline text-primary mb-4 sr-only">
+                <FileText className="mr-3 h-6 w-6" /> Master Resume Content
               </h2>
               <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/90 bg-muted/30 p-4 rounded-md border">
                 {loadedResumeText}
@@ -271,12 +278,9 @@ export default function OnlineResumePage() {
         </main>
       </div>
        <footer className="mt-12 pt-6 border-t text-center text-xs text-muted-foreground">
-        Powered by CareerCraft AI. {loadedResumeText ? "Some details (contact, skills, links) are illustrative." : "Resume data is illustrative."}
+        Powered by CareerCraft AI. 
+        {loadedResumeText ? " Sidebar details (contact, skills, links) are illustrative placeholders." : " All resume data shown is illustrative."}
       </footer>
     </div>
   );
 }
-
-    
-
-    

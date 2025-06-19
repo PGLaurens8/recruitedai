@@ -23,14 +23,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 type JobSpecInputType = "file" | "text" | "url";
 
 const LOCAL_STORAGE_KEYS = {
-  MASTER_RESUME_TEXT: 'masterResume_text',
-  MASTER_RESUME_TITLE: 'masterResume_title',
-  MASTER_RESUME_TIMESTAMP: 'masterResume_timestamp',
+  MASTER_RESUME_TEXT: 'careerCraft_masterResumeText',
+  MASTER_RESUME_USER_TITLE: 'careerCraft_masterResumeUserTitle',
+  MASTER_RESUME_TIMESTAMP: 'careerCraft_masterResumeTimestamp',
+  // Note: Extracted name and job title are not directly used on this page, but listed for consistency
+  MASTER_RESUME_EXTRACTED_NAME: 'careerCraft_masterResumeExtractedName',
+  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'careerCraft_masterResumeExtractedJobTitle',
 };
 
 export default function JobMatchingPage() {
   const [masterResumeText, setMasterResumeText] = useState('');
-  const [masterResumeTitle, setMasterResumeTitle] = useState('');
+  const [masterResumeUserTitle, setMasterResumeUserTitle] = useState('');
   const [masterResumeTimestamp, setMasterResumeTimestamp] = useState('');
   const [isMasterResumeFromStorage, setIsMasterResumeFromStorage] = useState(false);
   
@@ -54,12 +57,12 @@ export default function JobMatchingPage() {
 
   useEffect(() => {
     const storedText = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
-    const storedTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE);
+    const storedUserTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE);
     const storedTimestamp = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP);
 
-    if (storedText && storedTitle && storedTimestamp) {
+    if (storedText && storedUserTitle && storedTimestamp) {
       setMasterResumeText(storedText);
-      setMasterResumeTitle(storedTitle);
+      setMasterResumeUserTitle(storedUserTitle);
       setMasterResumeTimestamp(storedTimestamp);
       setIsMasterResumeFromStorage(true);
     } else {
@@ -69,10 +72,13 @@ export default function JobMatchingPage() {
 
   const handleClearStoredMasterResume = () => {
     localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME); // Also clear extracted details
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
+
     setMasterResumeText('');
-    setMasterResumeTitle('');
+    setMasterResumeUserTitle('');
     setMasterResumeTimestamp('');
     setIsMasterResumeFromStorage(false);
     setAssessmentOutput(null); 
@@ -102,7 +108,8 @@ export default function JobMatchingPage() {
     } else if (jobSpecInputType === "text" && jobSpecText.trim()) {
       hasValidInput = true;
     } else if (jobSpecInputType === "url" && jobSpecUrl.trim()) {
-      jobSpecInputTextValue = `Job Specification from URL: ${jobSpecUrl.trim()}`;
+      // For now, treat URL content as text. In a future version, this could fetch URL content.
+      jobSpecInputTextValue = `Job Specification from URL: ${jobSpecUrl.trim()}`; // Pass URL itself as text
       toast({ title: "URL as Text", description: "Job spec URL content will be treated as text. For best results, paste content directly or upload a file."});
       hasValidInput = true;
     }
@@ -155,6 +162,8 @@ export default function JobMatchingPage() {
 
     setIsLoadingTailoring(true);
     setIsLoadingCoverLetter(true);
+    setTailoredResumeOutput(null);
+    setCoverLetterOutput(null);
     setError(null);
 
     const masterResumeDataUriVal = textToDataURI(masterResumeText);
@@ -225,7 +234,7 @@ export default function JobMatchingPage() {
               <Card className="bg-primary/5 border-primary">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center text-primary-dark">
-                    <CheckCircle className="mr-2 h-5 w-5 text-green-500" /> Loaded: {masterResumeTitle}
+                    <CheckCircle className="mr-2 h-5 w-5 text-green-500" /> Loaded: {masterResumeUserTitle}
                   </CardTitle>
                   <CardDescription>
                     Processed: {masterResumeTimestamp}

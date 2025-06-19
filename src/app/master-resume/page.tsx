@@ -17,9 +17,11 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const LOCAL_STORAGE_KEYS = {
-  MASTER_RESUME_TEXT: 'masterResume_text',
-  MASTER_RESUME_TITLE: 'masterResume_title',
-  MASTER_RESUME_TIMESTAMP: 'masterResume_timestamp',
+  MASTER_RESUME_TEXT: 'careerCraft_masterResumeText',
+  MASTER_RESUME_USER_TITLE: 'careerCraft_masterResumeUserTitle', // User-defined title for the resume document
+  MASTER_RESUME_EXTRACTED_NAME: 'careerCraft_masterResumeExtractedName',
+  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'careerCraft_masterResumeExtractedJobTitle',
+  MASTER_RESUME_TIMESTAMP: 'careerCraft_masterResumeTimestamp',
 };
 
 export default function MasterResumePage() {
@@ -27,19 +29,28 @@ export default function MasterResumePage() {
   const [aiOutput, setAiOutput] = useState<ReformatResumeOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const [resumeTitle, setResumeTitle] = useState("My Master Resume");
+  const [resumeUserTitle, setResumeUserTitle] = useState("My Master Resume"); // User-defined title
   const [processedTimestamp, setProcessedTimestamp] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE);
+    const storedUserTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE);
     const storedTimestamp = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP);
     const storedText = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
+    const storedExtractedName = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME);
+    const storedExtractedJobTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
+    // Note: missingInfo and questions are not typically stored long-term unless the output structure is always consistent.
 
-    if (storedTitle) {
-      setResumeTitle(storedTitle);
+    if (storedUserTitle) {
+      setResumeUserTitle(storedUserTitle);
     }
     if (storedTimestamp && storedText) {
-        setAiOutput({ reformattedResume: storedText, missingInformation: [], questions: [] });
+        setAiOutput({ 
+          reformattedResume: storedText, 
+          fullName: storedExtractedName || undefined,
+          currentJobTitle: storedExtractedJobTitle || undefined,
+          missingInformation: [], // These are not stored, so default to empty
+          questions: [] // These are not stored, so default to empty
+        });
         setProcessedTimestamp(storedTimestamp);
     }
   }, []);
@@ -52,7 +63,6 @@ export default function MasterResumePage() {
     
     const currentTimestamp = new Date().toLocaleString();
     
-
     try {
       const resumeDataUri = await fileToDataURI(file);
       const result = await reformatResume({ resumeDataUri });
@@ -60,12 +70,23 @@ export default function MasterResumePage() {
       setProcessedTimestamp(currentTimestamp); 
       
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT, result.reformattedResume);
-      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE, resumeTitle);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE, resumeUserTitle);
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP, currentTimestamp);
+      if (result.fullName) {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME, result.fullName);
+      } else {
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME);
+      }
+      if (result.currentJobTitle) {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE, result.currentJobTitle);
+      } else {
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
+      }
+
 
       toast({
         title: "Resume Processed Successfully!",
-        description: "Your master resume has been reformatted and saved for this session.",
+        description: "Your master resume has been reformatted and key details saved for this session.",
       });
     } catch (e: any) {
       console.error("Error reformatting resume:", e);
@@ -83,9 +104,10 @@ export default function MasterResumePage() {
   
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
-    setResumeTitle(newTitle);
+    setResumeUserTitle(newTitle);
+    // If a resume is already processed and stored, update its user-defined title in localStorage
     if (localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT)) {
-      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TITLE, newTitle);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE, newTitle);
     }
   };
 
@@ -105,7 +127,7 @@ export default function MasterResumePage() {
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold tracking-tight font-headline text-primary">Master Resume Builder</h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          Upload your existing resume (PDF or TXT). Our AI will analyze and reformat it. This becomes your Master Resume.
+          Upload your existing resume (PDF or TXT). Our AI will analyze, reformat it, and extract key details. This becomes your Master Resume.
         </p>
       </div>
 
@@ -138,9 +160,9 @@ export default function MasterResumePage() {
           <div className="p-4 sm:p-6 space-y-8">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
               <Input 
-                value={resumeTitle} 
+                value={resumeUserTitle} 
                 onChange={handleTitleChange} 
-                placeholder="Enter Your Resume Title"
+                placeholder="Enter Your Resume Title (e.g., My Software Eng Resume)"
                 className="text-xl font-semibold !text-primary flex-grow border-primary focus:!border-primary focus:!ring-primary"
                 aria-label="Resume Title"
               />
@@ -155,6 +177,12 @@ export default function MasterResumePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 sm:p-6">
+                 {aiOutput.fullName && (
+                  <p className="text-lg font-semibold text-card-foreground mb-1">Extracted Name: {aiOutput.fullName}</p>
+                )}
+                {aiOutput.currentJobTitle && (
+                  <p className="text-md text-muted-foreground mb-3">Extracted Job Title: {aiOutput.currentJobTitle}</p>
+                )}
                 <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/20 p-4 rounded-md border">
                   {aiOutput.reformattedResume || "The AI didn't return any resume content. Please check your uploaded file."}
                 </pre>
@@ -184,7 +212,7 @@ export default function MasterResumePage() {
             )}
             
             <div className="mt-8 text-center">
-                <Button size="lg" onClick={() => downloadTextFile(`${resumeTitle.replace(/\s+/g, '_') || 'master_resume'}.txt`, aiOutput.reformattedResume)} disabled={!aiOutput.reformattedResume}>
+                <Button size="lg" onClick={() => downloadTextFile(`${resumeUserTitle.replace(/\s+/g, '_') || 'master_resume'}.txt`, aiOutput.reformattedResume)} disabled={!aiOutput.reformattedResume}>
                     <Download className="mr-2 h-5 w-5" /> Download Master Resume (TXT)
                 </Button>
                 <p className="text-xs text-muted-foreground mt-2">Full PDF/Word download coming soon. Editing capabilities are available via the 'My Resumes' dashboard (feature in development).</p>

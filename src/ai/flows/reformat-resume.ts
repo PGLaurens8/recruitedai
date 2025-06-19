@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -24,6 +25,8 @@ const ReformatResumeOutputSchema = z.object({
   reformattedResume: z
     .string()
     .describe('The reformatted resume in a modern, professional, human-readable text format, ready for display. This should NOT be a JSON string.'),
+  fullName: z.string().optional().describe("The full name of the resume holder, extracted from the resume content."),
+  currentJobTitle: z.string().optional().describe("The current or most recent job title of the resume holder, extracted from the resume content."),
   missingInformation: z
     .array(z.string())
     .describe('An array of strings indicating missing information in the resume.'),
@@ -46,8 +49,11 @@ The 'reformattedResume' output field MUST be a human-readable text version of th
 It should be suitable for direct display to a user and for them to copy and paste.
 DO NOT output a JSON string or any code-like structure for the 'reformattedResume' field itself.
 
-You will also identify any missing information in the resume and provide an array of strings indicating what is missing.
-Additionally, provide an array of questions to prompt the user to complete the resume with the missing information.
+You will also extract the full name of the resume holder and their current or most recent job title from the resume content. Populate the 'fullName' and 'currentJobTitle' fields in the output.
+If these cannot be reliably determined, leave them blank or undefined.
+
+Additionally, identify any missing information in the resume and provide an array of strings indicating what is missing in the 'missingInformation' field.
+Provide an array of questions in the 'questions' field to prompt the user to complete the resume with the missing information.
 
 Resume:
 {{media url=resumeDataUri}}`,
