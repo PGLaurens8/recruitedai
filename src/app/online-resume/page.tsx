@@ -195,7 +195,7 @@ export default function OnlineResumePage() {
             </CardContent>
           </Card>
            {loadedResumeText && (
-             <p className="text-xs text-muted-foreground">Contact, links, and skills are illustrative. The main resume content above is from your uploaded Master Resume.</p>
+             <p className="text-xs text-muted-foreground">Contact, links, and skills are illustrative. The main resume content is from your uploaded Master Resume.</p>
            )}
         </aside>
 
@@ -271,10 +271,12 @@ export default function OnlineResumePage() {
         </main>
       </div>
        <footer className="mt-12 pt-6 border-t text-center text-xs text-muted-foreground">
-        Powered by CareerCraft AI. {loadedResumeText ? "Some details are illustrative." : "Resume data is illustrative."}
+        Powered by CareerCraft AI. {loadedResumeText ? "Some details (contact, skills, links) are illustrative." : "Resume data is illustrative."}
       </footer>
     </div>
   );
 }
+
+    
 
     
