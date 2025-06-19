@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Link from "next/link"; // Added import
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -467,3 +468,5 @@ export default function JobMatchingPage() {
     </div>
   );
 }
+
+    
