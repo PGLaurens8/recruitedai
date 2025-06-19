@@ -18,9 +18,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const LOCAL_STORAGE_KEYS = {
   MASTER_RESUME_TEXT: 'careerCraft_masterResumeText',
-  MASTER_RESUME_USER_TITLE: 'careerCraft_masterResumeUserTitle', // User-defined title for the resume document
+  MASTER_RESUME_USER_TITLE: 'careerCraft_masterResumeUserTitle', 
   MASTER_RESUME_EXTRACTED_NAME: 'careerCraft_masterResumeExtractedName',
   MASTER_RESUME_EXTRACTED_JOB_TITLE: 'careerCraft_masterResumeExtractedJobTitle',
+  MASTER_RESUME_CONTACT_INFO: 'careerCraft_masterResumeContactInfo',
+  MASTER_RESUME_SKILLS: 'careerCraft_masterResumeSkills',
   MASTER_RESUME_TIMESTAMP: 'careerCraft_masterResumeTimestamp',
 };
 
@@ -29,7 +31,7 @@ export default function MasterResumePage() {
   const [aiOutput, setAiOutput] = useState<ReformatResumeOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const [resumeUserTitle, setResumeUserTitle] = useState("My Master Resume"); // User-defined title
+  const [resumeUserTitle, setResumeUserTitle] = useState("My Master Resume"); 
   const [processedTimestamp, setProcessedTimestamp] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,8 +40,9 @@ export default function MasterResumePage() {
     const storedText = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
     const storedExtractedName = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME);
     const storedExtractedJobTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
-    // Note: missingInfo and questions are not typically stored long-term unless the output structure is always consistent.
-
+    const storedContactInfo = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO);
+    const storedSkills = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS);
+    
     if (storedUserTitle) {
       setResumeUserTitle(storedUserTitle);
     }
@@ -48,8 +51,10 @@ export default function MasterResumePage() {
           reformattedResume: storedText, 
           fullName: storedExtractedName || undefined,
           currentJobTitle: storedExtractedJobTitle || undefined,
-          missingInformation: [], // These are not stored, so default to empty
-          questions: [] // These are not stored, so default to empty
+          contactInfo: storedContactInfo ? JSON.parse(storedContactInfo) : undefined,
+          skills: storedSkills ? JSON.parse(storedSkills) : [],
+          missingInformation: [], 
+          questions: [] 
         });
         setProcessedTimestamp(storedTimestamp);
     }
@@ -72,6 +77,7 @@ export default function MasterResumePage() {
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT, result.reformattedResume);
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE, resumeUserTitle);
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP, currentTimestamp);
+
       if (result.fullName) {
         localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME, result.fullName);
       } else {
@@ -82,7 +88,16 @@ export default function MasterResumePage() {
       } else {
         localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
       }
-
+      if (result.contactInfo) {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO, JSON.stringify(result.contactInfo));
+      } else {
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO);
+      }
+      if (result.skills && result.skills.length > 0) {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS, JSON.stringify(result.skills));
+      } else {
+        localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS);
+      }
 
       toast({
         title: "Resume Processed Successfully!",
@@ -105,7 +120,6 @@ export default function MasterResumePage() {
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setResumeUserTitle(newTitle);
-    // If a resume is already processed and stored, update its user-defined title in localStorage
     if (localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT)) {
       localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE, newTitle);
     }
@@ -137,7 +151,7 @@ export default function MasterResumePage() {
         onFileUpload={handleFileUpload}
         ctaText={isLoading ? "Processing..." : "Reformat Resume"}
         icon={<UploadCloud className="h-10 w-10 text-primary mb-2" />}
-        acceptedFileTypes=".pdf,.txt,application/pdf,text/plain"
+        acceptedFileTypes=".pdf,.txt,application/pdf,text/plain" 
       />
 
       {isLoading && (

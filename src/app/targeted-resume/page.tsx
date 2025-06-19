@@ -26,9 +26,10 @@ const LOCAL_STORAGE_KEYS = {
   MASTER_RESUME_TEXT: 'careerCraft_masterResumeText',
   MASTER_RESUME_USER_TITLE: 'careerCraft_masterResumeUserTitle',
   MASTER_RESUME_TIMESTAMP: 'careerCraft_masterResumeTimestamp',
-  // Note: Extracted name and job title are not directly used on this page, but listed for consistency
   MASTER_RESUME_EXTRACTED_NAME: 'careerCraft_masterResumeExtractedName',
   MASTER_RESUME_EXTRACTED_JOB_TITLE: 'careerCraft_masterResumeExtractedJobTitle',
+  MASTER_RESUME_CONTACT_INFO: 'careerCraft_masterResumeContactInfo',
+  MASTER_RESUME_SKILLS: 'careerCraft_masterResumeSkills',
 };
 
 export default function JobMatchingPage() {
@@ -74,8 +75,11 @@ export default function JobMatchingPage() {
     localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP);
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME); // Also clear extracted details
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME); 
     localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS);
+
 
     setMasterResumeText('');
     setMasterResumeUserTitle('');
@@ -84,7 +88,7 @@ export default function JobMatchingPage() {
     setAssessmentOutput(null); 
     setTailoredResumeOutput(null);
     setCoverLetterOutput(null);
-    toast({ title: "Stored Master Resume Cleared", description: "You can now paste new resume content." });
+    toast({ title: "Stored Master Resume Cleared", description: "You can now paste new resume content here if needed." });
   };
 
 
@@ -109,7 +113,7 @@ export default function JobMatchingPage() {
       hasValidInput = true;
     } else if (jobSpecInputType === "url" && jobSpecUrl.trim()) {
       // For now, treat URL content as text. In a future version, this could fetch URL content.
-      jobSpecInputTextValue = `Job Specification from URL: ${jobSpecUrl.trim()}`; // Pass URL itself as text
+      jobSpecInputTextValue = `Job Specification from URL: ${jobSpecUrl.trim()}`; 
       toast({ title: "URL as Text", description: "Job spec URL content will be treated as text. For best results, paste content directly or upload a file."});
       hasValidInput = true;
     }
@@ -223,7 +227,7 @@ export default function JobMatchingPage() {
           <CardHeader>
             <CardTitle className="flex items-center"><Briefcase className="mr-2 h-6 w-6 text-primary"/> Your Master Resume</CardTitle>
             {!isMasterResumeFromStorage && (
-              <CardDescription>Paste the content of your AI-crafted Master Resume here, or create one on the 'Master Resume' page to use it automatically. If a Master Resume is loaded from storage, it will be displayed below.</CardDescription>
+              <CardDescription>Paste the content of your AI-crafted Master Resume here, or <Link href="/master-resume" className="underline text-primary hover:text-primary/80">create one on the 'Master Resume' page</Link> to use it automatically.</CardDescription>
             )}
              {isMasterResumeFromStorage && (
               <CardDescription>Using Master Resume from local storage. Create or update on the 'Master Resume' page.</CardDescription>
@@ -341,7 +345,6 @@ export default function JobMatchingPage() {
         </div>
       )}
       
-      {/* Results Section */}
       <div className="mt-8 space-y-8">
         {assessmentOutput && !isLoadingAssessment && (
           <Card className="shadow-lg border-primary">
@@ -460,7 +463,7 @@ export default function JobMatchingPage() {
             </div>
           </ScrollArea>
         )}
-      </div> {/* End Results Section wrapper */}
+      </div> 
     </div>
   );
 }

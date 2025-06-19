@@ -16,21 +16,32 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const LOCAL_STORAGE_KEYS = {
   MASTER_RESUME_TEXT: 'careerCraft_masterResumeText',
-  MASTER_RESUME_USER_TITLE: 'careerCraft_masterResumeUserTitle', // User-defined title for the resume document
+  MASTER_RESUME_USER_TITLE: 'careerCraft_masterResumeUserTitle',
   MASTER_RESUME_EXTRACTED_NAME: 'careerCraft_masterResumeExtractedName',
   MASTER_RESUME_EXTRACTED_JOB_TITLE: 'careerCraft_masterResumeExtractedJobTitle',
-  MASTER_RESUME_TIMESTAMP: 'careerCraft_masterResumeTimestamp', // Not directly used here but part of the set
+  MASTER_RESUME_CONTACT_INFO: 'careerCraft_masterResumeContactInfo',
+  MASTER_RESUME_SKILLS: 'careerCraft_masterResumeSkills',
+  MASTER_RESUME_TIMESTAMP: 'careerCraft_masterResumeTimestamp', 
 };
 
-const sampleResumeData = { // Fallback data
+interface ContactInfo {
+  email?: string;
+  phone?: string;
+  linkedin?: string;
+  location?: string;
+}
+
+const sampleResumeData = { 
   name: "Your Name", 
   title: "Your Professional Title",
   avatarUrl: "https://placehold.co/128x128.png",
   avatarFallback: "YN", 
-  location: "City, State",
-  phone: "(000) 000-0000",
-  email: "youremail@example.com",
-  linkedin: "linkedin.com/in/yourprofile", 
+  contactInfo: {
+    location: "City, State",
+    phone: "(000) 000-0000",
+    email: "youremail@example.com",
+    linkedin: "linkedin.com/in/yourprofile", 
+  },
   summary: "This is a sample summary. Create a Master Resume to see your own content here.",
   experience: [ 
     {
@@ -66,22 +77,23 @@ export default function OnlineResumePage() {
   const [loadedResumeText, setLoadedResumeText] = useState<string | null>(null);
   const [loadedExtractedName, setLoadedExtractedName] = useState<string | null>(null);
   const [loadedExtractedJobTitle, setLoadedExtractedJobTitle] = useState<string | null>(null);
+  const [loadedContactInfo, setLoadedContactInfo] = useState<ContactInfo | null>(null);
+  const [loadedSkills, setLoadedSkills] = useState<string[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const text = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
     const extractedName = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME);
     const extractedJobTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
+    const contactInfoStr = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO);
+    const skillsStr = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS);
     
-    if (text) {
-      setLoadedResumeText(text);
-    }
-    if (extractedName) {
-      setLoadedExtractedName(extractedName);
-    }
-    if (extractedJobTitle) {
-      setLoadedExtractedJobTitle(extractedJobTitle);
-    }
+    if (text) setLoadedResumeText(text);
+    if (extractedName) setLoadedExtractedName(extractedName);
+    if (extractedJobTitle) setLoadedExtractedJobTitle(extractedJobTitle);
+    if (contactInfoStr) setLoadedContactInfo(JSON.parse(contactInfoStr));
+    if (skillsStr) setLoadedSkills(JSON.parse(skillsStr));
+    
     setIsLoading(false);
   }, []);
 
@@ -98,12 +110,14 @@ export default function OnlineResumePage() {
     }
   };
   
-  const handleDownloadPdf = () => { // Placeholder for future PDF download
+  const handleDownloadPdf = () => { 
     toast({ title: "Coming Soon!", description: "PDF download functionality is under development." });
   }
 
   const displayName = loadedExtractedName || sampleResumeData.name;
   const displayJobTitle = loadedExtractedJobTitle || sampleResumeData.title;
+  const displayContactInfo = loadedContactInfo || sampleResumeData.contactInfo;
+  const displaySkills = loadedSkills && loadedSkills.length > 0 ? loadedSkills : sampleResumeData.skills;
   const avatarFallbackText = displayName?.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() || sampleResumeData.avatarFallback;
 
   if (isLoading) {
@@ -151,14 +165,14 @@ export default function OnlineResumePage() {
               <CardTitle className="text-lg font-semibold">Contact Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground shrink-0" /> {sampleResumeData.location}</p>
-              <p className="flex items-center"><Phone className="mr-2 h-4 w-4 text-muted-foreground shrink-0" /> {sampleResumeData.phone}</p>
-              <p className="flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground shrink-0" /> {sampleResumeData.email}</p>
-              {sampleResumeData.linkedin && (
+              {displayContactInfo.location && <p className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground shrink-0" /> {displayContactInfo.location}</p>}
+              {displayContactInfo.phone && <p className="flex items-center"><Phone className="mr-2 h-4 w-4 text-muted-foreground shrink-0" /> {displayContactInfo.phone}</p>}
+              {displayContactInfo.email && <p className="flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground shrink-0" /> {displayContactInfo.email}</p>}
+              {displayContactInfo.linkedin && (
                 <p className="flex items-center">
                   <Linkedin className="mr-2 h-4 w-4 text-muted-foreground shrink-0" /> 
-                  <Link href={`https://${sampleResumeData.linkedin}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
-                    {sampleResumeData.linkedin}
+                  <Link href={!displayContactInfo.linkedin.startsWith('http') ? `https://${displayContactInfo.linkedin}` : displayContactInfo.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
+                    {displayContactInfo.linkedin.replace(/^https?:\/\//, '')}
                   </Link>
                 </p>
               )}
@@ -172,7 +186,7 @@ export default function OnlineResumePage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {sampleResumeData.professionalLinks.map((link) => 
-                  link.url && link.url !== '#' ? ( // Ensure URL is not just '#'
+                  link.url && link.url !== '#' ? ( 
                     <Button
                       key={link.label}
                       variant="outline"
@@ -196,13 +210,15 @@ export default function OnlineResumePage() {
               <CardTitle className="text-lg font-semibold">Skills</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
-              {sampleResumeData.skills.map(skill => (
+              {displaySkills.map(skill => (
                 <Badge key={skill} variant="secondary" className="text-xs">{skill}</Badge>
               ))}
             </CardContent>
           </Card>
            {loadedResumeText && (
-             <p className="text-xs text-muted-foreground">Contact, links, and skills are illustrative. The main resume content and headlines are from your uploaded Master Resume.</p>
+             <p className="text-xs text-muted-foreground">
+               {loadedContactInfo || (loadedSkills && loadedSkills.length > 0) ? "The main resume text is from your uploaded Master Resume. Sidebar details (like My Links) are illustrative." : "My Links details are illustrative. Contact and Skills will populate if extracted."}
+            </p>
            )}
         </aside>
 
@@ -279,7 +295,11 @@ export default function OnlineResumePage() {
       </div>
        <footer className="mt-12 pt-6 border-t text-center text-xs text-muted-foreground">
         Powered by CareerCraft AI. 
-        {loadedResumeText ? " Sidebar details (contact, skills, links) are illustrative placeholders." : " All resume data shown is illustrative."}
+        {loadedResumeText ? (
+          loadedContactInfo || (loadedSkills && loadedSkills.length > 0) ? 
+          " Main resume text from your upload. Sidebar contact/skills are dynamic. Other links may be illustrative." 
+          : " Main resume text from your upload. Sidebar details (contact, skills, links) are illustrative placeholders if not extracted."
+        ) : " All resume data shown is illustrative."}
       </footer>
     </div>
   );
