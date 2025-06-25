@@ -14,13 +14,18 @@ import {
   User,
   Link as LinkIcon,
   BarChart,
-  Wallet
+  Wallet,
+  Building,
+  Search,
+  ScanText,
+  ClipboardCheck,
+  Mic
 } from 'lucide-react';
 
 import { useAuth, type Role } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
   TooltipContent,
@@ -34,82 +39,151 @@ interface NavLink {
   label: string;
   icon: React.ReactNode;
   roles: Role[];
+  badge?: 'Premium';
 }
 
-const navLinks: NavLink[] = [
-  // Candidate
-  { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20}/>, roles: ['Candidate'] },
-  { href: '/master-resume', label: 'Resume Builder', icon: <FileText size={20}/>, roles: ['Candidate'] },
-  { href: '/targeted-resume', label: 'Job Matching', icon: <Bot size={20}/>, roles: ['Candidate'] },
-  { href: '/online-resume', label: 'Online Profile', icon: <User size={20}/>, roles: ['Candidate'] },
-  { href: '/linktree-bio', label: 'LinkTree Bio', icon: <LinkIcon size={20}/>, roles: ['Candidate'] },
+interface NavGroup {
+  title: string;
+  roles: Role[];
+  links: NavLink[];
+}
 
-  // Recruiter & Admin
-  { href: '/dashboard/recruiter', label: 'Dashboard', icon: <LayoutDashboard size={20}/>, roles: ['Recruiter', 'Admin', 'Sales'] },
-  { href: '/candidates', label: 'Candidates', icon: <Users size={20}/>, roles: ['Recruiter', 'Admin'] },
-  { href: '/jobs', label: 'Jobs', icon: <Briefcase size={20}/>, roles: ['Recruiter', 'Admin', 'Sales'] },
-  { href: '/clients', label: 'Clients', icon: <Wallet size={20}/>, roles: ['Recruiter', 'Admin', 'Sales'] },
-  { href: '/reports', label: 'Reports', icon: <BarChart size={20}/>, roles: ['Admin', 'Sales'] },
-  
-  // Admin only
-  { href: '/settings', label: 'Settings', icon: <Settings size={20}/>, roles: ['Admin'] },
+const navGroups: NavGroup[] = [
+  {
+    title: 'Main Features',
+    roles: ['Admin', 'Recruiter', 'Sales'],
+    links: [
+      { href: '/dashboard/admin', label: 'Dashboard', icon: <LayoutDashboard size={18}/>, roles: ['Admin', 'Recruiter', 'Sales'] },
+      { href: '/candidates', label: 'Candidates', icon: <Users size={18}/>, roles: ['Admin', 'Recruiter'] },
+      { href: '/jobs', label: 'Jobs', icon: <Briefcase size={18}/>, roles: ['Admin', 'Recruiter', 'Sales'] },
+      { href: '/clients', label: 'Clients', icon: <Wallet size={18}/>, roles: ['Admin', 'Recruiter', 'Sales'] },
+      { href: '/company-finder', label: 'Company Finder', icon: <Search size={18}/>, roles: ['Admin', 'Recruiter'] },
+      { href: '/ai-parser', label: 'AI Parser', icon: <ScanText size={18}/>, roles: ['Admin', 'Recruiter'] },
+      { href: '/reports', label: 'Reports', icon: <BarChart size={18}/>, roles: ['Admin', 'Sales'] },
+    ]
+  },
+  {
+    title: 'Candidate Tools',
+    roles: ['Admin', 'Candidate'],
+    links: [
+      { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18}/>, roles: ['Candidate'] },
+      { href: '/master-resume', label: 'Resume Builder', icon: <FileText size={18}/>, roles: ['Admin', 'Candidate'], badge: 'Premium' },
+      { href: '/targeted-resume', label: 'Job Matching', icon: <Bot size={18}/>, roles: ['Candidate'] },
+      { href: '/interview-prep', label: 'Interview Prep', icon: <ClipboardCheck size={18}/>, roles: ['Admin', 'Candidate'] },
+      { href: '/online-resume', label: 'Online Profile', icon: <User size={18}/>, roles: ['Candidate'] },
+      { href: '/linktree-bio', label: 'LinkTree Bio', icon: <LinkIcon size={18}/>, roles: ['Candidate'] },
+    ]
+  },
+   {
+    title: 'Recruiter Tools',
+    roles: ['Admin', 'Recruiter'],
+    links: [
+      { href: '/ai-interviewer', label: 'AI Interviewer', icon: <Mic size={18}/>, roles: ['Admin', 'Recruiter'] },
+    ]
+  },
+   {
+    title: 'System',
+    roles: ['Admin'],
+    links: [
+       { href: '/settings', label: 'Settings', icon: <Settings size={18}/>, roles: ['Admin'] },
+    ]
+   }
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  const accessibleLinks = user ? navLinks.filter(link => link.roles.includes(user.role)) : [];
-
   if (!user) {
     return null;
   }
+  
+  const accessibleGroups = navGroups
+    .filter(group => group.roles.includes(user.role))
+    .map(group => ({
+      ...group,
+      links: group.links.filter(link => link.roles.includes(user.role))
+    }))
+    .filter(group => group.links.length > 0);
+
+  // Special case for recruiter/sales seeing the candidate dashboard link
+   if (user.role === 'Recruiter' || user.role === 'Sales') {
+    const adminDashboardLink = navGroups[0].links.find(l => l.href === '/dashboard/admin');
+    if (adminDashboardLink) {
+        let dashboardHref = '/dashboard/recruiter';
+        if (user.role === 'Sales') dashboardHref = '/dashboard/sales';
+        if (user.role === 'Admin') dashboardHref = '/dashboard/admin';
+        
+        const recruiterDashboardLink = {...adminDashboardLink, href: dashboardHref};
+        const mainFeaturesGroup = accessibleGroups.find(g => g.title === 'Main Features');
+        if (mainFeaturesGroup) {
+            const dashboardIndex = mainFeaturesGroup.links.findIndex(l => l.href === '/dashboard/admin');
+            if (dashboardIndex !== -1) {
+                mainFeaturesGroup.links[dashboardIndex] = recruiterDashboardLink;
+            } else {
+                 mainFeaturesGroup.links.unshift(recruiterDashboardLink);
+            }
+        }
+    }
+   }
+   if (user.role === 'Candidate') {
+       const candidateDashboard = accessibleGroups.find(g => g.title === 'Candidate Tools');
+       if(candidateDashboard) {
+           const dashboardIndex = candidateDashboard.links.findIndex(l => l.href === '/dashboard');
+           if (dashboardIndex === -1) {
+               candidateDashboard.links.unshift({ href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18}/>, roles: ['Candidate'] });
+           }
+       }
+   }
+
 
   return (
     <TooltipProvider>
       <aside className="hidden md:flex flex-col w-64 bg-card border-r h-screen sticky top-0">
-        <div className="flex items-center justify-center h-16 border-b px-6">
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <Briefcase className="h-6 w-6 text-primary" />
-            <span className="text-lg">TalentAI</span>
+        <div className="flex flex-col items-center justify-center h-20 border-b px-6">
+           <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
+            <Briefcase className="h-7 w-7 text-primary" />
+            <span>TalentAI</span>
           </Link>
+          <div className="text-sm text-muted-foreground mt-1 capitalize">{user.role}</div>
         </div>
-        <nav className="flex-1 px-4 py-4 space-y-1">
-          {accessibleLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary hover:bg-muted',
-                pathname === link.href && 'bg-muted text-primary font-medium'
-              )}
-            >
-              {link.icon}
-              {link.label}
-            </Link>
+        <nav className="flex-1 px-2 py-4 space-y-2 overflow-y-auto">
+          {accessibleGroups.map((group) => (
+            <div key={group.title}>
+              <h3 className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {group.title}
+              </h3>
+              <div className="space-y-1">
+                {group.links.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:text-primary hover:bg-muted',
+                      (pathname === link.href || (link.href.includes(user.role) && pathname.includes(link.href))) && 'bg-muted text-primary'
+                    )}
+                  >
+                    {link.icon}
+                    <span className="flex-1">{link.label}</span>
+                     {link.badge && <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">{link.badge}</Badge>}
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
         <div className="mt-auto p-4 border-t">
-          <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src="https://placehold.co/40x40.png" data-ai-hint="profile avatar" />
-                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 overflow-hidden">
-                <p className="font-semibold text-sm truncate">{user.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.role}</p>
-              </div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={logout} className="rounded-full">
-                    <LogOut className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Log Out</p>
-                </TooltipContent>
-              </Tooltip>
-          </div>
+           <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" onClick={logout} className="w-full justify-start">
+                  <LogOut className="h-5 w-5 mr-3" />
+                  Log Out
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" align="center">
+                <p>Log Out</p>
+              </TooltipContent>
+            </Tooltip>
         </div>
       </aside>
     </TooltipProvider>

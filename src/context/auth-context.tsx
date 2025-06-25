@@ -31,7 +31,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             handleRedirect(storedRole);
         }
       } else {
-        if (!['/','/login','/signup'].includes(pathname)) {
+        const publicPaths = ['/','/login','/signup'];
+        const isPublic = publicPaths.some(p => pathname === p);
+        if (!isPublic) {
             router.push('/');
         }
       }
