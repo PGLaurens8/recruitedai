@@ -66,8 +66,8 @@ const sampleResumeData = {
   ],
   skills: ["Skill 1", "Skill 2", "Skill 3"],
   professionalLinks: [
-    { label: "Portfolio", url: "#", icon: <Globe className="h-5 w-5" /> },
-    { label: "GitHub", url: "#", icon: <Github className="h-5 w-5" /> },
+    { label: "Portfolio", url: "https://example.com", icon: <Globe className="h-5 w-5" /> },
+    { label: "GitHub", url: "https://github.com/example", icon: <Github className="h-5 w-5" /> },
   ],
 };
 
@@ -164,14 +164,14 @@ export default function OnlineResumePage() {
             <CardHeader>
               <CardTitle className="text-lg font-semibold">Contact Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              {displayContactInfo.location && <p className="flex items-center"><MapPin className="mr-2 h-4 w-4 text-muted-foreground shrink-0" /> {displayContactInfo.location}</p>}
-              {displayContactInfo.phone && <p className="flex items-center"><Phone className="mr-2 h-4 w-4 text-muted-foreground shrink-0" /> {displayContactInfo.phone}</p>}
-              {displayContactInfo.email && <p className="flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground shrink-0" /> {displayContactInfo.email}</p>}
-              {displayContactInfo.linkedin && (
-                <p className="flex items-center">
-                  <Linkedin className="mr-2 h-4 w-4 text-muted-foreground shrink-0" /> 
-                  <Link href={!displayContactInfo.linkedin.startsWith('http') ? `https://${displayContactInfo.linkedin}` : displayContactInfo.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
+            <CardContent className="space-y-3 text-sm">
+              {displayContactInfo.location && <p className="flex items-start"><MapPin className="mr-2 h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> <span className="break-all">{displayContactInfo.location}</span></p>}
+              {displayContactInfo.phone && <p className="flex items-start"><Phone className="mr-2 h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> <span className="break-all">{displayContactInfo.phone}</span></p>}
+              {displayContactInfo.email && <p className="flex items-start"><Mail className="mr-2 h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> <span className="break-all">{displayContactInfo.email}</span></p>}
+              {displayContactInfo.linkedin && displayContactInfo.linkedin !== 'null' && (
+                <p className="flex items-start">
+                  <Linkedin className="mr-2 h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> 
+                  <Link href={!displayContactInfo.linkedin.startsWith('http') ? `https://${displayContactInfo.linkedin}` : displayContactInfo.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
                     {displayContactInfo.linkedin.replace(/^https?:\/\//, '')}
                   </Link>
                 </p>
@@ -217,7 +217,7 @@ export default function OnlineResumePage() {
           </Card>
            {loadedResumeText && (
              <p className="text-xs text-muted-foreground">
-               {loadedContactInfo || (loadedSkills && loadedSkills.length > 0) ? "The main resume text is from your uploaded Master Resume. Sidebar details (like My Links) are illustrative." : "My Links details are illustrative. Contact and Skills will populate if extracted."}
+               {loadedContactInfo || (loadedSkills && loadedSkills.length > 0) ? "The main resume text is from your uploaded Master Resume. Sidebar contact/skills are dynamic. Other links may be illustrative." : "My Links details are illustrative. Contact and Skills will populate if extracted."}
             </p>
            )}
         </aside>
