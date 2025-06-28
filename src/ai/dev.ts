@@ -7,3 +7,5 @@ import '@/ai/flows/tailor-resume-to-job-spec.ts';
 import '@/ai/flows/assess-job-match.ts';
 import '@/ai/flows/generate-cover-letter.ts';
 import '@/ai/flows/find-companies.ts';
+import '@/ai/flows/generate-interview-questions';
+import '@/ai/flows/analyze-interview-response';

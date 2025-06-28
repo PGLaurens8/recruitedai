@@ -32,7 +32,7 @@ const jobSpecifications = [
   },
 ];
 
-const jobPostings = [
+export const jobPostings = [
   {
     id: "J001",
     title: "Senior Frontend Developer",

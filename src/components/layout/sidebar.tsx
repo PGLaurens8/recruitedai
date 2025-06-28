@@ -69,17 +69,10 @@ const navGroups: NavGroup[] = [
       { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18}/>, roles: ['Candidate'] },
       { href: '/master-resume', label: 'Resume Builder', icon: <FileText size={18}/>, roles: ['Admin', 'Candidate'], badge: 'Premium' },
       { href: '/targeted-resume', label: 'Job Matching', icon: <Bot size={18}/>, roles: ['Candidate'] },
-      { href: '/interview-prep', label: 'Interview Prep', icon: <ClipboardCheck size={18}/>, roles: ['Admin', 'Candidate'] },
+      { href: '/interview-prep', label: 'Interview Prep', icon: <ClipboardCheck size={18}/>, roles: ['Admin', 'Candidate', 'Recruiter'] },
       { href: '/online-resume', label: 'Online Profile', icon: <User size={18}/>, roles: ['Candidate'] },
       { href: '/linktree-bio', label: 'LinkTree Bio', icon: <LinkIcon size={18}/>, roles: ['Candidate'] },
       { href: '/billing', label: 'Billing & Plans', icon: <Wallet size={18}/>, roles: ['Admin', 'Candidate'] },
-    ]
-  },
-   {
-    title: 'Recruiter Tools',
-    roles: ['Admin', 'Recruiter'],
-    links: [
-      { href: '/ai-interviewer', label: 'AI Interviewer', icon: <Mic size={18}/>, roles: ['Admin', 'Recruiter'] },
     ]
   },
    {
@@ -100,12 +93,12 @@ export function Sidebar() {
   }
   
   const accessibleGroups = navGroups
-    .filter(group => group.roles.includes(user.role))
     .map(group => ({
       ...group,
       links: group.links.filter(link => link.roles.includes(user.role))
     }))
-    .filter(group => group.links.length > 0);
+    .filter(group => group.links.length > 0 && group.roles.includes(user.role));
+
 
   // Special case for recruiter/sales seeing the candidate dashboard link
    if (user.role === 'Recruiter' || user.role === 'Sales') {
