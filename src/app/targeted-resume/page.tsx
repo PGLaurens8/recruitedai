@@ -346,127 +346,128 @@ export default function JobMatchingPage() {
         </div>
       )}
       
-      <div className="mt-8 space-y-8">
-        {assessmentOutput && !isLoadingAssessment && (
-          <Card className="shadow-lg border-primary">
-            <CardHeader className="bg-primary/10">
-              <CardTitle className="flex items-center text-2xl font-headline text-primary"><Brain className="mr-3 h-7 w-7"/>AI Match Assessment</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 p-6">
-              <div className="text-center">
-                <p className="text-muted-foreground text-lg">Overall Match Score</p>
-                <div className="relative mx-auto my-2 h-32 w-32">
-                   <svg className="h-full w-full origin-center -rotate-90 transform" viewBox="0 0 36 36">
-                      <circle
-                        className="text-muted/20"
-                        strokeWidth="3.5"
-                        stroke="currentColor"
-                        fill="transparent"
-                        r="15.9155"
-                        cx="18"
-                        cy="18"
-                      />
-                      <circle
-                        className="text-primary"
-                        strokeWidth="3.5"
-                        strokeDasharray={`${assessmentOutput.matchScore}, 100`}
-                        strokeLinecap="round"
-                        stroke="currentColor"
-                        fill="transparent"
-                        r="15.9155"
-                        cx="18"
-                        cy="18"
-                      />
-                    </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-3xl font-bold text-primary">{assessmentOutput.matchScore}%</span>
-                  </div>
-                </div>
-                <p className="text-lg font-semibold text-foreground/90">{assessmentOutput.summary}</p>
-              </div>
-              <Separator />
-              <ResumeSection
-                title="Strengths Aligned with Job Spec"
-                icon={<BarChartBig className="h-6 w-6 text-green-500" />}
-                content={assessmentOutput.strengths.length > 0 ? assessmentOutput.strengths : "No specific strengths highlighted by AI for this job."}
-              />
-              <ResumeSection
-                title="Areas for Improvement"
-                icon={<Lightbulb className="h-6 w-6 text-yellow-500" />}
-                content={assessmentOutput.areasForImprovement.length > 0 ? assessmentOutput.areasForImprovement : "AI found no specific areas to improve for this job spec!"}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {(tailoredResumeOutput || coverLetterOutput) && !(isLoadingTailoring || isLoadingCoverLetter) && (
-          <ScrollArea className="p-1 rounded-lg border bg-background shadow-lg max-h-[75vh]">
+      { (assessmentOutput || tailoredResumeOutput || coverLetterOutput) && !(isLoadingAssessment || isLoadingTailoring || isLoadingCoverLetter) && (
+          <ScrollArea className="mt-8 rounded-lg border bg-background shadow-lg max-h-[75vh] p-1">
             <div className="p-4 sm:p-6 space-y-8">
-              <h2 className="text-3xl font-bold text-center font-headline text-primary">Your Tailored Application Documents</h2>
-              
-              {tailoredResumeOutput && !isLoadingTailoring && (
-                <>
-                  <Card className="bg-card shadow-xl overflow-hidden border-accent">
-                     <CardHeader className="bg-accent/10">
-                      <CardTitle className="flex items-center text-accent">
-                          <FileText className="h-5 w-5 mr-2" />
-                          AI Tailored Resume
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6">
-                      <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/30 p-4 rounded-md border">
-                          {tailoredResumeOutput.tailoredResume || "No tailored resume content provided."}
-                      </pre>
-                    </CardContent>
-                  </Card>
-                  <div className="text-center">
-                      <Button size="lg" onClick={() => downloadTextFile("tailored_resume.txt", tailoredResumeOutput.tailoredResume)} disabled={!tailoredResumeOutput.tailoredResume}>
-                          <Download className="mr-2 h-5 w-5" /> Download Tailored Resume (TXT)
-                      </Button>
-                  </div>
-                  {tailoredResumeOutput.questions && tailoredResumeOutput.questions.length > 0 && (
-                    <>
-                      <Separator />
-                      <ResumeSection
-                        title="Clarifying Questions from AI (for Tailoring)"
-                        icon={<HelpCircleIcon className="h-6 w-6 text-blue-500" />}
-                        content={tailoredResumeOutput.questions}
-                        className="border-blue-500/50"
-                      />
-                    </>
-                  )}
-                </>
+              {assessmentOutput && (
+                <Card className="shadow-lg border-primary">
+                  <CardHeader className="bg-primary/10">
+                    <CardTitle className="flex items-center text-2xl font-headline text-primary"><Brain className="mr-3 h-7 w-7"/>AI Match Assessment</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6 p-6">
+                    <div className="text-center">
+                      <p className="text-muted-foreground text-lg">Overall Match Score</p>
+                      <div className="relative mx-auto my-2 h-32 w-32">
+                        <svg className="h-full w-full origin-center -rotate-90 transform" viewBox="0 0 36 36">
+                          <circle
+                            className="text-muted/20"
+                            strokeWidth="3.5"
+                            stroke="currentColor"
+                            fill="transparent"
+                            r="15.9155"
+                            cx="18"
+                            cy="18"
+                          />
+                          <circle
+                            className="text-primary"
+                            strokeWidth="3.5"
+                            strokeDasharray={`${assessmentOutput.matchScore}, 100`}
+                            strokeLinecap="round"
+                            stroke="currentColor"
+                            fill="transparent"
+                            r="15.9155"
+                            cx="18"
+                            cy="18"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-3xl font-bold text-primary">{assessmentOutput.matchScore}%</span>
+                        </div>
+                      </div>
+                      <p className="text-lg font-semibold text-foreground/90">{assessmentOutput.summary}</p>
+                    </div>
+                    <Separator />
+                    <ResumeSection
+                      title="Strengths Aligned with Job Spec"
+                      icon={<BarChartBig className="h-6 w-6 text-green-500" />}
+                      content={assessmentOutput.strengths.length > 0 ? assessmentOutput.strengths : "No specific strengths highlighted by AI for this job."}
+                    />
+                    <ResumeSection
+                      title="Areas for Improvement"
+                      icon={<Lightbulb className="h-6 w-6 text-yellow-500" />}
+                      content={assessmentOutput.areasForImprovement.length > 0 ? assessmentOutput.areasForImprovement : "AI found no specific areas to improve for this job spec!"}
+                    />
+                  </CardContent>
+                </Card>
               )}
-              
-              {coverLetterOutput && !isLoadingCoverLetter && (
-                <>
-                  <Separator />
-                   <Card className="bg-card shadow-xl overflow-hidden border-accent">
-                     <CardHeader className="bg-accent/10">
-                      <CardTitle className="flex items-center text-accent">
-                          <FileSignature className="h-5 w-5 mr-2" />
-                          AI Generated Cover Letter
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6">
-                      <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/30 p-4 rounded-md border">
-                          {coverLetterOutput.coverLetter || "No cover letter content provided."}
-                      </pre>
-                    </CardContent>
-                  </Card>
-                   <div className="text-center mt-4">
-                      <Button size="lg" onClick={() => downloadTextFile("cover_letter.txt", coverLetterOutput.coverLetter)} disabled={!coverLetterOutput.coverLetter}>
-                          <Download className="mr-2 h-5 w-5" /> Download Cover Letter (TXT)
-                      </Button>
-                  </div>
-                </>
+
+              {(tailoredResumeOutput || coverLetterOutput) && (
+                <div className="space-y-8">
+                  {assessmentOutput && <Separator />}
+                  <h2 className="text-3xl font-bold text-center font-headline text-primary pt-4">Your Tailored Application Documents</h2>
+                  
+                  {tailoredResumeOutput && (
+                    <div className="space-y-4">
+                      <Card className="bg-card shadow-xl overflow-hidden border-accent">
+                        <CardHeader className="bg-accent/10">
+                          <CardTitle className="flex items-center text-accent">
+                              <FileText className="h-5 w-5 mr-2" />
+                              AI Tailored Resume
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 sm:p-6">
+                          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/30 p-4 rounded-md border">
+                              {tailoredResumeOutput.tailoredResume || "No tailored resume content provided."}
+                          </pre>
+                        </CardContent>
+                      </Card>
+                      <div className="text-center">
+                          <Button size="lg" onClick={() => downloadTextFile("tailored_resume.txt", tailoredResumeOutput.tailoredResume)} disabled={!tailoredResumeOutput.tailoredResume}>
+                              <Download className="mr-2 h-5 w-5" /> Download Tailored Resume (TXT)
+                          </Button>
+                      </div>
+                      {tailoredResumeOutput.questions && tailoredResumeOutput.questions.length > 0 && (
+                        <>
+                          <Separator />
+                          <ResumeSection
+                            title="Clarifying Questions from AI (for Tailoring)"
+                            icon={<HelpCircleIcon className="h-6 w-6 text-blue-500" />}
+                            content={tailoredResumeOutput.questions}
+                            className="border-blue-500/50"
+                          />
+                        </>
+                      )}
+                    </div>
+                  )}
+                  
+                  {coverLetterOutput && (
+                    <div className="space-y-4">
+                      {tailoredResumeOutput && <Separator />}
+                      <Card className="bg-card shadow-xl overflow-hidden border-accent">
+                        <CardHeader className="bg-accent/10">
+                          <CardTitle className="flex items-center text-accent">
+                              <FileSignature className="h-5 w-5 mr-2" />
+                              AI Generated Cover Letter
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 sm:p-6">
+                          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/30 p-4 rounded-md border">
+                              {coverLetterOutput.coverLetter || "No cover letter content provided."}
+                          </pre>
+                        </CardContent>
+                      </Card>
+                      <div className="text-center">
+                          <Button size="lg" onClick={() => downloadTextFile("cover_letter.txt", coverLetterOutput.coverLetter)} disabled={!coverLetterOutput.coverLetter}>
+                              <Download className="mr-2 h-5 w-5" /> Download Cover Letter (TXT)
+                          </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </ScrollArea>
-        )}
-      </div> 
+      )}
     </div>
   );
 }
-
-    
