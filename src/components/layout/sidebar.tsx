@@ -14,12 +14,10 @@ import {
   User,
   Link as LinkIcon,
   BarChart,
-  Wallet,
   Building,
   Search,
   ScanText,
-  ClipboardCheck,
-  Mic
+  ClipboardCheck
 } from 'lucide-react';
 
 import { useAuth, type Role } from '@/context/auth-context';
@@ -69,10 +67,9 @@ const navGroups: NavGroup[] = [
       { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18}/>, roles: ['Candidate'] },
       { href: '/master-resume', label: 'Master Resume', icon: <FileText size={18}/>, roles: ['Admin', 'Candidate'], badge: 'Premium' },
       { href: '/targeted-resume', label: 'Job Matching', icon: <Bot size={18}/>, roles: ['Candidate'] },
-      { href: '/interview-prep', label: 'Interview Prep', icon: <ClipboardCheck size={18}/>, roles: ['Admin', 'Candidate', 'Recruiter'] },
       { href: '/online-resume', label: 'Online Profile', icon: <User size={18}/>, roles: ['Candidate'] },
       { href: '/linktree-bio', label: 'LinkTree Bio', icon: <LinkIcon size={18}/>, roles: ['Candidate'] },
-      { href: '/billing', label: 'Billing & Plans', icon: <Wallet size={18}/>, roles: ['Admin', 'Candidate'] },
+      { href: '/interview-prep', label: 'Interview Prep', icon: <ClipboardCheck size={18}/>, roles: ['Admin', 'Candidate', 'Recruiter'] },
     ]
   },
    {
