@@ -13,7 +13,7 @@ import { generateCoverLetter, type GenerateCoverLetterInput, type GenerateCoverL
 import { fileToDataURI, textToDataURI } from '@/lib/file-utils';
 import { ResumeSection } from '@/components/feature/resume-section';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, FileText, Briefcase, AlertTriangle, Target, UploadCloud, Download, Sparkles, UserCheck, FileSignature, PercentCircle, BarChartBig, Brain, HelpCircle as HelpCircleIcon, Edit3, CheckCircle, Mail, Phone, Linkedin, MapPin } from 'lucide-react';
+import { Lightbulb, FileText, Briefcase, AlertTriangle, Target, UploadCloud, Download, Sparkles, UserCheck, FileSignature, BarChartBig, Brain, HelpCircle as HelpCircleIcon, Edit3, CheckCircle, Mail, Phone, Linkedin, MapPin } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -369,8 +369,7 @@ export default function JobMatchingPage() {
       )}
       
       { (assessmentOutput || tailoredResumeOutput || coverLetterOutput) && !(isLoadingAssessment || isLoadingTailoring || isLoadingCoverLetter) && (
-          <ScrollArea className="mt-8 p-1 rounded-lg border bg-background shadow-lg max-h-[120vh]">
-            <div className="p-4 sm:p-6 space-y-8">
+          <div className="mt-8 space-y-8">
               {assessmentOutput && (
                 <Card className="shadow-lg border-primary">
                   <CardHeader className="bg-primary/10">
@@ -422,8 +421,6 @@ export default function JobMatchingPage() {
                   </CardContent>
                 </Card>
               )}
-                
-              {(tailoredResumeOutput || coverLetterOutput) && assessmentOutput && <Separator />}
 
               {tailoredResumeOutput && (
                 <Card className="bg-card shadow-xl overflow-hidden border-accent">
@@ -458,11 +455,11 @@ export default function JobMatchingPage() {
                                         <Separator />
                                         {loadedContactInfo.location && <p className="flex items-start gap-2 pt-1"><MapPin size={14} className="mt-0.5 shrink-0"/> <span>{loadedContactInfo.location}</span></p>}
                                         {loadedContactInfo.phone && <p className="flex items-start gap-2"><Phone size={14} className="mt-0.5 shrink-0"/> <span>{loadedContactInfo.phone}</span></p>}
-                                        {loadedContactInfo.email && <p className="flex items-start gap-2"><Mail size={14} className="mt-0.5 shrink-0"/> <span className="truncate">{loadedContactInfo.email}</span></p>}
+                                        {loadedContactInfo.email && <p className="flex items-start gap-2"><Mail size={14} className="mt-0.5 shrink-0"/> <span className="break-all">{loadedContactInfo.email}</span></p>}
                                         {loadedContactInfo.linkedin && loadedContactInfo.linkedin !== 'null' && (
                                             <p className="flex items-start gap-2">
                                                 <Linkedin size={14} className="mt-0.5 shrink-0"/>
-                                                <Link href={!loadedContactInfo.linkedin.startsWith('http') ? `https://${loadedContactInfo.linkedin}` : loadedContactInfo.linkedin} target="_blank" className="text-primary hover:underline truncate">{loadedContactInfo.linkedin.replace(/^https?:\/\//, '')}</Link>
+                                                <Link href={!loadedContactInfo.linkedin.startsWith('http') ? `https://${loadedContactInfo.linkedin}` : loadedContactInfo.linkedin} target="_blank" className="text-primary hover:underline break-all">{loadedContactInfo.linkedin.replace(/^https?:\/\//, '')}</Link>
                                             </p>
                                         )}
                                     </div>
@@ -481,9 +478,11 @@ export default function JobMatchingPage() {
                             </aside>
                             
                             <main className="md:col-span-2">
-                                  <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/20 p-4 rounded-md border">
-                                    {tailoredResumeOutput.tailoredResume || "No tailored resume content provided."}
-                                </pre>
+                                <ScrollArea className="h-[600px] rounded-md border p-4 bg-muted/20">
+                                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground">
+                                        {tailoredResumeOutput.tailoredResume || "No tailored resume content provided."}
+                                    </pre>
+                                </ScrollArea>
                             </main>
                         </div>
                     </div>
@@ -517,9 +516,11 @@ export default function JobMatchingPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 sm:p-6">
-                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/30 p-4 rounded-md border">
-                        {coverLetterOutput.coverLetter || "No cover letter content provided."}
-                    </pre>
+                    <ScrollArea className="h-[600px] rounded-md border p-4 bg-muted/30">
+                        <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground">
+                            {coverLetterOutput.coverLetter || "No cover letter content provided."}
+                        </pre>
+                    </ScrollArea>
                   </CardContent>
                   <CardFooter>
                       <Button onClick={() => downloadTextFile("cover_letter.txt", coverLetterOutput.coverLetter)} disabled={!coverLetterOutput.coverLetter}>
@@ -528,9 +529,7 @@ export default function JobMatchingPage() {
                   </CardFooter>
                 </Card>
               )}
-
-            </div>
-          </ScrollArea>
+          </div>
       )}
     </div>
   );
