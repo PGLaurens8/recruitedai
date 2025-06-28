@@ -27,7 +27,7 @@ const defaultBioData = {
   name: "Your Name",
   title: "Your Title",
   avatarUrl: "https://placehold.co/150x150.png",
-  coverUrl: "https://placehold.co/600x250.png",
+  coverUrl: "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22600%22%20height%3D%22250%22%20viewBox%3D%220%200%20600%20250%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22grad%22%20x1%3D%220%25%22%20y1%3D%220%25%22%20x2%3D%22100%25%22%20y2%3D%22100%25%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23374151%22%20%2F%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%231e40af%22%20%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%22600%22%20height%3D%22250%22%20fill%3D%22url(%23grad)%22%20%2F%3E%3C%2Fsvg%3E",
   avatarFallback: "YN",
   bio: "Create a Master Resume to automatically populate your bio, or edit it directly here.",
   links: [
@@ -55,10 +55,18 @@ export default function LinkTreeBioPage() {
 
     let summary = defaultBioData.bio;
     if (masterResumeText) {
-      // Simple logic to extract summary: take the first non-empty paragraph.
+      // Logic to extract summary: take the first two sentences of the first non-empty paragraph.
       const paragraphs = masterResumeText.split('\n\n').map(p => p.trim()).filter(p => p);
       if (paragraphs.length > 0) {
-        summary = paragraphs[0];
+        const firstParagraph = paragraphs[0];
+        // Split into sentences, then take the first two.
+        const sentences = firstParagraph.match(/[^.!?]+[.!?]+/g) || [];
+        if (sentences.length > 0) {
+          summary = sentences.slice(0, 2).join(' ').trim();
+        } else {
+          // Fallback if no sentences are detected (e.g., paragraph without punctuation)
+          summary = firstParagraph;
+        }
       }
     }
 
