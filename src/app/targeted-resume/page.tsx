@@ -138,7 +138,6 @@ export default function JobMatchingPage() {
     } else if (jobSpecInputType === "text" && jobSpecText.trim()) {
       hasValidInput = true;
     } else if (jobSpecInputType === "url" && jobSpecUrl.trim()) {
-      // For now, treat URL content as text. In a future version, this could fetch URL content.
       jobSpecInputTextValue = `Job Specification from URL: ${jobSpecUrl.trim()}`; 
       toast({ title: "URL as Text", description: "Job spec URL content will be treated as text. For best results, paste content directly or upload a file."});
       hasValidInput = true;
@@ -199,13 +198,11 @@ export default function JobMatchingPage() {
     const masterResumeDataUriVal = textToDataURI(masterResumeText);
 
     try {
-      // Tailor Resume
       const tailorInput = { masterResumeDataUri: masterResumeDataUriVal, jobSpecDataUri, jobSpecText: currentJobSpecText };
       const tailoredResult = await tailorResumeToJobSpec(tailorInput);
       setTailoredResumeOutput(tailoredResult);
       toast({ title: "Resume Tailored!", description: "Your resume has been customized for the job." });
 
-      // Generate Cover Letter
       const coverLetterInput: GenerateCoverLetterInput = {
         masterResumeDataUri: masterResumeDataUriVal,
         jobSpecDataUri,
@@ -372,7 +369,7 @@ export default function JobMatchingPage() {
       )}
       
       { (assessmentOutput || tailoredResumeOutput || coverLetterOutput) && !(isLoadingAssessment || isLoadingTailoring || isLoadingCoverLetter) && (
-          <ScrollArea className="mt-8 p-1 rounded-lg border bg-background shadow-lg max-h-[100vh]">
+          <ScrollArea className="mt-8 p-1 rounded-lg border bg-background shadow-lg max-h-[120vh]">
             <div className="p-4 sm:p-6 space-y-8">
               {assessmentOutput && (
                 <Card className="shadow-lg border-primary">
@@ -425,119 +422,115 @@ export default function JobMatchingPage() {
                   </CardContent>
                 </Card>
               )}
+                
+              {(tailoredResumeOutput || coverLetterOutput) && assessmentOutput && <Separator />}
 
-              {(tailoredResumeOutput || coverLetterOutput) && (
-                <div className="space-y-8">
-                  {assessmentOutput && <Separator />}
-                  <h2 className="text-3xl font-bold text-center font-headline text-primary pt-4">Your Tailored Application Documents</h2>
-                  
-                  {tailoredResumeOutput && (
-                    <Card className="bg-card shadow-xl overflow-hidden border-accent">
-                      <CardHeader className="bg-accent/10">
-                        <CardTitle className="flex items-center text-accent-foreground">
-                            <FileText className="h-5 w-5 mr-2" />
-                            AI Tailored Resume
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-4 sm:p-6">
-                        <div className="p-4 rounded-lg border bg-background">
-                            {(loadedExtractedName || loadedExtractedJobTitle) && (
-                                <header className="flex items-center mb-6 pb-4 border-b">
-                                    <Avatar className="h-20 w-20 mr-5">
-                                        <AvatarImage src="https://placehold.co/128x128.png" data-ai-hint="professional portrait" />
-                                        <AvatarFallback className="text-2xl">
-                                            {loadedExtractedName?.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || '??'}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <h2 className="text-3xl font-bold font-headline text-primary">{loadedExtractedName || '[Candidate Name]'}</h2>
-                                        <p className="text-lg text-muted-foreground">{loadedExtractedJobTitle || '[Professional Title]'}</p>
-                                    </div>
-                                </header>
-                            )}
-
-                            <div className="grid md:grid-cols-3 gap-6">
-                                <aside className="md:col-span-1 space-y-4">
-                                    {loadedContactInfo && (
-                                        <div className="space-y-2 text-sm">
-                                            <h3 className="font-semibold text-primary">Contact</h3>
-                                            <Separator />
-                                            {loadedContactInfo.location && <p className="flex items-start gap-2 pt-1"><MapPin size={14} className="mt-0.5 shrink-0"/> <span>{loadedContactInfo.location}</span></p>}
-                                            {loadedContactInfo.phone && <p className="flex items-start gap-2"><Phone size={14} className="mt-0.5 shrink-0"/> <span>{loadedContactInfo.phone}</span></p>}
-                                            {loadedContactInfo.email && <p className="flex items-start gap-2"><Mail size={14} className="mt-0.5 shrink-0"/> <span className="truncate">{loadedContactInfo.email}</span></p>}
-                                            {loadedContactInfo.linkedin && loadedContactInfo.linkedin !== 'null' && (
-                                                <p className="flex items-start gap-2">
-                                                    <Linkedin size={14} className="mt-0.5 shrink-0"/>
-                                                    <Link href={!loadedContactInfo.linkedin.startsWith('http') ? `https://${loadedContactInfo.linkedin}` : loadedContactInfo.linkedin} target="_blank" className="text-primary hover:underline truncate">{loadedContactInfo.linkedin.replace(/^https?:\/\//, '')}</Link>
-                                                </p>
-                                            )}
-                                        </div>
-                                    )}
-                                    {loadedSkills && loadedSkills.length > 0 && (
-                                        <div className="space-y-2 text-sm pt-2">
-                                            <h3 className="font-semibold text-primary">Skills</h3>
-                                            <Separator />
-                                            <div className="flex flex-wrap gap-2 pt-2">
-                                                {loadedSkills.map(skill => (
-                                                    <Badge key={skill} variant="secondary">{skill}</Badge>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </aside>
-                                
-                                <main className="md:col-span-2">
-                                     <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/20 p-4 rounded-md border h-full">
-                                        {tailoredResumeOutput.tailoredResume || "No tailored resume content provided."}
-                                    </pre>
-                                </main>
-                            </div>
-                        </div>
-
-                        {tailoredResumeOutput.questions && tailoredResumeOutput.questions.length > 0 && (
-                          <>
-                            <Separator className="my-6" />
-                            <ResumeSection
-                              title="Clarifying Questions from AI (for Tailoring)"
-                              icon={<HelpCircleIcon className="h-6 w-6 text-blue-500" />}
-                              content={tailoredResumeOutput.questions}
-                              className="border-blue-500/50 bg-transparent shadow-none"
-                            />
-                          </>
+              {tailoredResumeOutput && (
+                <Card className="bg-card shadow-xl overflow-hidden border-accent">
+                  <CardHeader className="bg-accent/10">
+                    <CardTitle className="flex items-center text-accent-foreground">
+                        <FileText className="h-5 w-5 mr-2" />
+                        AI Tailored Resume
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="p-4 rounded-lg border bg-background">
+                        {(loadedExtractedName || loadedExtractedJobTitle) && (
+                            <header className="flex items-center mb-6 pb-4 border-b">
+                                <Avatar className="h-20 w-20 mr-5">
+                                    <AvatarImage src="https://placehold.co/128x128.png" data-ai-hint="professional portrait" />
+                                    <AvatarFallback className="text-2xl">
+                                        {loadedExtractedName?.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || '??'}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <h2 className="text-3xl font-bold font-headline text-primary">{loadedExtractedName || '[Candidate Name]'}</h2>
+                                    <p className="text-lg text-muted-foreground">{loadedExtractedJobTitle || '[Professional Title]'}</p>
+                                </div>
+                            </header>
                         )}
-                      </CardContent>
-                      <CardFooter>
-                          <Button onClick={() => downloadTextFile("tailored_resume.txt", tailoredResumeOutput.tailoredResume)} disabled={!tailoredResumeOutput.tailoredResume}>
-                              <Download className="mr-2 h-5 w-5" /> Download Tailored Resume (TXT)
-                          </Button>
-                      </CardFooter>
-                    </Card>
-                  )}
-                  
-                  {coverLetterOutput && (
-                    <Card className="bg-card shadow-xl overflow-hidden border-accent">
-                      <CardHeader className="bg-accent/10">
-                        <CardTitle className="flex items-center text-accent-foreground">
-                            <FileSignature className="h-5 w-5 mr-2" />
-                            AI Generated Cover Letter
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-4 sm:p-6">
-                        <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/30 p-4 rounded-md border">
-                            {coverLetterOutput.coverLetter || "No cover letter content provided."}
-                        </pre>
-                      </CardContent>
-                      <CardFooter>
-                          <Button onClick={() => downloadTextFile("cover_letter.txt", coverLetterOutput.coverLetter)} disabled={!coverLetterOutput.coverLetter}>
-                              <Download className="mr-2 h-5 w-5" /> Download Cover Letter (TXT)
-                          </Button>
-                      </CardFooter>
-                    </Card>
-                  )}
-                </div>
+
+                        <div className="grid md:grid-cols-3 gap-6">
+                            <aside className="md:col-span-1 space-y-4">
+                                {loadedContactInfo && (
+                                    <div className="space-y-2 text-sm">
+                                        <h3 className="font-semibold text-primary">Contact</h3>
+                                        <Separator />
+                                        {loadedContactInfo.location && <p className="flex items-start gap-2 pt-1"><MapPin size={14} className="mt-0.5 shrink-0"/> <span>{loadedContactInfo.location}</span></p>}
+                                        {loadedContactInfo.phone && <p className="flex items-start gap-2"><Phone size={14} className="mt-0.5 shrink-0"/> <span>{loadedContactInfo.phone}</span></p>}
+                                        {loadedContactInfo.email && <p className="flex items-start gap-2"><Mail size={14} className="mt-0.5 shrink-0"/> <span className="truncate">{loadedContactInfo.email}</span></p>}
+                                        {loadedContactInfo.linkedin && loadedContactInfo.linkedin !== 'null' && (
+                                            <p className="flex items-start gap-2">
+                                                <Linkedin size={14} className="mt-0.5 shrink-0"/>
+                                                <Link href={!loadedContactInfo.linkedin.startsWith('http') ? `https://${loadedContactInfo.linkedin}` : loadedContactInfo.linkedin} target="_blank" className="text-primary hover:underline truncate">{loadedContactInfo.linkedin.replace(/^https?:\/\//, '')}</Link>
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                                {loadedSkills && loadedSkills.length > 0 && (
+                                    <div className="space-y-2 text-sm pt-2">
+                                        <h3 className="font-semibold text-primary">Skills</h3>
+                                        <Separator />
+                                        <div className="flex flex-wrap gap-2 pt-2">
+                                            {loadedSkills.map(skill => (
+                                                <Badge key={skill} variant="secondary">{skill}</Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </aside>
+                            
+                            <main className="md:col-span-2">
+                                  <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/20 p-4 rounded-md border">
+                                    {tailoredResumeOutput.tailoredResume || "No tailored resume content provided."}
+                                </pre>
+                            </main>
+                        </div>
+                    </div>
+
+                    {tailoredResumeOutput.questions && tailoredResumeOutput.questions.length > 0 && (
+                      <>
+                        <Separator className="my-6" />
+                        <ResumeSection
+                          title="Clarifying Questions from AI (for Tailoring)"
+                          icon={<HelpCircleIcon className="h-6 w-6 text-blue-500" />}
+                          content={tailoredResumeOutput.questions}
+                          className="border-blue-500/50 bg-transparent shadow-none"
+                        />
+                      </>
+                    )}
+                  </CardContent>
+                  <CardFooter>
+                      <Button onClick={() => downloadTextFile("tailored_resume.txt", tailoredResumeOutput.tailoredResume)} disabled={!tailoredResumeOutput.tailoredResume}>
+                          <Download className="mr-2 h-5 w-5" /> Download Tailored Resume (TXT)
+                      </Button>
+                  </CardFooter>
+                </Card>
               )}
-          </div>
-        </ScrollArea>
+              
+              {coverLetterOutput && (
+                <Card className="bg-card shadow-xl overflow-hidden border-accent">
+                  <CardHeader className="bg-accent/10">
+                    <CardTitle className="flex items-center text-accent-foreground">
+                        <FileSignature className="h-5 w-5 mr-2" />
+                        AI Generated Cover Letter
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-6">
+                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/30 p-4 rounded-md border">
+                        {coverLetterOutput.coverLetter || "No cover letter content provided."}
+                    </pre>
+                  </CardContent>
+                  <CardFooter>
+                      <Button onClick={() => downloadTextFile("cover_letter.txt", coverLetterOutput.coverLetter)} disabled={!coverLetterOutput.coverLetter}>
+                          <Download className="mr-2 h-5 w-5" /> Download Cover Letter (TXT)
+                      </Button>
+                  </CardFooter>
+                </Card>
+              )}
+
+            </div>
+          </ScrollArea>
       )}
     </div>
   );
