@@ -1,16 +1,19 @@
 
+"use client";
+
+import { useState, useEffect, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronDown, Eye, FilePenLine, Plus, Search, Star, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Eye, FilePenLine, Plus, Search, Star, Trash2, Upload } from "lucide-react";
 
-const candidates = [
+const initialCandidates = [
   {
     id: "C001",
     name: "Elena Rodriguez",
@@ -79,6 +82,9 @@ const candidates = [
   },
 ];
 
+type Candidate = typeof initialCandidates[0];
+type CandidateKey = keyof Candidate;
+
 const getStatusBadgeVariant = (status: string) => {
   switch (status.toLowerCase()) {
     case "sourced":
@@ -96,14 +102,66 @@ const getStatusBadgeVariant = (status: string) => {
   }
 };
 
+function CandidatesPageContent() {
+  const searchParams = useSearchParams();
+  const [sortConfig, setSortConfig] = useState<{ key: CandidateKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
-export default function CandidatesPage() {
+  useEffect(() => {
+    const sortBy = searchParams.get('sortBy') as CandidateKey | null;
+    const order = searchParams.get('order') as 'asc' | 'desc' | null;
+    if (sortBy) {
+      setSortConfig({ key: sortBy, direction: order || 'desc' });
+    }
+  }, [searchParams]);
+
+  const sortedCandidates = useMemo(() => {
+    let sortableItems = [...initialCandidates];
+    if (sortConfig.key) {
+      sortableItems.sort((a, b) => {
+        const aValue = a[sortConfig.key!];
+        const bValue = b[sortConfig.key!];
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [sortConfig]);
+
+  const requestSort = (key: CandidateKey) => {
+    let direction: 'asc' | 'desc' = 'desc';
+    if (sortConfig.key === key && sortConfig.direction === 'desc') {
+      direction = 'asc';
+    }
+    setSortConfig({ key, direction });
+  };
+  
+  const SortableTableHeader = ({ sortKey, children, className }: { sortKey: CandidateKey; children: React.ReactNode; className?: string }) => {
+    const isSorted = sortConfig.key === sortKey;
+    return (
+        <TableHead className={className}>
+            <Button variant="ghost" onClick={() => requestSort(sortKey)} className="px-2">
+                {children}
+                {isSorted ? (
+                    sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+                ) : <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />}
+            </Button>
+        </TableHead>
+    );
+  };
+
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Candidate Management</h1>
         <p className="mt-1 text-muted-foreground">
-          View, manage, and track all candidates in your pipeline.
+          View, manage, and track all candidates in your pipeline. Click column headers to sort.
         </p>
       </div>
 
@@ -145,7 +203,7 @@ export default function CandidatesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Candidates ({candidates.length})</CardTitle>
+          <CardTitle>All Candidates ({sortedCandidates.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -154,16 +212,16 @@ export default function CandidatesPage() {
                 <TableHead className="w-[50px]">
                   <Checkbox />
                 </TableHead>
-                <TableHead>Candidate</TableHead>
-                <TableHead className="w-[150px]">Status</TableHead>
-                <TableHead className="w-[150px]">AI Score</TableHead>
-                <TableHead>Current Job / Company</TableHead>
-                <TableHead>Applied For</TableHead>
-                <TableHead className="w-[120px]">Actions</TableHead>
+                <SortableTableHeader sortKey="name">Candidate</SortableTableHeader>
+                <SortableTableHeader sortKey="status" className="w-auto">Status</SortableTableHeader>
+                <SortableTableHeader sortKey="aiScore" className="w-auto">AI Score</SortableTableHeader>
+                <SortableTableHeader sortKey="currentJob">Current Job / Company</SortableTableHeader>
+                <SortableTableHeader sortKey="appliedFor">Applied For</SortableTableHeader>
+                <TableHead className="w-[120px] text-left pl-4">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {candidates.map((candidate) => (
+              {sortedCandidates.map((candidate) => (
                 <TableRow key={candidate.id}>
                   <TableCell>
                     <Checkbox />
@@ -215,7 +273,7 @@ export default function CandidatesPage() {
           </Table>
         </CardContent>
         <CardFooter className="flex justify-between items-center">
-            <p className="text-sm text-muted-foreground">Showing 1 to 6 of {candidates.length} candidates</p>
+            <p className="text-sm text-muted-foreground">Showing 1 to {sortedCandidates.length} of {initialCandidates.length} candidates</p>
             <div className="flex gap-2">
                 <Button variant="outline" size="sm">Previous</Button>
                 <Button variant="outline" size="sm">Next</Button>
@@ -224,4 +282,12 @@ export default function CandidatesPage() {
       </Card>
     </div>
   );
+}
+
+export default function CandidatesPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <CandidatesPageContent />
+        </Suspense>
+    )
 }

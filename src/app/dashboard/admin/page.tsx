@@ -145,7 +145,7 @@ export default function AdminDashboardPage() {
           </CardContent>
            <CardFooter>
             <Button variant="outline" className="w-full" asChild>
-              <Link href="/ai-parser">View All Matches</Link>
+              <Link href="/candidates?sortBy=aiScore&order=desc">View All Matches</Link>
             </Button>
           </CardFooter>
         </Card>
@@ -160,7 +160,7 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-4">
+                <div key={`${activity.title}-${index}`} className="flex items-start space-x-4">
                     <div className="p-2 bg-muted rounded-full mt-1">
                         {activity.icon}
                     </div>
