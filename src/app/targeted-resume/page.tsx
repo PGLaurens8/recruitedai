@@ -654,8 +654,8 @@ export default function JobMatchingPage() {
                                               <h3 className="font-semibold text-primary">Skills</h3>
                                               <Separator />
                                               <div className="flex flex-wrap gap-2 pt-2">
-                                                  {loadedSkills.map(skill => (
-                                                      <Badge key={skill} variant="secondary">{skill}</Badge>
+                                                  {loadedSkills.map((skill, index) => (
+                                                      <Badge key={`${skill}-${index}`} variant="secondary">{skill}</Badge>
                                                   ))}
                                               </div>
                                           </div>

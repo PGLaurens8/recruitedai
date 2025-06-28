@@ -306,7 +306,7 @@ export default function AiParserPage() {
                         <h4 className="text-sm font-semibold">Skills:</h4>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {parsedResume.skills && parsedResume.skills.length > 0 ? (
-                            parsedResume.skills.slice(0, 5).map(skill => <Badge key={skill} variant="secondary">{skill}</Badge>)
+                            parsedResume.skills.slice(0, 5).map((skill, index) => <Badge key={`${skill}-${index}`} variant="secondary">{skill}</Badge>)
                           ) : (
                             <p className="text-sm text-muted-foreground">No skills extracted.</p>
                           )}

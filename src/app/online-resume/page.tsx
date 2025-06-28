@@ -214,8 +214,8 @@ export default function OnlineResumePage() {
               <CardTitle className="text-lg font-semibold">Skills</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
-              {displaySkills.map(skill => (
-                <Badge key={skill} variant="secondary" className="text-xs">{skill}</Badge>
+              {displaySkills.map((skill, index) => (
+                <Badge key={`${skill}-${index}`} variant="secondary" className="text-xs">{skill}</Badge>
               ))}
             </CardContent>
           </Card>
