@@ -21,7 +21,8 @@ const LOCAL_STORAGE_KEYS = {
   MASTER_RESUME_EXTRACTED_JOB_TITLE: 'careerCraft_masterResumeExtractedJobTitle',
   MASTER_RESUME_CONTACT_INFO: 'careerCraft_masterResumeContactInfo',
   MASTER_RESUME_SKILLS: 'careerCraft_masterResumeSkills',
-  MASTER_RESUME_TIMESTAMP: 'careerCraft_masterResumeTimestamp', 
+  MASTER_RESUME_TIMESTAMP: 'careerCraft_masterResumeTimestamp',
+  MASTER_RESUME_AVATAR_URI: 'careerCraft_masterResumeAvatarUri',
 };
 
 interface ContactInfo {
@@ -79,6 +80,7 @@ export default function OnlineResumePage() {
   const [loadedExtractedJobTitle, setLoadedExtractedJobTitle] = useState<string | null>(null);
   const [loadedContactInfo, setLoadedContactInfo] = useState<ContactInfo | null>(null);
   const [loadedSkills, setLoadedSkills] = useState<string[] | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -87,12 +89,14 @@ export default function OnlineResumePage() {
     const extractedJobTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
     const contactInfoStr = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO);
     const skillsStr = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS);
+    const storedAvatar = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI);
     
     if (text) setLoadedResumeText(text);
     if (extractedName) setLoadedExtractedName(extractedName);
     if (extractedJobTitle) setLoadedExtractedJobTitle(extractedJobTitle);
     if (contactInfoStr) setLoadedContactInfo(JSON.parse(contactInfoStr));
     if (skillsStr) setLoadedSkills(JSON.parse(skillsStr));
+    if (storedAvatar) setAvatarUri(storedAvatar);
     
     setIsLoading(false);
   }, []);
@@ -134,7 +138,7 @@ export default function OnlineResumePage() {
       <header className="flex flex-col sm:flex-row items-center justify-between mb-10 pb-6 border-b">
         <div className="flex items-center mb-4 sm:mb-0">
           <Avatar className="h-24 w-24 mr-6 border-2 border-primary">
-            <AvatarImage src={sampleResumeData.avatarUrl} alt={displayName || "User Avatar"} data-ai-hint="professional portrait"/>
+            <AvatarImage src={avatarUri || sampleResumeData.avatarUrl} alt={displayName || "User Avatar"} data-ai-hint="professional portrait"/>
             <AvatarFallback className="text-3xl">{avatarFallbackText}</AvatarFallback>
           </Avatar>
           <div>

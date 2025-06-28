@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FileUploadCard } from '@/components/feature/file-upload-card';
@@ -9,7 +9,7 @@ import { reformatResume, type ReformatResumeOutput } from '@/ai/flows/reformat-r
 import { fileToDataURI } from '@/lib/file-utils';
 import { ResumeSection } from '@/components/feature/resume-section';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, FileText, HelpCircle, AlertTriangle, UploadCloud, Download, Linkedin, Mail, MapPin, Phone } from 'lucide-react';
+import { Lightbulb, FileText, HelpCircle, AlertTriangle, UploadCloud, Download, Linkedin, Mail, MapPin, Phone, Edit } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,6 +32,7 @@ const LOCAL_STORAGE_KEYS = {
   MASTER_RESUME_CONTACT_INFO: 'careerCraft_masterResumeContactInfo',
   MASTER_RESUME_SKILLS: 'careerCraft_masterResumeSkills',
   MASTER_RESUME_TIMESTAMP: 'careerCraft_masterResumeTimestamp',
+  MASTER_RESUME_AVATAR_URI: 'careerCraft_masterResumeAvatarUri',
 };
 
 export default function MasterResumePage() {
@@ -41,6 +42,8 @@ export default function MasterResumePage() {
   const { toast } = useToast();
   const [resumeUserTitle, setResumeUserTitle] = useState("My Master Resume"); 
   const [processedTimestamp, setProcessedTimestamp] = useState<string | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const profileImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const storedUserTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE);
@@ -50,9 +53,13 @@ export default function MasterResumePage() {
     const storedExtractedJobTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
     const storedContactInfo = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO);
     const storedSkills = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS);
+    const storedAvatar = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI);
     
     if (storedUserTitle) {
       setResumeUserTitle(storedUserTitle);
+    }
+    if (storedAvatar) {
+      setAvatarUri(storedAvatar);
     }
     if (storedTimestamp && storedText) {
         setAiOutput({ 
@@ -125,6 +132,28 @@ export default function MasterResumePage() {
     }
   };
   
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+        try {
+            const file = e.target.files[0];
+            const dataUri = await fileToDataURI(file);
+            setAvatarUri(dataUri);
+            localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI, dataUri);
+            toast({
+                title: "Profile Photo Updated!",
+                description: "Your new photo is now set for this session.",
+            });
+        } catch (error) {
+            console.error("Error setting profile photo:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not set the profile photo.",
+            });
+        }
+    }
+  };
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setResumeUserTitle(newTitle);
@@ -315,12 +344,30 @@ export default function MasterResumePage() {
                   <div id="master-resume-content" className="p-4 rounded-lg border bg-background">
                     {(aiOutput.fullName || aiOutput.currentJobTitle) && (
                       <header className="flex items-center mb-6 pb-4 border-b">
-                        <Avatar className="h-20 w-20 mr-5">
-                          <AvatarImage src="https://placehold.co/128x128.png" data-ai-hint="professional portrait" />
-                          <AvatarFallback className="text-2xl">
-                            {aiOutput.fullName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || '??'}
-                          </AvatarFallback>
-                        </Avatar>
+                        <div className="relative">
+                            <Avatar className="h-20 w-20 mr-5">
+                                <AvatarImage src={avatarUri || "https://placehold.co/128x128.png"} data-ai-hint="professional portrait"/>
+                                <AvatarFallback className="text-2xl">
+                                    {aiOutput.fullName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || '??'}
+                                </AvatarFallback>
+                            </Avatar>
+                            <Button
+                                size="icon"
+                                variant="outline"
+                                className="absolute bottom-0 left-14 rounded-full h-8 w-8 bg-background"
+                                onClick={() => profileImageInputRef.current?.click()}
+                            >
+                                <Edit className="h-4 w-4" />
+                                <span className="sr-only">Edit profile picture</span>
+                            </Button>
+                            <Input
+                                ref={profileImageInputRef}
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleImageChange}
+                            />
+                        </div>
                         <div>
                           <h2 className="text-3xl font-bold font-headline text-primary">{aiOutput.fullName || '[Candidate Name]'}</h2>
                           <p className="text-lg text-muted-foreground">{aiOutput.currentJobTitle || '[Professional Title]'}</p>
@@ -413,4 +460,3 @@ export default function MasterResumePage() {
     </div>
   );
 }
-
