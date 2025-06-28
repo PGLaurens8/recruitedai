@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -13,29 +13,68 @@ import { Github, Linkedin, Briefcase, ExternalLink, Mail, FileText, Link as Link
 import Link from "next/link";
 import Image from "next/image";
 import { fileToDataURI } from '@/lib/file-utils';
+import { Spinner } from '@/components/ui/spinner';
 
-// Initial data, will be managed by state
-const initialBioData = {
-  name: "Morgan Lee",
-  title: "UX Designer & Illustrator",
+const LOCAL_STORAGE_KEYS = {
+  MASTER_RESUME_TEXT: 'careerCraft_masterResumeText',
+  MASTER_RESUME_EXTRACTED_NAME: 'careerCraft_masterResumeExtractedName',
+  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'careerCraft_masterResumeExtractedJobTitle',
+  MASTER_RESUME_AVATAR_URI: 'careerCraft_masterResumeAvatarUri',
+};
+
+// Default data for when no master resume is found
+const defaultBioData = {
+  name: "Your Name",
+  title: "Your Title",
   avatarUrl: "https://placehold.co/150x150.png",
   coverUrl: "https://placehold.co/600x250.png",
-  avatarFallback: "ML",
-  bio: "Passionate about creating intuitive user experiences and beautiful digital art. Currently seeking new opportunities to blend creativity with technology.",
+  avatarFallback: "YN",
+  bio: "Create a Master Resume to automatically populate your bio, or edit it directly here.",
   links: [
     { id: 1, label: "My Online Resume", url: "/online-resume", icon: <FileText className="h-5 w-5" /> },
     { id: 2, label: "Portfolio Website", url: "#", icon: <Briefcase className="h-5 w-5" /> },
     { id: 3, label: "LinkedIn Profile", url: "#", icon: <Linkedin className="h-5 w-5" /> },
     { id: 4, label: "GitHub Projects", url: "#", icon: <Github className="h-5 w-5" /> },
-    { id: 5, label: "Email Me", url: "mailto:morgan.lee@example.com", icon: <Mail className="h-5 w-5" /> },
+    { id: 5, label: "Email Me", url: "mailto:your.email@example.com", icon: <Mail className="h-5 w-5" /> },
   ],
 };
 
+
 export default function LinkTreeBioPage() {
-  const [bioData, setBioData] = useState(initialBioData);
+  const [bioData, setBioData] = useState(defaultBioData);
+  const [isLoading, setIsLoading] = useState(true);
 
   const profileImageInputRef = useRef<HTMLInputElement>(null);
   const coverImageInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const storedName = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME);
+    const storedTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
+    const storedAvatar = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI);
+    const masterResumeText = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
+
+    let summary = defaultBioData.bio;
+    if (masterResumeText) {
+      // Simple logic to extract summary: take the first non-empty paragraph.
+      const paragraphs = masterResumeText.split('\n\n').map(p => p.trim()).filter(p => p);
+      if (paragraphs.length > 0) {
+        summary = paragraphs[0];
+      }
+    }
+
+    const name = storedName || defaultBioData.name;
+
+    setBioData(prev => ({
+      ...prev,
+      name: name,
+      title: storedTitle || defaultBioData.title,
+      avatarUrl: storedAvatar || defaultBioData.avatarUrl,
+      bio: summary,
+      avatarFallback: name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || '??'
+    }));
+
+    setIsLoading(false);
+  }, []);
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -45,7 +84,6 @@ export default function LinkTreeBioPage() {
   const handleLinkChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const newLinks = [...bioData.links];
-    // The 'name' of the input will be either 'label' or 'url'
     const linkToUpdate = { ...newLinks[index], [name]: value };
     newLinks[index] = linkToUpdate;
     setBioData(prev => ({ ...prev, links: newLinks }));
@@ -57,11 +95,26 @@ export default function LinkTreeBioPage() {
             const file = e.target.files[0];
             const dataUri = await fileToDataURI(file);
             setBioData(prev => ({ ...prev, [field]: dataUri }));
+            
+            // If the user uploads a new profile photo here, update it in local storage
+            // so it becomes the new default across the app for this session.
+            if (field === 'avatarUrl') {
+              localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI, dataUri);
+            }
         } catch (error) {
             console.error("Error converting file to Data URI:", error);
         }
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">
+        <Spinner size={48} className="text-primary" />
+        <p className="ml-4 text-lg text-muted-foreground">Loading Your Bio Page...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8">
@@ -97,7 +150,7 @@ export default function LinkTreeBioPage() {
                 <div className="relative">
                     <Avatar className="w-24 h-24 border">
                         <AvatarImage src={bioData.avatarUrl} alt="Profile preview" data-ai-hint="profile picture"/>
-                        <AvatarFallback>{bioData.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || '??'}</AvatarFallback>
+                        <AvatarFallback>{bioData.avatarFallback}</AvatarFallback>
                     </Avatar>
                     <Button
                         size="icon"
@@ -198,7 +251,7 @@ export default function LinkTreeBioPage() {
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-black/30">
                     <Avatar className="w-28 h-28 border-4 border-card shadow-lg mb-3">
                       <AvatarImage src={bioData.avatarUrl} alt={bioData.name} data-ai-hint="profile picture"/>
-                      <AvatarFallback className="text-4xl">{bioData.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || '??'}</AvatarFallback>
+                      <AvatarFallback className="text-4xl">{bioData.avatarFallback}</AvatarFallback>
                     </Avatar>
                     <h1 className="text-3xl font-bold text-card-foreground font-headline text-white">{bioData.name}</h1>
                     <p className="text-md text-card-foreground/80 text-white">{bioData.title}</p>
