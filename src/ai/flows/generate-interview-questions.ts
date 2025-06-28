@@ -11,12 +11,12 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const GenerateInterviewQuestionsInputSchema = z.object({
+const GenerateInterviewQuestionsInputSchema = z.object({
   jobSpecText: z.string().describe('The full text of the job specification.'),
 });
 export type GenerateInterviewQuestionsInput = z.infer<typeof GenerateInterviewQuestionsInputSchema>;
 
-export const GenerateInterviewQuestionsOutputSchema = z.object({
+const GenerateInterviewQuestionsOutputSchema = z.object({
   questions: z.array(z.string()).describe('A list of 5 diverse and relevant interview questions based on the job spec. Include behavioral, technical, and situational questions if applicable.'),
 });
 export type GenerateInterviewQuestionsOutput = z.infer<typeof GenerateInterviewQuestionsOutputSchema>;

@@ -11,13 +11,13 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const AnalyzeInterviewResponseInputSchema = z.object({
+const AnalyzeInterviewResponseInputSchema = z.object({
   question: z.string().describe('The interview question that was asked.'),
   answer: z.string().describe("The candidate's transcribed answer to the question."),
 });
 export type AnalyzeInterviewResponseInput = z.infer<typeof AnalyzeInterviewResponseInputSchema>;
 
-export const AnalyzeInterviewResponseOutputSchema = z.object({
+const AnalyzeInterviewResponseOutputSchema = z.object({
   feedback: z.string().describe("Concise, constructive feedback (2-3 sentences) on the answer's quality, relevance, and clarity. Frame it as an interview coach would."),
   score: z.number().min(1).max(10).describe('A score from 1 to 10 for the answer, where 1 is poor and 10 is excellent.'),
 });
