@@ -55,11 +55,10 @@ const navGroups: NavGroup[] = [
     links: [
       { href: '/dashboard/admin', label: 'Dashboard', icon: <LayoutDashboard size={18}/>, roles: ['Admin', 'Recruiter', 'Sales'] },
       { href: '/candidates', label: 'Candidates', icon: <Users size={18}/>, roles: ['Admin', 'Recruiter'] },
-      { href: '/candidate-profiles', label: 'Candidate Profiles', icon: <UserCheck size={18}/>, roles: ['Admin', 'Recruiter'] },
       { href: '/jobs', label: 'Jobs', icon: <Briefcase size={18}/>, roles: ['Admin', 'Recruiter', 'Sales'] },
       { href: '/clients', label: 'Clients', icon: <Building size={18}/>, roles: ['Admin', 'Recruiter', 'Sales'] },
       { href: '/company-finder', label: 'Company Finder', icon: <Search size={18}/>, roles: ['Admin', 'Recruiter'] },
-      { href: '/job-matcher', label: 'Job Matcher', icon: <ScanText size={18}/>, roles: ['Admin', 'Recruiter'] },
+      { href: '/ai-parser', label: 'Job Matcher', icon: <ScanText size={18}/>, roles: ['Admin', 'Recruiter'] },
       { href: '/reports', label: 'Reports', icon: <BarChart size={18}/>, roles: ['Admin', 'Sales'] },
     ]
   },

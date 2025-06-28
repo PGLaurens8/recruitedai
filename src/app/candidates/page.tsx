@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, Suspense } from "react";
+import Link from 'next/link';
 import { useSearchParams } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -233,7 +234,7 @@ function CandidatesPageContent() {
                         <AvatarFallback>{candidate.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{candidate.name}</p>
+                        <Link href={`/candidates/${candidate.id}`} className="font-medium hover:underline">{candidate.name}</Link>
                         <p className="text-sm text-muted-foreground">{candidate.email}</p>
                       </div>
                     </div>
