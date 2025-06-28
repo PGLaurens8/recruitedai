@@ -1,4 +1,7 @@
 
+"use client";
+
+import { useState, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, Eye, Plus, Search, Star, X } from "lucide-react";
+import { Check, Eye, Plus, Search, Star, X, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 
 const jobSpecifications = [
   {
@@ -83,6 +86,10 @@ export const jobPostings = [
   },
 ];
 
+type JobPosting = typeof jobPostings[0];
+type JobPostingKey = keyof JobPosting;
+
+
 const getStatusBadgeClass = (status: string) => {
     switch(status) {
         case 'active': return 'bg-green-100 text-green-800 border-green-200';
@@ -103,6 +110,53 @@ const getApprovalBadgeClass = (approval: string) => {
 
 
 export default function JobsPage() {
+  const [sortConfig, setSortConfig] = useState<{ key: JobPostingKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
+
+  const sortedJobPostings = useMemo(() => {
+    let sortableItems = [...jobPostings];
+    if (sortConfig.key) {
+      sortableItems.sort((a, b) => {
+        const aValue = a[sortConfig.key!];
+        const bValue = b[sortConfig.key!];
+
+        if (aValue === null || aValue === undefined) return 1;
+        if (bValue === null || bValue === undefined) return -1;
+        
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [sortConfig]);
+
+  const requestSort = (key: JobPostingKey) => {
+    let direction: 'asc' | 'desc' = 'desc';
+    if (sortConfig.key === key && sortConfig.direction === 'desc') {
+      direction = 'asc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const SortableTableHeader = ({ sortKey, children, className }: { sortKey: JobPostingKey; children: React.ReactNode; className?: string }) => {
+    const isSorted = sortConfig.key === sortKey;
+    return (
+        <TableHead className={className}>
+            <Button variant="ghost" onClick={() => requestSort(sortKey)} className="px-2">
+                {children}
+                {isSorted ? (
+                    sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+                ) : <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />}
+            </Button>
+        </TableHead>
+    );
+  };
+
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -158,7 +212,7 @@ export default function JobsPage() {
             <Card>
                 <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <CardTitle>All Job Postings ({jobPostings.length})</CardTitle>
+                        <CardTitle>All Job Postings ({sortedJobPostings.length})</CardTitle>
                         <CardDescription>
                             View and manage all active, pending, and closed job postings.
                         </CardDescription>
@@ -184,17 +238,17 @@ export default function JobsPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                            <TableHead>Job Details</TableHead>
-                            <TableHead>Company & Location</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Approval</TableHead>
-                            <TableHead>Candidates</TableHead>
-                            <TableHead>AI Matches</TableHead>
+                            <SortableTableHeader sortKey="title">Job Details</SortableTableHeader>
+                            <SortableTableHeader sortKey="company">Company & Location</SortableTableHeader>
+                            <SortableTableHeader sortKey="status">Status</SortableTableHeader>
+                            <SortableTableHeader sortKey="approval">Approval</SortableTableHeader>
+                            <SortableTableHeader sortKey="candidates">Candidates</SortableTableHeader>
+                            <SortableTableHeader sortKey="aiMatches">AI Matches</SortableTableHeader>
                             <TableHead className="w-[120px]">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {jobPostings.map((job) => (
+                            {sortedJobPostings.map((job) => (
                             <TableRow key={job.id}>
                                 <TableCell>
                                 <p className="font-medium">{job.title}</p>
@@ -244,7 +298,7 @@ export default function JobsPage() {
                     </Table>
                 </CardContent>
                 <CardFooter className="flex justify-between items-center">
-                    <p className="text-sm text-muted-foreground">Showing 1 to {jobPostings.length} of {jobPostings.length} postings</p>
+                    <p className="text-sm text-muted-foreground">Showing 1 to {sortedJobPostings.length} of {jobPostings.length} postings</p>
                     <div className="flex gap-2">
                         <Button variant="outline" size="sm">Previous</Button>
                         <Button variant="outline" size="sm">Next</Button>
