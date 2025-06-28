@@ -17,6 +17,7 @@ import {
   Send,
   Contact
 } from "lucide-react";
+import Link from "next/link";
 
 const statCards = [
   {
@@ -143,7 +144,9 @@ export default function AdminDashboardPage() {
             ))}
           </CardContent>
            <CardFooter>
-            <Button variant="outline" className="w-full">View All Matches</Button>
+            <Button variant="outline" className="w-full" asChild>
+              <Link href="/ai-parser">View All Matches</Link>
+            </Button>
           </CardFooter>
         </Card>
 
@@ -177,9 +180,21 @@ export default function AdminDashboardPage() {
       <div>
         <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <Button size="lg" className="w-full"><UserPlus className="mr-2 h-5 w-5"/> Add Candidate</Button>
-            <Button size="lg" variant="secondary" className="w-full"><FilePlus className="mr-2 h-5 w-5"/> Create Job</Button>
-            <Button size="lg" variant="secondary" className="w-full"><Building className="mr-2 h-5 w-5"/> Add Client</Button>
+            <Button size="lg" className="w-full" asChild>
+              <Link href="/candidates">
+                <UserPlus className="mr-2 h-5 w-5"/> Add Candidate
+              </Link>
+            </Button>
+            <Button size="lg" variant="secondary" className="w-full" asChild>
+              <Link href="/jobs">
+                <FilePlus className="mr-2 h-5 w-5"/> Create Job
+              </Link>
+            </Button>
+            <Button size="lg" variant="secondary" className="w-full" asChild>
+              <Link href="/clients">
+                <Building className="mr-2 h-5 w-5"/> Add Client
+              </Link>
+            </Button>
             <Button size="lg" variant="secondary" className="w-full"><Send className="mr-2 h-5 w-5"/> Send Message</Button>
         </div>
       </div>
