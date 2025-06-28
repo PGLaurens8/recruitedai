@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Link from "next/link"; // Added import
+import Link from "next/link";
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -13,13 +13,15 @@ import { generateCoverLetter, type GenerateCoverLetterInput, type GenerateCoverL
 import { fileToDataURI, textToDataURI } from '@/lib/file-utils';
 import { ResumeSection } from '@/components/feature/resume-section';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, FileText, Briefcase, AlertTriangle, Target, UploadCloud, Download, Sparkles, UserCheck, FileSignature, PercentCircle, BarChartBig, Brain, HelpCircle as HelpCircleIcon, Edit3, CheckCircle } from 'lucide-react';
+import { Lightbulb, FileText, Briefcase, AlertTriangle, Target, UploadCloud, Download, Sparkles, UserCheck, FileSignature, PercentCircle, BarChartBig, Brain, HelpCircle as HelpCircleIcon, Edit3, CheckCircle, Mail, Phone, Linkedin, MapPin } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 type JobSpecInputType = "file" | "text" | "url";
 
@@ -33,12 +35,24 @@ const LOCAL_STORAGE_KEYS = {
   MASTER_RESUME_SKILLS: 'careerCraft_masterResumeSkills',
 };
 
+interface ContactInfo {
+  email?: string;
+  phone?: string;
+  linkedin?: string;
+  location?: string;
+}
+
 export default function JobMatchingPage() {
   const [masterResumeText, setMasterResumeText] = useState('');
   const [masterResumeUserTitle, setMasterResumeUserTitle] = useState('');
   const [masterResumeTimestamp, setMasterResumeTimestamp] = useState('');
   const [isMasterResumeFromStorage, setIsMasterResumeFromStorage] = useState(false);
   
+  const [loadedExtractedName, setLoadedExtractedName] = useState<string | null>(null);
+  const [loadedExtractedJobTitle, setLoadedExtractedJobTitle] = useState<string | null>(null);
+  const [loadedContactInfo, setLoadedContactInfo] = useState<ContactInfo | null>(null);
+  const [loadedSkills, setLoadedSkills] = useState<string[] | null>(null);
+
   const [jobSpecInputType, setJobSpecInputType] = useState<JobSpecInputType>("text");
   const [jobSpecFile, setJobSpecFile] = useState<File | null>(null);
   const [jobSpecText, setJobSpecText] = useState('');
@@ -61,6 +75,11 @@ export default function JobMatchingPage() {
     const storedText = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
     const storedUserTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE);
     const storedTimestamp = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP);
+    const storedName = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME);
+    const storedJobTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
+    const storedContact = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO);
+    const storedSkills = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS);
+
 
     if (storedText && storedUserTitle && storedTimestamp) {
       setMasterResumeText(storedText);
@@ -70,6 +89,12 @@ export default function JobMatchingPage() {
     } else {
       setIsMasterResumeFromStorage(false);
     }
+    
+    if (storedName) setLoadedExtractedName(storedName);
+    if (storedJobTitle) setLoadedExtractedJobTitle(storedJobTitle);
+    if (storedContact) setLoadedContactInfo(JSON.parse(storedContact));
+    if (storedSkills) setLoadedSkills(JSON.parse(storedSkills));
+
   }, []);
 
   const handleClearStoredMasterResume = () => {
@@ -347,7 +372,8 @@ export default function JobMatchingPage() {
       )}
       
       { (assessmentOutput || tailoredResumeOutput || coverLetterOutput) && !(isLoadingAssessment || isLoadingTailoring || isLoadingCoverLetter) && (
-          <div className="mt-8 space-y-8">
+          <ScrollArea className="mt-8 p-1 rounded-lg border bg-background shadow-lg max-h-[100vh]">
+            <div className="p-4 sm:p-6 space-y-8">
               {assessmentOutput && (
                 <Card className="shadow-lg border-primary">
                   <CardHeader className="bg-primary/10">
@@ -414,9 +440,60 @@ export default function JobMatchingPage() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="p-4 sm:p-6">
-                        <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/30 p-4 rounded-md border">
-                            {tailoredResumeOutput.tailoredResume || "No tailored resume content provided."}
-                        </pre>
+                        <div className="p-4 rounded-lg border bg-background">
+                            {(loadedExtractedName || loadedExtractedJobTitle) && (
+                                <header className="flex items-center mb-6 pb-4 border-b">
+                                    <Avatar className="h-20 w-20 mr-5">
+                                        <AvatarImage src="https://placehold.co/128x128.png" data-ai-hint="professional portrait" />
+                                        <AvatarFallback className="text-2xl">
+                                            {loadedExtractedName?.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || '??'}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <h2 className="text-3xl font-bold font-headline text-primary">{loadedExtractedName || '[Candidate Name]'}</h2>
+                                        <p className="text-lg text-muted-foreground">{loadedExtractedJobTitle || '[Professional Title]'}</p>
+                                    </div>
+                                </header>
+                            )}
+
+                            <div className="grid md:grid-cols-3 gap-6">
+                                <aside className="md:col-span-1 space-y-4">
+                                    {loadedContactInfo && (
+                                        <div className="space-y-2 text-sm">
+                                            <h3 className="font-semibold text-primary">Contact</h3>
+                                            <Separator />
+                                            {loadedContactInfo.location && <p className="flex items-start gap-2 pt-1"><MapPin size={14} className="mt-0.5 shrink-0"/> <span>{loadedContactInfo.location}</span></p>}
+                                            {loadedContactInfo.phone && <p className="flex items-start gap-2"><Phone size={14} className="mt-0.5 shrink-0"/> <span>{loadedContactInfo.phone}</span></p>}
+                                            {loadedContactInfo.email && <p className="flex items-start gap-2"><Mail size={14} className="mt-0.5 shrink-0"/> <span className="truncate">{loadedContactInfo.email}</span></p>}
+                                            {loadedContactInfo.linkedin && loadedContactInfo.linkedin !== 'null' && (
+                                                <p className="flex items-start gap-2">
+                                                    <Linkedin size={14} className="mt-0.5 shrink-0"/>
+                                                    <Link href={!loadedContactInfo.linkedin.startsWith('http') ? `https://${loadedContactInfo.linkedin}` : loadedContactInfo.linkedin} target="_blank" className="text-primary hover:underline truncate">{loadedContactInfo.linkedin.replace(/^https?:\/\//, '')}</Link>
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                    {loadedSkills && loadedSkills.length > 0 && (
+                                        <div className="space-y-2 text-sm pt-2">
+                                            <h3 className="font-semibold text-primary">Skills</h3>
+                                            <Separator />
+                                            <div className="flex flex-wrap gap-2 pt-2">
+                                                {loadedSkills.map(skill => (
+                                                    <Badge key={skill} variant="secondary">{skill}</Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </aside>
+                                
+                                <main className="md:col-span-2">
+                                     <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/20 p-4 rounded-md border h-full">
+                                        {tailoredResumeOutput.tailoredResume || "No tailored resume content provided."}
+                                    </pre>
+                                </main>
+                            </div>
+                        </div>
+
                         {tailoredResumeOutput.questions && tailoredResumeOutput.questions.length > 0 && (
                           <>
                             <Separator className="my-6" />
@@ -460,6 +537,7 @@ export default function JobMatchingPage() {
                 </div>
               )}
           </div>
+        </ScrollArea>
       )}
     </div>
   );
