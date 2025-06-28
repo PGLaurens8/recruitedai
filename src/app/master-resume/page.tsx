@@ -170,7 +170,7 @@ export default function MasterResumePage() {
       )}
 
       {aiOutput && (
-        <ScrollArea className="mt-12 p-1 rounded-lg border bg-background shadow-lg max-h-[75vh]">
+        <div className="mt-12 p-1 rounded-lg border bg-background shadow-lg">
           <div className="p-4 sm:p-6 space-y-8">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
               <Input 
@@ -197,9 +197,11 @@ export default function MasterResumePage() {
                 {aiOutput.currentJobTitle && (
                   <p className="text-md text-muted-foreground mb-3">Extracted Job Title: {aiOutput.currentJobTitle}</p>
                 )}
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/20 p-4 rounded-md border">
-                  {aiOutput.reformattedResume || "The AI didn't return any resume content. Please check your uploaded file."}
-                </pre>
+                <ScrollArea className="h-[600px] w-full rounded-md border bg-muted/20 p-4">
+                  <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground">
+                    {aiOutput.reformattedResume || "The AI didn't return any resume content. Please check your uploaded file."}
+                  </pre>
+                </ScrollArea>
               </CardContent>
             </Card>
             
@@ -232,7 +234,7 @@ export default function MasterResumePage() {
                 <p className="text-xs text-muted-foreground mt-2">Full PDF/Word download coming soon. Editing capabilities are available via the 'My Resumes' dashboard (feature in development).</p>
             </div>
           </div>
-        </ScrollArea>
+        </div>
       )}
     </div>
   );
