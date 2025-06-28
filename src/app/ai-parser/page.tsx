@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -16,13 +17,20 @@ import {
   Star,
   FileCheck2,
   UploadCloud,
+  Lightbulb,
+  BarChartBig,
+  Brain,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
-import { fileToDataURI } from "@/lib/file-utils";
+import { fileToDataURI, textToDataURI } from "@/lib/file-utils";
 import { reformatResume, type ReformatResumeOutput } from "@/ai/flows/reformat-resume";
+import { assessJobMatch, type AssessJobMatchInput, type AssessJobMatchOutput } from "@/ai/flows/assess-job-match";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { ResumeSection } from "@/components/feature/resume-section";
 
-// Simplified output for display purposes, adding file info
 type ParsedResume = ReformatResumeOutput & {
   fileName: string;
 };
@@ -30,10 +38,13 @@ type ParsedResume = ReformatResumeOutput & {
 export default function AiParserPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [jobSpecFile, setJobSpecFile] = useState<File | null>(null);
+  const [jobSpecText, setJobSpecText] = useState<string>('');
+  
   const [parsedResume, setParsedResume] = useState<ParsedResume | null>(null);
+  const [assessmentOutput, setAssessmentOutput] = useState<AssessJobMatchOutput | null>(null);
 
   const [isParsing, setIsParsing] = useState(false);
-  const [isMatching, setIsMatching] = useState(false); // For future use
+  const [isMatching, setIsMatching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [dragActiveResume, setDragActiveResume] = useState(false);
@@ -54,17 +65,18 @@ export default function AiParserPage() {
   const handleDrop = (e: React.DragEvent<HTMLDivElement | HTMLLabelElement>, type: 'resume' | 'jobspec') => {
     e.preventDefault();
     e.stopPropagation();
-    type === 'resume' ? setDragActiveResume(false) : setDragActiveJobSpec(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      if (type === 'resume') {
+    if (type === 'resume') {
+      setDragActiveResume(false);
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
         handleResumeFileChange({ target: { files: e.dataTransfer.files } } as React.ChangeEvent<HTMLInputElement>);
-      } else {
-        setJobSpecFile(e.dataTransfer.files[0]);
+      }
+    } else {
+      setDragActiveJobSpec(false);
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleJobSpecFileChange({ target: { files: e.dataTransfer.files } } as React.ChangeEvent<HTMLInputElement>);
       }
     }
   };
-
 
   const handleResumeFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -73,6 +85,7 @@ export default function AiParserPage() {
       setIsParsing(true);
       setError(null);
       setParsedResume(null);
+      setAssessmentOutput(null);
 
       try {
         const resumeDataUri = await fileToDataURI(file);
@@ -98,8 +111,53 @@ export default function AiParserPage() {
   const handleJobSpecFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
         setJobSpecFile(e.target.files[0]);
+        setJobSpecText('');
+        setAssessmentOutput(null);
     }
   };
+
+  const handleMatch = async () => {
+    if (!parsedResume || (!jobSpecFile && !jobSpecText.trim())) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please ensure a resume is parsed and a job spec is provided.",
+      });
+      return;
+    }
+
+    setIsMatching(true);
+    setError(null);
+    setAssessmentOutput(null);
+
+    try {
+      const masterResumeDataUri = textToDataURI(parsedResume.reformattedResume);
+      const jobSpecDataUri = jobSpecFile ? await fileToDataURI(jobSpecFile) : undefined;
+      
+      const input: AssessJobMatchInput = {
+        masterResumeDataUri,
+        jobSpecDataUri,
+        jobSpecText: jobSpecText.trim() || undefined,
+      };
+
+      const result = await assessJobMatch(input);
+      setAssessmentOutput(result);
+      toast({
+        title: "Match Assessed!",
+        description: "The AI has analyzed the candidate's fit for the role.",
+      });
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred during matching.");
+      toast({
+        variant: "destructive",
+        title: "Matching Failed",
+        description: err.message || "Could not assess the job match.",
+      });
+    } finally {
+      setIsMatching(false);
+    }
+  };
+
 
   return (
     <div className="space-y-8">
@@ -107,10 +165,14 @@ export default function AiParserPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Resume Parser & AI Matching</h1>
           <p className="mt-1 text-muted-foreground">
-            Upload resumes and create structured job specs to find the best candidate matches using AI.
+            Upload resumes and job specs to find the best candidate matches using AI.
           </p>
         </div>
-        <Button size="lg" disabled={!parsedResume || !jobSpecFile || isMatching}>
+        <Button 
+          size="lg" 
+          disabled={!parsedResume || (!jobSpecFile && !jobSpecText.trim()) || isMatching}
+          onClick={handleMatch}
+        >
           <Star className="mr-2 h-5 w-5" />
           {isMatching ? "Matching..." : "Start AI Matching"}
         </Button>
@@ -168,37 +230,47 @@ export default function AiParserPage() {
             <CardTitle className="flex items-center gap-2"><FileCheck2 className="h-6 w-6 text-green-600"/> Job Specification Intake</CardTitle>
           </CardHeader>
           <CardContent>
-             <label
-              htmlFor="jobspec-upload-input"
-              onDragEnter={(e) => handleDrag(e, 'jobspec')}
-              onDragLeave={(e) => handleDrag(e, 'jobspec')}
-              onDragOver={(e) => handleDrag(e, 'jobspec')}
-              onDrop={(e) => handleDrop(e, 'jobspec')}
-              className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer
-              ${dragActiveJobSpec ? "border-primary bg-primary/10" : "border-border"}
-              bg-card hover:bg-muted/50 transition-colors`}
-            >
-              <div className="flex flex-col items-center justify-center text-center p-4">
-                 <UploadCloud className={`h-10 w-10 mb-3 ${dragActiveJobSpec ? "text-primary" : "text-muted-foreground"}`} />
-                <p className="font-semibold">Upload Job Specification</p>
-                 <Button variant="outline" size="sm" className="pointer-events-none mt-2">Upload & Extract</Button>
-              </div>
-              <Input
-                id="jobspec-upload-input"
-                type="file"
-                className="hidden"
-                accept=".pdf,.doc,.docx,text/plain"
-                onChange={handleJobSpecFileChange}
-              />
-            </label>
-            <div className="flex items-center gap-4 my-3">
-              <div className="flex-grow border-t border-gray-300"></div>
-              <span className="text-muted-foreground text-sm">or</span>
-              <div className="flex-grow border-t border-gray-300"></div>
-            </div>
-            <Button variant="secondary" className="w-full bg-green-100 text-green-800 hover:bg-green-200">
-              Fill Manual Form
-            </Button>
+             <Tabs defaultValue="text" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="file">Upload File</TabsTrigger>
+                  <TabsTrigger value="text">Paste Text</TabsTrigger>
+                </TabsList>
+                <TabsContent value="file">
+                   <label
+                    htmlFor="jobspec-upload-input"
+                    onDragEnter={(e) => handleDrag(e, 'jobspec')}
+                    onDragLeave={(e) => handleDrag(e, 'jobspec')}
+                    onDragOver={(e) => handleDrag(e, 'jobspec')}
+                    onDrop={(e) => handleDrop(e, 'jobspec')}
+                    className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer
+                    ${dragActiveJobSpec ? "border-primary bg-primary/10" : "border-border"}
+                    bg-card hover:bg-muted/50 transition-colors`}
+                  >
+                    <div className="flex flex-col items-center justify-center text-center p-4">
+                       <UploadCloud className={`h-8 w-8 mb-2 ${dragActiveJobSpec ? "text-primary" : "text-muted-foreground"}`} />
+                      <p className="font-semibold">Upload Job Spec</p>
+                    </div>
+                    <Input
+                      id="jobspec-upload-input"
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,text/plain"
+                      onChange={handleJobSpecFileChange}
+                      disabled={isMatching}
+                    />
+                  </label>
+                  {jobSpecFile && <p className="mt-2 text-sm text-center text-muted-foreground">Selected: {jobSpecFile.name}</p>}
+                </TabsContent>
+                <TabsContent value="text">
+                  <Textarea
+                    placeholder="Paste the job description text here..."
+                    value={jobSpecText}
+                    onChange={(e) => { setJobSpecText(e.target.value); setJobSpecFile(null); setAssessmentOutput(null); }}
+                    className="min-h-[128px]"
+                    disabled={isMatching}
+                  />
+                </TabsContent>
+              </Tabs>
             <p className="text-xs text-muted-foreground text-center mt-4">AI will auto-extract title, location, employment type, skills, and requirements</p>
           </CardContent>
         </Card>
@@ -215,7 +287,7 @@ export default function AiParserPage() {
       {parsedResume && (
         <div className="mt-8">
             <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
-              <Users/> Parsed Resumes ({parsedResume ? 1 : 0})
+              <Users/> Parsed Resume
             </h2>
             <Card>
               <CardContent className="p-6">
@@ -249,6 +321,60 @@ export default function AiParserPage() {
             </Card>
         </div>
       )}
+
+      {isMatching && (
+        <div className="mt-8 flex justify-center items-center">
+          <Spinner size={48} className="text-primary" />
+          <p className="ml-4 text-lg text-muted-foreground">AI is assessing the match...</p>
+        </div>
+      )}
+
+      {assessmentOutput && (
+         <Card className="mt-8 shadow-lg border-primary">
+            <CardHeader className="bg-primary/10">
+              <CardTitle className="flex items-center text-2xl font-headline text-primary"><Brain className="mr-3 h-7 w-7"/>AI Match Assessment</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6 p-6">
+              <div className="text-center">
+                <p className="text-muted-foreground text-lg">Overall Match Score</p>
+                 <div className="relative mx-auto my-2 h-32 w-32">
+                   <svg className="h-full w-full origin-center -rotate-90 transform" viewBox="0 0 36 36">
+                      <circle className="text-muted/20" strokeWidth="3.5" stroke="currentColor" fill="transparent" r="15.9155" cx="18" cy="18" />
+                      <circle
+                        className="text-primary"
+                        strokeWidth="3.5"
+                        strokeDasharray={`${assessmentOutput.matchScore}, 100`}
+                        strokeLinecap="round"
+                        stroke="currentColor"
+                        fill="transparent"
+                        r="15.9155"
+                        cx="18"
+                        cy="18"
+                      />
+                    </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-3xl font-bold text-primary">{assessmentOutput.matchScore}%</span>
+                  </div>
+                </div>
+                <p className="text-lg font-semibold text-foreground/90">{assessmentOutput.summary}</p>
+              </div>
+              <Separator />
+              <div className="grid md:grid-cols-2 gap-6">
+                <ResumeSection
+                  title="Strengths"
+                  icon={<BarChartBig className="h-6 w-6 text-green-500" />}
+                  content={assessmentOutput.strengths.length > 0 ? assessmentOutput.strengths : "No specific strengths highlighted."}
+                />
+                <ResumeSection
+                  title="Areas for Improvement"
+                  icon={<Lightbulb className="h-6 w-6 text-yellow-500" />}
+                  content={assessmentOutput.areasForImprovement.length > 0 ? assessmentOutput.areasForImprovement : "No specific areas for improvement identified."}
+                />
+              </div>
+            </CardContent>
+          </Card>
+      )}
+
     </div>
   );
 }
