@@ -9,12 +9,20 @@ import { reformatResume, type ReformatResumeOutput } from '@/ai/flows/reformat-r
 import { fileToDataURI } from '@/lib/file-utils';
 import { ResumeSection } from '@/components/feature/resume-section';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, FileText, HelpCircle, AlertTriangle, UploadCloud, Download } from 'lucide-react';
+import { Lightbulb, FileText, HelpCircle, AlertTriangle, UploadCloud, Download, Linkedin, Mail, MapPin, Phone } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
+
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 const LOCAL_STORAGE_KEYS = {
   MASTER_RESUME_TEXT: 'careerCraft_masterResumeText',
@@ -125,7 +133,6 @@ export default function MasterResumePage() {
     }
   };
 
-
   const downloadTextFile = (filename: string, text: string) => {
     const element = document.createElement("a");
     const fileBlob = new Blob([text], {type: 'text/plain;charset=utf-8'});
@@ -134,6 +141,119 @@ export default function MasterResumePage() {
     document.body.appendChild(element); 
     element.click();
     document.body.removeChild(element);
+  };
+
+  const downloadPdf = () => {
+    const input = document.getElementById('master-resume-content');
+    if (input && aiOutput) {
+      toast({ title: "Generating PDF...", description: "This may take a moment." });
+      html2canvas(input, { scale: 2 })
+        .then((canvas) => {
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDF('p', 'mm', 'a4');
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          const canvasWidth = canvas.width;
+          const canvasHeight = canvas.height;
+          const ratio = canvasWidth / canvasHeight;
+          const imgWidth = pdfWidth;
+          const imgHeight = imgWidth / ratio;
+
+          let heightLeft = imgHeight;
+          let position = 0;
+          
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pdfHeight;
+
+          while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pdfHeight;
+          }
+          pdf.save("master_resume.pdf");
+          toast({ title: "PDF Downloaded!", description: "Your master resume has been saved." });
+        });
+    } else {
+        toast({ variant: "destructive", title: "Error", description: "Could not find resume content to generate PDF." });
+    }
+  };
+
+  const downloadDocx = () => {
+    if (!aiOutput) {
+        toast({ variant: "destructive", title: "Error", description: "No resume to download." });
+        return;
+    }
+    toast({ title: "Generating DOCX...", description: "This may take a moment." });
+
+    const name = aiOutput.fullName || 'Candidate Name';
+    const title = aiOutput.currentJobTitle || 'Professional Title';
+
+    const contactParts: string[] = [];
+    if (aiOutput.contactInfo?.location) contactParts.push(aiOutput.contactInfo.location);
+    if (aiOutput.contactInfo?.phone) contactParts.push(aiOutput.contactInfo.phone);
+    if (aiOutput.contactInfo?.email) contactParts.push(aiOutput.contactInfo.email);
+    if (aiOutput.contactInfo?.linkedin && aiOutput.contactInfo.linkedin !== 'null') contactParts.push(aiOutput.contactInfo.linkedin);
+
+    const doc = new Document({
+        sections: [{
+            children: [
+                new Paragraph({
+                    text: name,
+                    heading: HeadingLevel.HEADING_1,
+                    style: "heading1",
+                }),
+                new Paragraph({
+                    text: title,
+                    style: "heading2",
+                }),
+                new Paragraph({
+                    text: contactParts.join(' | '),
+                    style: "contact",
+                }),
+                new Paragraph({ text: "" }),
+                ...(aiOutput.skills && aiOutput.skills.length > 0 ? [
+                     new Paragraph({
+                        children: [new TextRun({ text: "Skills", bold: true })],
+                        heading: HeadingLevel.HEADING_2,
+                    }),
+                    new Paragraph({
+                        text: aiOutput.skills.join(', '),
+                    }),
+                    new Paragraph({ text: "" }),
+                ] : []),
+                ...aiOutput.reformattedResume.split('\n').map(line => new Paragraph(line)),
+            ],
+        }],
+        styles: {
+             paragraphStyles: [
+                {
+                    id: "heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true,
+                    run: { size: 32, bold: true },
+                },
+                {
+                    id: "heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true,
+                    run: { size: 24, italics: true, color: "555555" },
+                },
+                {
+                    id: "contact", name: "Contact", basedOn: "Normal", next: "Normal",
+                    run: { size: 20, color: "888888" },
+                },
+            ]
+        }
+    });
+
+    Packer.toBlob(doc).then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "master_resume.docx";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast({ title: "DOCX Downloaded!", description: "Your master resume has been saved." });
+    });
   };
 
   return (
@@ -191,16 +311,59 @@ export default function MasterResumePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 sm:p-6">
-                 {aiOutput.fullName && (
-                  <p className="text-lg font-semibold text-card-foreground mb-1">Extracted Name: {aiOutput.fullName}</p>
-                )}
-                {aiOutput.currentJobTitle && (
-                  <p className="text-md text-muted-foreground mb-3">Extracted Job Title: {aiOutput.currentJobTitle}</p>
-                )}
-                <ScrollArea className="h-[600px] w-full rounded-md border bg-muted/20 p-4">
-                  <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground">
-                    {aiOutput.reformattedResume || "The AI didn't return any resume content. Please check your uploaded file."}
-                  </pre>
+                <ScrollArea className="h-[700px] w-full">
+                  <div id="master-resume-content" className="p-4 rounded-lg border bg-background">
+                    {(aiOutput.fullName || aiOutput.currentJobTitle) && (
+                      <header className="flex items-center mb-6 pb-4 border-b">
+                        <Avatar className="h-20 w-20 mr-5">
+                          <AvatarImage src="https://placehold.co/128x128.png" data-ai-hint="professional portrait" />
+                          <AvatarFallback className="text-2xl">
+                            {aiOutput.fullName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || '??'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h2 className="text-3xl font-bold font-headline text-primary">{aiOutput.fullName || '[Candidate Name]'}</h2>
+                          <p className="text-lg text-muted-foreground">{aiOutput.currentJobTitle || '[Professional Title]'}</p>
+                        </div>
+                      </header>
+                    )}
+
+                    <div className="grid md:grid-cols-3 gap-6">
+                      <aside className="md:col-span-1 space-y-4">
+                        {aiOutput.contactInfo && (
+                          <div className="space-y-2 text-sm">
+                            <h3 className="font-semibold text-primary">Contact</h3>
+                            <Separator />
+                            {aiOutput.contactInfo.location && <p className="flex items-start gap-2 pt-1"><MapPin size={14} className="mt-0.5 shrink-0" /> <span>{aiOutput.contactInfo.location}</span></p>}
+                            {aiOutput.contactInfo.phone && <p className="flex items-start gap-2"><Phone size={14} className="mt-0.5 shrink-0" /> <span>{aiOutput.contactInfo.phone}</span></p>}
+                            {aiOutput.contactInfo.email && <p className="flex items-start gap-2"><Mail size={14} className="mt-0.5 shrink-0" /> <span className="break-all">{aiOutput.contactInfo.email}</span></p>}
+                            {aiOutput.contactInfo.linkedin && aiOutput.contactInfo.linkedin !== 'null' && (
+                              <p className="flex items-start gap-2">
+                                <Linkedin size={14} className="mt-0.5 shrink-0" />
+                                <Link href={!aiOutput.contactInfo.linkedin.startsWith('http') ? `https://${aiOutput.contactInfo.linkedin}` : aiOutput.contactInfo.linkedin} target="_blank" className="text-primary hover:underline break-all">{aiOutput.contactInfo.linkedin.replace(/^https?:\/\//, '')}</Link>
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {aiOutput.skills && aiOutput.skills.length > 0 && (
+                          <div className="space-y-2 text-sm pt-2">
+                            <h3 className="font-semibold text-primary">Skills</h3>
+                            <Separator />
+                            <div className="flex flex-wrap gap-2 pt-2">
+                              {aiOutput.skills.map(skill => (
+                                <Badge key={skill} variant="secondary">{skill}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </aside>
+                      <main className="md:col-span-2">
+                        <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground">
+                          {aiOutput.reformattedResume || "The AI didn't return any resume content. Please check your uploaded file."}
+                        </pre>
+                      </main>
+                    </div>
+                  </div>
                 </ScrollArea>
               </CardContent>
             </Card>
@@ -228,10 +391,21 @@ export default function MasterResumePage() {
             )}
             
             <div className="mt-8 text-center">
-                <Button size="lg" onClick={() => downloadTextFile(`${resumeUserTitle.replace(/\s+/g, '_') || 'master_resume'}.txt`, aiOutput.reformattedResume)} disabled={!aiOutput.reformattedResume}>
-                    <Download className="mr-2 h-5 w-5" /> Download Master Resume (TXT)
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2">Full PDF/Word download coming soon. Editing capabilities are available via the 'My Resumes' dashboard (feature in development).</p>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button size="lg" disabled={!aiOutput.reformattedResume}>
+                            <Download className="mr-2 h-5 w-5" /> Download Master Resume
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="center">
+                        <DropdownMenuItem onClick={downloadPdf}>as PDF</DropdownMenuItem>
+                        <DropdownMenuItem onClick={downloadDocx}>as DOCX</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => downloadTextFile(`${resumeUserTitle.replace(/\s+/g, '_') || 'master_resume'}.txt`, aiOutput.reformattedResume)}>
+                            as TXT
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <p className="text-xs text-muted-foreground mt-2">Editing capabilities are available via the 'My Resumes' dashboard (feature in development).</p>
             </div>
           </div>
         </div>
@@ -239,3 +413,4 @@ export default function MasterResumePage() {
     </div>
   );
 }
+
