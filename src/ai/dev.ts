@@ -9,3 +9,4 @@ import '@/ai/flows/generate-cover-letter.ts';
 import '@/ai/flows/find-companies.ts';
 import '@/ai/flows/generate-interview-questions';
 import '@/ai/flows/analyze-interview-response';
+import '@/ai/flows/generate-candidate-profile';
