@@ -17,7 +17,8 @@ import {
   Building,
   Search,
   ScanText,
-  ClipboardCheck
+  ClipboardCheck,
+  CreditCard
 } from 'lucide-react';
 
 import { useAuth, type Role } from '@/context/auth-context';
@@ -163,10 +164,23 @@ export function Sidebar() {
             </div>
           ))}
         </nav>
-        <div className="mt-auto p-4 border-t">
+        <div className="mt-auto p-4 border-t space-y-1">
            <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" onClick={logout} className="w-full justify-start">
+                <Button variant="ghost" asChild className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
+                    <Link href="/profile">
+                        <User className="h-5 w-5 mr-3" />
+                        Profile
+                    </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" align="center">
+                <p>My Profile</p>
+              </TooltipContent>
+            </Tooltip>
+           <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" onClick={logout} className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
                   <LogOut className="h-5 w-5 mr-3" />
                   Log Out
                 </Button>
