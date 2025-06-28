@@ -1,7 +1,11 @@
+
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { CheckCircle, Zap } from "lucide-react";
 import Link from "next/link";
+import { PaymentDialog } from "@/components/feature/payment-dialog";
 
 const plans = [
   {
@@ -81,15 +85,28 @@ export default function BillingPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button 
-                className="w-full" 
-                variant={plan.isCurrent ? "outline" : (plan.highlight ? "default" : "secondary")}
-                disabled={plan.isCurrent}
-                size="lg"
-              >
-                {plan.highlight && !plan.isCurrent && <Zap className="mr-2 h-5 w-5" />}
-                {plan.cta}
-              </Button>
+               {plan.isCurrent ? (
+                 <Button 
+                    className="w-full" 
+                    variant="outline"
+                    disabled={true}
+                    size="lg"
+                  >
+                   {plan.cta}
+                 </Button>
+              ) : (
+                <PaymentDialog planName={plan.name} price={plan.price} frequency={plan.frequency}>
+                  <Button 
+                    className="w-full" 
+                    variant={plan.highlight ? "default" : "secondary"}
+                    disabled={plan.isCurrent}
+                    size="lg"
+                  >
+                    {plan.highlight && !plan.isCurrent && <Zap className="mr-2 h-5 w-5" />}
+                    {plan.cta}
+                  </Button>
+                </PaymentDialog>
+              )}
             </CardFooter>
           </Card>
         ))}
