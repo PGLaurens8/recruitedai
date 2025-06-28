@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -9,15 +9,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Github, Linkedin, Briefcase, ExternalLink, Mail, FileText, Link as LinkIconLucide, Save } from "lucide-react";
+import { Github, Linkedin, Briefcase, ExternalLink, Mail, FileText, Link as LinkIconLucide, Save, Edit, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { fileToDataURI } from '@/lib/file-utils';
 
 // Initial data, will be managed by state
 const initialBioData = {
   name: "Morgan Lee",
   title: "UX Designer & Illustrator",
   avatarUrl: "https://placehold.co/150x150.png",
+  coverUrl: "https://placehold.co/600x250.png",
   avatarFallback: "ML",
   bio: "Passionate about creating intuitive user experiences and beautiful digital art. Currently seeking new opportunities to blend creativity with technology.",
   links: [
@@ -32,6 +34,9 @@ const initialBioData = {
 export default function LinkTreeBioPage() {
   const [bioData, setBioData] = useState(initialBioData);
 
+  const profileImageInputRef = useRef<HTMLInputElement>(null);
+  const coverImageInputRef = useRef<HTMLInputElement>(null);
+
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setBioData(prev => ({ ...prev, [name]: value }));
@@ -44,6 +49,18 @@ export default function LinkTreeBioPage() {
     const linkToUpdate = { ...newLinks[index], [name]: value };
     newLinks[index] = linkToUpdate;
     setBioData(prev => ({ ...prev, links: newLinks }));
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>, field: 'avatarUrl' | 'coverUrl') => {
+    if (e.target.files && e.target.files[0]) {
+        try {
+            const file = e.target.files[0];
+            const dataUri = await fileToDataURI(file);
+            setBioData(prev => ({ ...prev, [field]: dataUri }));
+        } catch (error) {
+            console.error("Error converting file to Data URI:", error);
+        }
+    }
   };
 
   return (
@@ -71,6 +88,52 @@ export default function LinkTreeBioPage() {
              <div className="space-y-2">
               <Label htmlFor="bio">Short Bio</Label>
               <Textarea id="bio" name="bio" value={bioData.bio} onChange={handleProfileChange} className="min-h-[100px]" />
+            </div>
+
+            <Separator />
+            
+            <h3 className="text-lg font-semibold -mb-2 pt-2">Profile Images</h3>
+            <div className="flex items-center gap-6">
+                <div className="relative">
+                    <Avatar className="w-24 h-24 border">
+                        <AvatarImage src={bioData.avatarUrl} alt="Profile preview" data-ai-hint="profile picture"/>
+                        <AvatarFallback>{bioData.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || '??'}</AvatarFallback>
+                    </Avatar>
+                    <Button
+                        size="icon"
+                        variant="outline"
+                        className="absolute bottom-0 right-0 rounded-full h-8 w-8 bg-background"
+                        onClick={() => profileImageInputRef.current?.click()}
+                    >
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">Edit profile picture</span>
+                    </Button>
+                    <Input
+                        ref={profileImageInputRef}
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => handleImageChange(e, 'avatarUrl')}
+                    />
+                </div>
+                <div className="flex-1 space-y-2">
+                    <Label>Cover Photo</Label>
+                    <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => coverImageInputRef.current?.click()}
+                    >
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                        Change Cover Image
+                    </Button>
+                     <Input
+                        ref={coverImageInputRef}
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => handleImageChange(e, 'coverUrl')}
+                    />
+                </div>
             </div>
 
             <Separator />
@@ -125,7 +188,7 @@ export default function LinkTreeBioPage() {
               <Card className="w-full max-w-md shadow-xl overflow-hidden rounded-2xl border-2 border-primary">
                 <div className="relative h-48 bg-muted">
                    <Image 
-                    src="https://placehold.co/600x250.png"
+                    src={bioData.coverUrl}
                     data-ai-hint="abstract background"
                     alt="Header background" 
                     fill={true}
