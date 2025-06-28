@@ -67,7 +67,7 @@ const navGroups: NavGroup[] = [
     roles: ['Admin', 'Candidate'],
     links: [
       { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18}/>, roles: ['Candidate'] },
-      { href: '/master-resume', label: 'Resume Builder', icon: <FileText size={18}/>, roles: ['Admin', 'Candidate'], badge: 'Premium' },
+      { href: '/master-resume', label: 'Master Resume', icon: <FileText size={18}/>, roles: ['Admin', 'Candidate'], badge: 'Premium' },
       { href: '/targeted-resume', label: 'Job Matching', icon: <Bot size={18}/>, roles: ['Candidate'] },
       { href: '/interview-prep', label: 'Interview Prep', icon: <ClipboardCheck size={18}/>, roles: ['Admin', 'Candidate', 'Recruiter'] },
       { href: '/online-resume', label: 'Online Profile', icon: <User size={18}/>, roles: ['Candidate'] },

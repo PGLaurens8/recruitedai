@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from "next/link";
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,7 +13,7 @@ import { generateCoverLetter, type GenerateCoverLetterInput, type GenerateCoverL
 import { fileToDataURI, textToDataURI } from '@/lib/file-utils';
 import { ResumeSection } from '@/components/feature/resume-section';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, FileText, Briefcase, AlertTriangle, Target, UploadCloud, Download, Sparkles, UserCheck, FileSignature, BarChartBig, Brain, HelpCircle as HelpCircleIcon, Edit3, CheckCircle, Mail, Phone, Linkedin, MapPin } from 'lucide-react';
+import { Lightbulb, FileText, Briefcase, AlertTriangle, Target, UploadCloud, Download, Sparkles, UserCheck, FileSignature, BarChartBig, Brain, HelpCircle as HelpCircleIcon, Edit, CheckCircle, Mail, Phone, Linkedin, MapPin } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -59,6 +59,7 @@ export default function JobMatchingPage() {
   const [loadedContactInfo, setLoadedContactInfo] = useState<ContactInfo | null>(null);
   const [loadedSkills, setLoadedSkills] = useState<string[] | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const profileImageInputRef = useRef<HTMLInputElement>(null);
 
   const [jobSpecInputType, setJobSpecInputType] = useState<JobSpecInputType>("text");
   const [jobSpecFile, setJobSpecFile] = useState<File | null>(null);
@@ -232,6 +233,28 @@ export default function JobMatchingPage() {
     } finally {
       setIsLoadingTailoring(false);
       setIsLoadingCoverLetter(false);
+    }
+  };
+  
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+        try {
+            const file = e.target.files[0];
+            const dataUri = await fileToDataURI(file);
+            setAvatarUri(dataUri);
+            localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI, dataUri);
+            toast({
+                title: "Profile Photo Updated!",
+                description: "Your new photo is now set for this session.",
+            });
+        } catch (error) {
+            console.error("Error setting profile photo:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not set the profile photo.",
+            });
+        }
     }
   };
   
@@ -412,7 +435,7 @@ export default function JobMatchingPage() {
                 </CardHeader>
                 <CardFooter>
                   <Button variant="outline" size="sm" onClick={handleClearStoredMasterResume}>
-                    <Edit3 className="mr-2 h-4 w-4" /> Use Different Resume
+                    <Edit className="mr-2 h-4 w-4" /> Use Different Resume
                   </Button>
                 </CardFooter>
               </Card>
@@ -564,10 +587,10 @@ export default function JobMatchingPage() {
             </Card>
           )}
           
-          <ScrollArea className="max-h-[1200px] w-full">
-            <div className="space-y-8 pr-4">
+            <div className="space-y-8">
                {tailoredResumeOutput && !isLoadingTailoring && (
                   <Card className="bg-card shadow-xl overflow-hidden border-accent">
+                    <ScrollArea className="max-h-[1200px] w-full">
                       <CardHeader className="bg-accent/10">
                           <CardTitle className="flex items-center text-accent-foreground">
                               <FileText className="h-5 w-5 mr-2" />
@@ -578,12 +601,30 @@ export default function JobMatchingPage() {
                           <div id="tailored-resume-content" className="p-4 rounded-lg border bg-background">
                               {(loadedExtractedName || loadedExtractedJobTitle) && (
                                   <header className="flex items-center mb-6 pb-4 border-b">
-                                      <Avatar className="h-20 w-20 mr-5">
-                                          <AvatarImage src={avatarUri || "https://placehold.co/128x128.png"} data-ai-hint="professional portrait" />
-                                          <AvatarFallback className="text-2xl">
-                                              {loadedExtractedName?.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || '??'}
-                                          </AvatarFallback>
-                                      </Avatar>
+                                       <div className="relative">
+                                          <Avatar className="h-20 w-20 mr-5">
+                                              <AvatarImage src={avatarUri || "https://placehold.co/128x128.png"} data-ai-hint="professional portrait" />
+                                              <AvatarFallback className="text-2xl">
+                                                  {loadedExtractedName?.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || '??'}
+                                              </AvatarFallback>
+                                          </Avatar>
+                                          <Button
+                                              size="icon"
+                                              variant="outline"
+                                              className="absolute bottom-0 left-14 rounded-full h-8 w-8 bg-background"
+                                              onClick={() => profileImageInputRef.current?.click()}
+                                          >
+                                              <Edit className="h-4 w-4" />
+                                              <span className="sr-only">Edit profile picture</span>
+                                          </Button>
+                                          <Input
+                                              ref={profileImageInputRef}
+                                              type="file"
+                                              className="hidden"
+                                              accept="image/*"
+                                              onChange={handleImageChange}
+                                          />
+                                      </div>
                                       <div>
                                           <h2 className="text-3xl font-bold font-headline text-primary">{loadedExtractedName || '[Candidate Name]'}</h2>
                                           <p className="text-lg text-muted-foreground">{loadedExtractedJobTitle || '[Professional Title]'}</p>
@@ -661,31 +702,33 @@ export default function JobMatchingPage() {
                               </DropdownMenuContent>
                           </DropdownMenu>
                       </CardFooter>
+                    </ScrollArea>
                   </Card>
                 )}
 
                 {coverLetterOutput && !isLoadingCoverLetter && (
                   <Card className="bg-card shadow-xl overflow-hidden border-accent">
-                    <CardHeader className="bg-accent/10">
-                      <CardTitle className="flex items-center text-accent-foreground">
-                          <FileSignature className="h-5 w-5 mr-2" />
-                          AI Generated Cover Letter
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6">
-                          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/30 p-4 rounded-md border h-full">
-                              {coverLetterOutput.coverLetter || "No cover letter content provided."}
-                          </pre>
-                    </CardContent>
-                    <CardFooter>
-                        <Button onClick={() => downloadTextFile("cover_letter.txt", coverLetterOutput.coverLetter)} disabled={!coverLetterOutput.coverLetter}>
-                            <Download className="mr-2 h-5 w-5" /> Download Cover Letter (TXT)
-                        </Button>
-                    </CardFooter>
+                    <ScrollArea className="max-h-[1200px] w-full">
+                      <CardHeader className="bg-accent/10">
+                        <CardTitle className="flex items-center text-accent-foreground">
+                            <FileSignature className="h-5 w-5 mr-2" />
+                            AI Generated Cover Letter
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-4 sm:p-6">
+                            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground bg-muted/30 p-4 rounded-md border h-full">
+                                {coverLetterOutput.coverLetter || "No cover letter content provided."}
+                            </pre>
+                      </CardContent>
+                      <CardFooter>
+                          <Button onClick={() => downloadTextFile("cover_letter.txt", coverLetterOutput.coverLetter)} disabled={!coverLetterOutput.coverLetter}>
+                              <Download className="mr-2 h-5 w-5" /> Download Cover Letter (TXT)
+                          </Button>
+                      </CardFooter>
+                    </ScrollArea>
                   </Card>
                 )}
             </div>
-          </ScrollArea>
       </div>
     </div>
   );

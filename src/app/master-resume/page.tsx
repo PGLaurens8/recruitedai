@@ -288,7 +288,7 @@ export default function MasterResumePage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight font-headline text-primary">Master Resume Builder</h1>
+        <h1 className="text-4xl font-bold tracking-tight font-headline text-primary">Master Resume</h1>
         <p className="mt-2 text-lg text-muted-foreground">
           Upload your existing resume (PDF or TXT). Our AI will analyze, reformat it, and extract key details. This becomes your Master Resume.
         </p>
