@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const FindCompaniesInputSchema = z.object({
+const FindCompaniesInputSchema = z.object({
   resumeDataUri: z
     .string()
     .optional()
@@ -34,7 +34,7 @@ const CompanySchema = z.object({
     sampleJobTitle: z.string().describe("An example of a relevant job title the company might be hiring for."),
 });
 
-export const FindCompaniesOutputSchema = z.object({
+const FindCompaniesOutputSchema = z.object({
   companies: z.array(CompanySchema).describe('A list of 5 to 10 companies that are a good potential match for the candidate.'),
 });
 export type FindCompaniesOutput = z.infer<typeof FindCompaniesOutputSchema>;
