@@ -22,6 +22,11 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+
 
 type JobSpecInputType = "file" | "text" | "url";
 
@@ -235,6 +240,138 @@ export default function JobMatchingPage() {
     document.body.removeChild(element);
   };
 
+  const downloadPdf = () => {
+    const input = document.getElementById('tailored-resume-content');
+    if (input && tailoredResumeOutput) {
+      toast({ title: "Generating PDF...", description: "This may take a moment." });
+      html2canvas(input, { scale: 2 })
+        .then((canvas) => {
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDF('p', 'mm', 'a4');
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const canvasWidth = canvas.width;
+          const canvasHeight = canvas.height;
+          const ratio = canvasWidth / canvasHeight;
+          const imgWidth = pdfWidth;
+          const imgHeight = imgWidth / ratio;
+
+          let heightLeft = imgHeight;
+          let position = 0;
+          
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pdfHeight;
+
+          while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pdfHeight;
+          }
+          pdf.save("tailored_resume.pdf");
+          toast({ title: "PDF Downloaded!", description: "Your tailored resume has been saved." });
+        });
+    } else {
+        toast({ variant: "destructive", title: "Error", description: "Could not find resume content to generate PDF." });
+    }
+  };
+
+  const downloadDocx = () => {
+    if (!tailoredResumeOutput) {
+        toast({ variant: "destructive", title: "Error", description: "No tailored resume to download." });
+        return;
+    }
+    toast({ title: "Generating DOCX...", description: "This may take a moment." });
+
+    const name = loadedExtractedName || 'Candidate Name';
+    const title = loadedExtractedJobTitle || 'Professional Title';
+
+    const contactParts: string[] = [];
+    if (loadedContactInfo?.location) contactParts.push(loadedContactInfo.location);
+    if (loadedContactInfo?.phone) contactParts.push(loadedContactInfo.phone);
+    if (loadedContactInfo?.email) contactParts.push(loadedContactInfo.email);
+    if (loadedContactInfo?.linkedin && loadedContactInfo.linkedin !== 'null') contactParts.push(loadedContactInfo.linkedin);
+
+    const doc = new Document({
+        sections: [{
+            children: [
+                new Paragraph({
+                    text: name,
+                    heading: HeadingLevel.HEADING_1,
+                    style: "heading1",
+                }),
+                new Paragraph({
+                    text: title,
+                    style: "heading2",
+                }),
+                new Paragraph({
+                    text: contactParts.join(' | '),
+                    style: "contact",
+                }),
+                new Paragraph({ text: "" }), // Spacer
+                ...(loadedSkills && loadedSkills.length > 0 ? [
+                     new Paragraph({
+                        children: [new TextRun({ text: "Skills", bold: true })],
+                        heading: HeadingLevel.HEADING_2,
+                    }),
+                    new Paragraph({
+                        text: loadedSkills.join(', '),
+                    }),
+                    new Paragraph({ text: "" }), // Spacer
+                ] : []),
+                ...tailoredResumeOutput.tailoredResume.split('\n').map(line => new Paragraph(line)),
+            ],
+        }],
+        styles: {
+             paragraphStyles: [
+                {
+                    id: "heading1",
+                    name: "Heading 1",
+                    basedOn: "Normal",
+                    next: "Normal",
+                    quickFormat: true,
+                    run: {
+                        size: 32, // 16pt
+                        bold: true,
+                    },
+                },
+                {
+                    id: "heading2",
+                    name: "Heading 2",
+                    basedOn: "Normal",
+                    next: "Normal",
+                    quickFormat: true,
+                    run: {
+                        size: 24, // 12pt
+                        italics: true,
+                        color: "555555",
+                    },
+                },
+                {
+                    id: "contact",
+                    name: "Contact",
+                    basedOn: "Normal",
+                    next: "Normal",
+                    run: {
+                        size: 20, // 10pt
+                        color: "888888",
+                    },
+                },
+            ]
+        }
+    });
+
+    Packer.toBlob(doc).then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "tailored_resume.docx";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast({ title: "DOCX Downloaded!", description: "Your tailored resume has been saved." });
+    });
+  };
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -421,92 +558,105 @@ export default function JobMatchingPage() {
                   </CardContent>
                 </Card>
               )}
-
-              {tailoredResumeOutput && (
+             
+             {tailoredResumeOutput && (
                 <Card className="bg-card shadow-xl overflow-hidden border-accent">
-                  <CardHeader className="bg-accent/10">
-                    <CardTitle className="flex items-center text-accent-foreground">
-                        <FileText className="h-5 w-5 mr-2" />
-                        AI Tailored Resume
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="p-4 rounded-lg border bg-background">
-                        {(loadedExtractedName || loadedExtractedJobTitle) && (
-                            <header className="flex items-center mb-6 pb-4 border-b">
-                                <Avatar className="h-20 w-20 mr-5">
-                                    <AvatarImage src="https://placehold.co/128x128.png" data-ai-hint="professional portrait" />
-                                    <AvatarFallback className="text-2xl">
-                                        {loadedExtractedName?.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || '??'}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <h2 className="text-3xl font-bold font-headline text-primary">{loadedExtractedName || '[Candidate Name]'}</h2>
-                                    <p className="text-lg text-muted-foreground">{loadedExtractedJobTitle || '[Professional Title]'}</p>
-                                </div>
-                            </header>
-                        )}
+                    <CardHeader className="bg-accent/10">
+                        <CardTitle className="flex items-center text-accent-foreground">
+                            <FileText className="h-5 w-5 mr-2" />
+                            AI Tailored Resume
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent id="tailored-resume-content" className="p-4 sm:p-6">
+                        <div className="p-4 rounded-lg border bg-background">
+                            {(loadedExtractedName || loadedExtractedJobTitle) && (
+                                <header className="flex items-center mb-6 pb-4 border-b">
+                                    <Avatar className="h-20 w-20 mr-5">
+                                        <AvatarImage src="https://placehold.co/128x128.png" data-ai-hint="professional portrait" />
+                                        <AvatarFallback className="text-2xl">
+                                            {loadedExtractedName?.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || '??'}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <h2 className="text-3xl font-bold font-headline text-primary">{loadedExtractedName || '[Candidate Name]'}</h2>
+                                        <p className="text-lg text-muted-foreground">{loadedExtractedJobTitle || '[Professional Title]'}</p>
+                                    </div>
+                                </header>
+                            )}
 
-                        <div className="grid md:grid-cols-3 gap-6">
-                            <aside className="md:col-span-1 space-y-4">
-                                {loadedContactInfo && (
-                                    <div className="space-y-2 text-sm">
-                                        <h3 className="font-semibold text-primary">Contact</h3>
-                                        <Separator />
-                                        {loadedContactInfo.location && <p className="flex items-start gap-2 pt-1"><MapPin size={14} className="mt-0.5 shrink-0"/> <span>{loadedContactInfo.location}</span></p>}
-                                        {loadedContactInfo.phone && <p className="flex items-start gap-2"><Phone size={14} className="mt-0.5 shrink-0"/> <span>{loadedContactInfo.phone}</span></p>}
-                                        {loadedContactInfo.email && <p className="flex items-start gap-2"><Mail size={14} className="mt-0.5 shrink-0"/> <span className="break-all">{loadedContactInfo.email}</span></p>}
-                                        {loadedContactInfo.linkedin && loadedContactInfo.linkedin !== 'null' && (
-                                            <p className="flex items-start gap-2">
-                                                <Linkedin size={14} className="mt-0.5 shrink-0"/>
-                                                <Link href={!loadedContactInfo.linkedin.startsWith('http') ? `https://${loadedContactInfo.linkedin}` : loadedContactInfo.linkedin} target="_blank" className="text-primary hover:underline break-all">{loadedContactInfo.linkedin.replace(/^https?:\/\//, '')}</Link>
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-                                {loadedSkills && loadedSkills.length > 0 && (
-                                    <div className="space-y-2 text-sm pt-2">
-                                        <h3 className="font-semibold text-primary">Skills</h3>
-                                        <Separator />
-                                        <div className="flex flex-wrap gap-2 pt-2">
-                                            {loadedSkills.map(skill => (
-                                                <Badge key={skill} variant="secondary">{skill}</Badge>
-                                            ))}
+                            <div className="grid md:grid-cols-3 gap-6">
+                                <aside className="md:col-span-1 space-y-4">
+                                    {loadedContactInfo && (
+                                        <div className="space-y-2 text-sm">
+                                            <h3 className="font-semibold text-primary">Contact</h3>
+                                            <Separator />
+                                            {loadedContactInfo.location && <p className="flex items-start gap-2 pt-1"><MapPin size={14} className="mt-0.5 shrink-0"/> <span>{loadedContactInfo.location}</span></p>}
+                                            {loadedContactInfo.phone && <p className="flex items-start gap-2"><Phone size={14} className="mt-0.5 shrink-0"/> <span>{loadedContactInfo.phone}</span></p>}
+                                            {loadedContactInfo.email && <p className="flex items-start gap-2"><Mail size={14} className="mt-0.5 shrink-0"/> <span className="break-all">{loadedContactInfo.email}</span></p>}
+                                            {loadedContactInfo.linkedin && loadedContactInfo.linkedin !== 'null' && (
+                                                <p className="flex items-start gap-2">
+                                                    <Linkedin size={14} className="mt-0.5 shrink-0"/>
+                                                    <Link href={!loadedContactInfo.linkedin.startsWith('http') ? `https://${loadedContactInfo.linkedin}` : loadedContactInfo.linkedin} target="_blank" className="text-primary hover:underline break-all">{loadedContactInfo.linkedin.replace(/^https?:\/\//, '')}</Link>
+                                                </p>
+                                            )}
                                         </div>
-                                    </div>
-                                )}
-                            </aside>
-                            
-                            <main className="md:col-span-2">
-                                <ScrollArea className="h-[600px] rounded-md border p-4 bg-muted/20">
+                                    )}
+                                    {loadedSkills && loadedSkills.length > 0 && (
+                                        <div className="space-y-2 text-sm pt-2">
+                                            <h3 className="font-semibold text-primary">Skills</h3>
+                                            <Separator />
+                                            <div className="flex flex-wrap gap-2 pt-2">
+                                                {loadedSkills.map(skill => (
+                                                    <Badge key={skill} variant="secondary">{skill}</Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </aside>
+                                
+                                <main className="md:col-span-2">
                                     <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-card-foreground">
                                         {tailoredResumeOutput.tailoredResume || "No tailored resume content provided."}
                                     </pre>
-                                </ScrollArea>
-                            </main>
+                                </main>
+                            </div>
                         </div>
-                    </div>
 
-                    {tailoredResumeOutput.questions && tailoredResumeOutput.questions.length > 0 && (
-                      <>
-                        <Separator className="my-6" />
-                        <ResumeSection
-                          title="Clarifying Questions from AI (for Tailoring)"
-                          icon={<HelpCircleIcon className="h-6 w-6 text-blue-500" />}
-                          content={tailoredResumeOutput.questions}
-                          className="border-blue-500/50 bg-transparent shadow-none"
-                        />
-                      </>
-                    )}
-                  </CardContent>
-                  <CardFooter>
-                      <Button onClick={() => downloadTextFile("tailored_resume.txt", tailoredResumeOutput.tailoredResume)} disabled={!tailoredResumeOutput.tailoredResume}>
-                          <Download className="mr-2 h-5 w-5" /> Download Tailored Resume (TXT)
-                      </Button>
-                  </CardFooter>
+                        {tailoredResumeOutput.questions && tailoredResumeOutput.questions.length > 0 && (
+                          <>
+                            <Separator className="my-6" />
+                            <ResumeSection
+                              title="Clarifying Questions from AI (for Tailoring)"
+                              icon={<HelpCircleIcon className="h-6 w-6 text-blue-500" />}
+                              content={tailoredResumeOutput.questions}
+                              className="border-blue-500/50 bg-transparent shadow-none"
+                            />
+                          </>
+                        )}
+                    </CardContent>
+                    <CardFooter>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button disabled={!tailoredResumeOutput.tailoredResume}>
+                                    <Download className="mr-2 h-5 w-5" /> Download Resume
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={downloadPdf}>
+                                    as PDF
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={downloadDocx}>
+                                    as DOCX
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => downloadTextFile("tailored_resume.txt", tailoredResumeOutput.tailoredResume)}>
+                                    as TXT
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </CardFooter>
                 </Card>
               )}
-              
+
               {coverLetterOutput && (
                 <Card className="bg-card shadow-xl overflow-hidden border-accent">
                   <CardHeader className="bg-accent/10">
