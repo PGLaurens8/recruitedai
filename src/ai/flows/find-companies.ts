@@ -30,7 +30,7 @@ export type FindCompaniesInput = z.infer<typeof FindCompaniesInputSchema>;
 const CompanySchema = z.object({
     companyName: z.string().describe("The name of the company."),
     reasonForMatch: z.string().describe("A brief (1-2 sentences) explanation of why this company is a good match for the candidate's profile."),
-    website: z.string().url().describe("The company's career page or main website URL."),
+    website: z.string().describe("The company's career page or main website URL."),
     sampleJobTitle: z.string().describe("An example of a relevant job title the company might be hiring for."),
 });
 
