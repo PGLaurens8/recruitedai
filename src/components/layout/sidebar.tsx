@@ -56,7 +56,7 @@ const navGroups: NavGroup[] = [
       { href: '/dashboard/admin', label: 'Dashboard', icon: <LayoutDashboard size={18}/>, roles: ['Admin', 'Recruiter', 'Sales'] },
       { href: '/candidates', label: 'Candidates', icon: <Users size={18}/>, roles: ['Admin', 'Recruiter'] },
       { href: '/jobs', label: 'Jobs', icon: <Briefcase size={18}/>, roles: ['Admin', 'Recruiter', 'Sales'] },
-      { href: '/clients', label: 'Clients', icon: <Wallet size={18}/>, roles: ['Admin', 'Recruiter', 'Sales'] },
+      { href: '/clients', label: 'Clients', icon: <Building size={18}/>, roles: ['Admin', 'Recruiter', 'Sales'] },
       { href: '/company-finder', label: 'Company Finder', icon: <Search size={18}/>, roles: ['Admin', 'Recruiter'] },
       { href: '/ai-parser', label: 'AI Parser', icon: <ScanText size={18}/>, roles: ['Admin', 'Recruiter'] },
       { href: '/reports', label: 'Reports', icon: <BarChart size={18}/>, roles: ['Admin', 'Sales'] },
@@ -72,6 +72,7 @@ const navGroups: NavGroup[] = [
       { href: '/interview-prep', label: 'Interview Prep', icon: <ClipboardCheck size={18}/>, roles: ['Admin', 'Candidate'] },
       { href: '/online-resume', label: 'Online Profile', icon: <User size={18}/>, roles: ['Candidate'] },
       { href: '/linktree-bio', label: 'LinkTree Bio', icon: <LinkIcon size={18}/>, roles: ['Candidate'] },
+      { href: '/billing', label: 'Billing & Plans', icon: <Wallet size={18}/>, roles: ['Admin', 'Candidate'] },
     ]
   },
    {
