@@ -1,4 +1,7 @@
 
+"use client";
+
+import { useState, useMemo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Building, Eye, FilePenLine, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
+import { Building, Eye, FilePenLine, MoreHorizontal, Plus, Search, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 
 const clients = [
   {
@@ -57,6 +60,9 @@ const clients = [
   },
 ];
 
+type Client = typeof clients[0];
+type ClientKey = keyof Client;
+
 const getStatusBadgeVariant = (status: string) => {
   switch (status.toLowerCase()) {
     case "active":
@@ -73,6 +79,52 @@ const getStatusBadgeVariant = (status: string) => {
 };
 
 export default function ClientsPage() {
+  const [sortConfig, setSortConfig] = useState<{ key: ClientKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
+
+  const sortedClients = useMemo(() => {
+    let sortableItems = [...clients];
+    if (sortConfig.key) {
+      sortableItems.sort((a, b) => {
+        const aValue = a[sortConfig.key!];
+        const bValue = b[sortConfig.key!];
+
+        if (aValue === null || aValue === undefined) return 1;
+        if (bValue === null || bValue === undefined) return -1;
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [sortConfig]);
+
+  const requestSort = (key: ClientKey) => {
+    let direction: 'asc' | 'desc' = 'desc';
+    if (sortConfig.key === key && sortConfig.direction === 'desc') {
+      direction = 'asc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const SortableTableHeader = ({ sortKey, children, className }: { sortKey: ClientKey; children: React.ReactNode; className?: string }) => {
+    const isSorted = sortConfig.key === sortKey;
+    return (
+        <TableHead className={className}>
+            <Button variant="ghost" onClick={() => requestSort(sortKey)} className="px-2">
+                {children}
+                {isSorted ? (
+                    sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+                ) : <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />}
+            </Button>
+        </TableHead>
+    );
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -107,22 +159,22 @@ export default function ClientsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Clients ({clients.length})</CardTitle>
+          <CardTitle>All Clients ({sortedClients.length})</CardTitle>
           <CardDescription>A list of all clients in your system.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Client</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Open Jobs</TableHead>
+                <SortableTableHeader sortKey="name">Client</SortableTableHeader>
+                <SortableTableHeader sortKey="contactName">Contact</SortableTableHeader>
+                <SortableTableHeader sortKey="status">Status</SortableTableHeader>
+                <SortableTableHeader sortKey="openJobs" className="text-center">Open Jobs</SortableTableHeader>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map((client) => (
+              {sortedClients.map((client) => (
                 <TableRow key={client.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -167,7 +219,7 @@ export default function ClientsPage() {
           </Table>
         </CardContent>
         <CardFooter className="flex justify-between items-center">
-            <p className="text-sm text-muted-foreground">Showing 1 to {clients.length} of {clients.length} clients</p>
+            <p className="text-sm text-muted-foreground">Showing 1 to {sortedClients.length} of {clients.length} clients</p>
             <div className="flex gap-2">
                 <Button variant="outline" size="sm">Previous</Button>
                 <Button variant="outline" size="sm">Next</Button>
