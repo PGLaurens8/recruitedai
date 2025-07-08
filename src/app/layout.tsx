@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from '@/context/auth-context';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Toaster } from "@/components/ui/toaster";
 import { Spinner } from '@/components/ui/spinner';
+import { Header } from '@/components/layout/header';
 
 
 function RootLayoutContent({ children }: { children: ReactNode }) {
@@ -28,9 +29,12 @@ function RootLayoutContent({ children }: { children: ReactNode }) {
 
   if (isAuthenticated && !isAuthUIPage) {
     return (
-      <div className={`flex min-h-screen bg-muted/30`}>
+      <div className="flex min-h-screen w-full">
         <Sidebar />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <div className="flex flex-col flex-1">
+          <Header />
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-muted/30">{children}</main>
+        </div>
       </div>
     );
   }
