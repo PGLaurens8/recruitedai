@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
+  Briefcase,
   LogOut, 
   User,
 } from 'lucide-react';
