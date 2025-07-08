@@ -31,14 +31,14 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 type JobSpecInputType = "file" | "text" | "url";
 
 const LOCAL_STORAGE_KEYS = {
-  MASTER_RESUME_TEXT: 'careerCraft_masterResumeText',
-  MASTER_RESUME_USER_TITLE: 'careerCraft_masterResumeUserTitle',
-  MASTER_RESUME_TIMESTAMP: 'careerCraft_masterResumeTimestamp',
-  MASTER_RESUME_EXTRACTED_NAME: 'careerCraft_masterResumeExtractedName',
-  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'careerCraft_masterResumeExtractedJobTitle',
-  MASTER_RESUME_CONTACT_INFO: 'careerCraft_masterResumeContactInfo',
-  MASTER_RESUME_SKILLS: 'careerCraft_masterResumeSkills',
-  MASTER_RESUME_AVATAR_URI: 'careerCraft_masterResumeAvatarUri',
+  MASTER_RESUME_TEXT: 'recruitedAI_masterResumeText',
+  MASTER_RESUME_USER_TITLE: 'recruitedAI_masterResumeUserTitle',
+  MASTER_RESUME_TIMESTAMP: 'recruitedAI_masterResumeTimestamp',
+  MASTER_RESUME_EXTRACTED_NAME: 'recruitedAI_masterResumeExtractedName',
+  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'recruitedAI_masterResumeExtractedJobTitle',
+  MASTER_RESUME_CONTACT_INFO: 'recruitedAI_masterResumeContactInfo',
+  MASTER_RESUME_SKILLS: 'recruitedAI_masterResumeSkills',
+  MASTER_RESUME_AVATAR_URI: 'recruitedAI_masterResumeAvatarUri',
 };
 
 interface ContactInfo {

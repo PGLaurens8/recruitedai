@@ -16,10 +16,10 @@ import { fileToDataURI } from '@/lib/file-utils';
 import { Spinner } from '@/components/ui/spinner';
 
 const LOCAL_STORAGE_KEYS = {
-  MASTER_RESUME_TEXT: 'careerCraft_masterResumeText',
-  MASTER_RESUME_EXTRACTED_NAME: 'careerCraft_masterResumeExtractedName',
-  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'careerCraft_masterResumeExtractedJobTitle',
-  MASTER_RESUME_AVATAR_URI: 'careerCraft_masterResumeAvatarUri',
+  MASTER_RESUME_TEXT: 'recruitedAI_masterResumeText',
+  MASTER_RESUME_EXTRACTED_NAME: 'recruitedAI_masterResumeExtractedName',
+  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'recruitedAI_masterResumeExtractedJobTitle',
+  MASTER_RESUME_AVATAR_URI: 'recruitedAI_masterResumeAvatarUri',
 };
 
 // Default data for when no master resume is found
@@ -287,7 +287,7 @@ export default function LinkTreeBioPage() {
                   </div>
                   
                   <div className="text-center text-xs text-muted-foreground pt-4">
-                    Powered by CareerCraft AI
+                    Powered by RecruitedAI
                   </div>
                 </div>
               </Card>

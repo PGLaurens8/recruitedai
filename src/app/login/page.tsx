@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ export default function LoginPage() {
         <CardHeader className="text-center space-y-1">
           <Briefcase className="mx-auto h-10 w-10 text-primary" />
           <CardTitle className="text-2xl font-bold font-headline">Welcome Back!</CardTitle>
-          <CardDescription>Log in to access your CareerCraft AI dashboard.</CardDescription>
+          <CardDescription>Log in to access your RecruitedAI dashboard.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">

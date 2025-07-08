@@ -136,7 +136,7 @@ export function Sidebar() {
         <div className="flex flex-col items-center justify-center h-20 border-b px-6">
            <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
             <Briefcase className="h-7 w-7 text-primary" />
-            <span>TalentAI</span>
+            <span>RecruitedAI</span>
           </Link>
           <div className="text-sm text-muted-foreground mt-1 capitalize">{user.role}</div>
         </div>

@@ -51,7 +51,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
        <head>
-        <title>TalentAI Platform</title>
+        <title>RecruitedAI</title>
         <meta name="description" content="AI-Powered Recruiting & Career Tools"/>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

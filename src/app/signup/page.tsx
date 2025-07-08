@@ -28,7 +28,7 @@ export default function SignupPage() {
             <CardHeader>
                 <CardTitle className="text-xl">Create your account</CardTitle>
                 <CardDescription>
-                Enter your information to get started with TalentAI.
+                Enter your information to get started with RecruitedAI.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -104,7 +104,7 @@ export default function SignupPage() {
         </div>
       <div className="hidden bg-gradient-to-br from-indigo-600 to-blue-700 lg:flex flex-col items-center justify-center p-12 text-white text-center">
          <Briefcase className="h-20 w-20 mb-6 text-indigo-200" />
-         <h1 className="text-5xl font-bold mb-4">TalentAI Platform</h1>
+         <h1 className="text-5xl font-bold mb-4">RecruitedAI</h1>
          <p className="text-xl text-indigo-200">AI-Powered Recruiting & Career Tools</p>
       </div>
     </div>

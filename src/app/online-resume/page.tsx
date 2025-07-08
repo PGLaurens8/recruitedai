@@ -15,14 +15,14 @@ import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const LOCAL_STORAGE_KEYS = {
-  MASTER_RESUME_TEXT: 'careerCraft_masterResumeText',
-  MASTER_RESUME_USER_TITLE: 'careerCraft_masterResumeUserTitle',
-  MASTER_RESUME_EXTRACTED_NAME: 'careerCraft_masterResumeExtractedName',
-  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'careerCraft_masterResumeExtractedJobTitle',
-  MASTER_RESUME_CONTACT_INFO: 'careerCraft_masterResumeContactInfo',
-  MASTER_RESUME_SKILLS: 'careerCraft_masterResumeSkills',
-  MASTER_RESUME_TIMESTAMP: 'careerCraft_masterResumeTimestamp',
-  MASTER_RESUME_AVATAR_URI: 'careerCraft_masterResumeAvatarUri',
+  MASTER_RESUME_TEXT: 'recruitedAI_masterResumeText',
+  MASTER_RESUME_USER_TITLE: 'recruitedAI_masterResumeUserTitle',
+  MASTER_RESUME_EXTRACTED_NAME: 'recruitedAI_masterResumeExtractedName',
+  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'recruitedAI_masterResumeExtractedJobTitle',
+  MASTER_RESUME_CONTACT_INFO: 'recruitedAI_masterResumeContactInfo',
+  MASTER_RESUME_SKILLS: 'recruitedAI_masterResumeSkills',
+  MASTER_RESUME_TIMESTAMP: 'recruitedAI_masterResumeTimestamp',
+  MASTER_RESUME_AVATAR_URI: 'recruitedAI_masterResumeAvatarUri',
 };
 
 interface ContactInfo {
@@ -298,7 +298,7 @@ export default function OnlineResumePage() {
         </main>
       </div>
        <footer className="mt-12 pt-6 border-t text-center text-xs text-muted-foreground">
-        Powered by CareerCraft AI. 
+        Powered by RecruitedAI. 
         {loadedResumeText ? (
           loadedContactInfo || (loadedSkills && loadedSkills.length > 0) ? 
           " Main resume text from your upload. Sidebar contact/skills are dynamic. Other links may be illustrative." 
