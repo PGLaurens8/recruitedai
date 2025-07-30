@@ -10,3 +10,6 @@ import '@/ai/flows/find-companies.ts';
 import '@/ai/flows/generate-interview-questions';
 import '@/ai/flows/analyze-interview-response';
 import '@/ai/flows/generate-candidate-profile';
+import '@/ai/flows/find-smart-leads.ts';
+
+    
