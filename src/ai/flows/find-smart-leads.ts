@@ -14,16 +14,16 @@ import {z} from 'genkit';
 const FindSmartLeadsInputSchema = z.object({
   industry: z.string().optional().describe("The industry to target (e.g., 'Fintech', 'Healthcare Tech')."),
   companySize: z.string().optional().describe("The approximate size of the company (e.g., '1-50 employees', '51-200 employees')."),
-  location: z.string().optional().describe("The city or region where the company is located (e.g., 'San Francisco Bay Area')."),
+  location: z.string().optional().describe("The city or region where the company is located (e.g., 'Johannesburg', 'Cape Town')."),
   targetRole: z.string().optional().describe("The job title or role of the person to find (e.g., 'VP of Engineering', 'Head of Talent Acquisition')."),
   companyName: z.string().optional().describe("The name of the company to target.")
 });
 export type FindSmartLeadsInput = z.infer<typeof FindSmartLeadsInputSchema>;
 
 const LeadSchema = z.object({
-    fullName: z.string().describe("The full name of the contact person."),
+    fullName: z.string().describe("The full name of the contact person. Should be a name commonly found in South Africa if the location suggests it."),
     title: z.string().describe("The job title of the contact person."),
-    email: z.string().describe("A generated, realistic-looking email address for the contact. Use common corporate email patterns (e.g., 'j.doe@company.com')."),
+    email: z.string().describe("A generated, realistic-looking email address for the contact. Use common corporate email patterns (e.g., 'j.doe@company.co.za')."),
     companyName: z.string().describe("The name of the company where the contact works."),
     industry: z.string().describe("The industry of the company."),
     companySize: z.string().describe("The size of the company in employee count (e.g., '51-200 employees')."),
@@ -49,27 +49,29 @@ const findSmartLeadsPrompt = ai.definePrompt({
   name: 'findSmartLeadsPrompt',
   input: {schema: FindSmartLeadsInputSchema},
   output: {schema: FindSmartLeadsOutputSchema},
-  prompt: `You are an expert AI Sourcing Specialist with access to a vast, simulated B2B database like Apollo.io, Seamless.AI, and LinkedIn Sales Navigator.
+  prompt: `You are an expert AI Sourcing Specialist with deep knowledge of the South African business landscape. You have access to a vast, simulated B2B database like Apollo.io, Lusha, and LinkedIn Sales Navigator, with a strong focus on companies operating in South Africa.
 Your task is to generate a list of 5-10 highly relevant potential leads (decision-makers, hiring managers, etc.) based on the user's search criteria.
+
+Prioritize South African companies and personnel if the search criteria (e.g., location like 'Johannesburg', 'Cape Town', or a '.co.za' company) suggest it.
 
 The user is looking for contacts that match the following profile:
 - Industry: {{#if industry}}'{{{industry}}}'{{else}}Any{{/if}}
 - Company Name: {{#if companyName}}'{{{companyName}}}'{{else}}Any{{/if}}
 - Company Size: {{#if companySize}}'{{{companySize}}}'{{else}}Any{{/if}}
-- Location: {{#if location}}'{{{location}}}'{{else}}Any{{/if}}
+- Location: {{#if location}}'{{{location}}}'{{else}}Any (with a focus on South Africa){{/if}}
 - Target Role/Title: {{#if targetRole}}'{{{targetRole}}}'{{else}}Any key decision-maker{{/if}}
 
 For each lead you generate, you must provide:
-1.  'fullName': A realistic-sounding full name.
+1.  'fullName': A realistic-sounding full name, appropriate for the South African context.
 2.  'title': Their job title.
-3.  'email': A plausible corporate email address.
-4.  'companyName': The name of the company. It should be a real or at least a realistic-sounding company name that fits the industry.
+3.  'email': A plausible corporate email address. Use '.co.za' domains where appropriate for South African companies.
+4.  'companyName': The name of the company. It should be a real company that fits the industry and location.
 5.  'industry': The company's industry.
 6.  'companySize': The company's size range.
 
 Additionally, for any company in the list that has had significant public news or updates in the last 6 months (e.g., new funding round, major product launch, leadership changes, hiring surge), provide a concise 'insight' summary. This should be a separate list.
 
-Do not invent fictional data points beyond what is required. The results should be plausible and actionable for a recruiter.
+The results should be plausible and actionable for a recruiter targeting the South African market.
 Generate a diverse list of leads from different companies if possible, unless a specific company name is provided.
 `,
 });
@@ -88,3 +90,4 @@ const findSmartLeadsFlow = ai.defineFlow(
     return output!;
   }
 );
+
