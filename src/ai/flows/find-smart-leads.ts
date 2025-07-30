@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Finds potential leads (decision-makers) at companies based on various criteria.
@@ -10,13 +9,15 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {getWebsiteContent} from '@/ai/tools/web-browser';
 
 const FindSmartLeadsInputSchema = z.object({
   industry: z.string().optional().describe("The industry to target (e.g., 'Fintech', 'Healthcare Tech')."),
   companySize: z.string().optional().describe("The approximate size of the company (e.g., '1-50 employees', '51-200 employees')."),
   location: z.string().optional().describe("The city or region where the company is located (e.g., 'Johannesburg', 'Cape Town')."),
   targetRole: z.string().optional().describe("The job title or role of the person to find (e.g., 'VP of Engineering', 'Head of Talent Acquisition')."),
-  companyName: z.string().optional().describe("The name of the company to target.")
+  companyName: z.string().optional().describe("The name of the company to target."),
+  companyWebsite: z.string().optional().describe("A URL to the company's website (e.g., 'https://www.example.com'). The AI will use this as a primary source if provided.")
 });
 export type FindSmartLeadsInput = z.infer<typeof FindSmartLeadsInputSchema>;
 
@@ -49,21 +50,25 @@ const findSmartLeadsPrompt = ai.definePrompt({
   name: 'findSmartLeadsPrompt',
   input: {schema: FindSmartLeadsInputSchema},
   output: {schema: FindSmartLeadsOutputSchema},
-  prompt: `You are an expert AI Sourcing Specialist with deep knowledge of the South African business landscape. You have access to a vast, simulated B2B database like Apollo.io, Lusha, and LinkedIn Sales Navigator, with a strong focus on companies operating in South Africa.
+  tools: [getWebsiteContent],
+  prompt: `You are an expert AI Sourcing Specialist with deep knowledge of the South African business landscape. You have access to a vast, simulated B2B database and a web browser tool.
 Your task is to generate a list of 5-10 highly relevant potential leads (decision-makers, hiring managers, etc.) based on the user's search criteria.
 
-Prioritize South African companies and personnel if the search criteria (e.g., location like 'Johannesburg', 'Cape Town', or a '.co.za' company) suggest it.
+- If a 'companyWebsite' URL is provided, YOU MUST use the 'getWebsiteContent' tool to fetch the content of that website. This website content is the PRIMARY SOURCE OF TRUTH. Your generated leads must be based on the names and roles you find on that website.
+- If no website is provided, you will act as if you have searched major job boards (like LinkedIn, Indeed, etc.) and professional networks to generate a list of plausible leads.
+- Prioritize South African companies and personnel if the search criteria (e.g., location like 'Johannesburg', 'Cape Town', or a '.co.za' company) suggest it.
 
 The user is looking for contacts that match the following profile:
 - Industry: {{#if industry}}'{{{industry}}}'{{else}}Any{{/if}}
 - Company Name: {{#if companyName}}'{{{companyName}}}'{{else}}Any{{/if}}
+- Company Website: {{#if companyWebsite}}'{{{companyWebsite}}}'{{else}}Not provided{{/if}}
 - Company Size: {{#if companySize}}'{{{companySize}}}'{{else}}Any{{/if}}
 - Location: {{#if location}}'{{{location}}}'{{else}}Any (with a focus on South Africa){{/if}}
 - Target Role/Title: {{#if targetRole}}'{{{targetRole}}}'{{else}}Any key decision-maker{{/if}}
 
 For each lead you generate, you must provide:
-1.  'fullName': A realistic-sounding full name, appropriate for the South African context.
-2.  'title': Their job title.
+1.  'fullName': A realistic-sounding full name, appropriate for the South African context. If using a website, this must be a name from the website.
+2.  'title': Their job title. If using a website, this must be their title from the website.
 3.  'email': A plausible corporate email address. Use '.co.za' domains where appropriate for South African companies.
 4.  'companyName': The name of the company. It should be a real company that fits the industry and location.
 5.  'industry': The company's industry.
@@ -83,11 +88,10 @@ const findSmartLeadsFlow = ai.defineFlow(
     outputSchema: FindSmartLeadsOutputSchema,
   },
   async (input) => {
-    if (!input.industry && !input.companySize && !input.location && !input.targetRole && !input.companyName) {
+    if (!input.industry && !input.companySize && !input.location && !input.targetRole && !input.companyName && !input.companyWebsite) {
         throw new Error('At least one search criterion must be provided to find smart leads.');
     }
     const {output} = await findSmartLeadsPrompt(input);
     return output!;
   }
 );
-

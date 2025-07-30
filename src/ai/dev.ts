@@ -11,5 +11,5 @@ import '@/ai/flows/generate-interview-questions';
 import '@/ai/flows/analyze-interview-response';
 import '@/ai/flows/generate-candidate-profile';
 import '@/ai/flows/find-smart-leads.ts';
-
+import '@/ai/tools/web-browser.ts';
     

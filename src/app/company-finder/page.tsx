@@ -50,6 +50,7 @@ export default function CompanyFinderPage() {
         location: "",
         targetRole: "",
         companyName: "",
+        companyWebsite: "",
     });
 
     const handleDrag = useCallback((e: React.DragEvent<HTMLDivElement | HTMLLabelElement>) => {
@@ -120,7 +121,7 @@ export default function CompanyFinderPage() {
     };
 
     const handleFindLeads = async () => {
-        if (!leadsInput.industry && !leadsInput.companySize && !leadsInput.location && !leadsInput.targetRole && !leadsInput.companyName) {
+        if (!leadsInput.industry && !leadsInput.companySize && !leadsInput.location && !leadsInput.targetRole && !leadsInput.companyName && !leadsInput.companyWebsite) {
             toast({
                 variant: "destructive",
                 title: "Input Required",
@@ -321,13 +322,17 @@ export default function CompanyFinderPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Smart Leads Search</CardTitle>
-                            <CardDescription>Find decision-makers using targeted filters. The AI will generate a list of plausible contacts for outreach.</CardDescription>
+                            <CardDescription>Find decision-makers using targeted filters. Provide a URL for accurate, real-time results.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="companyName">Company</Label>
+                                    <Label htmlFor="companyName">Company Name</Label>
                                     <Input id="companyName" placeholder="e.g., Google" value={leadsInput.companyName} onChange={(e) => handleLeadsInputChange('companyName', e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="companyWebsite">Company Website (Optional)</Label>
+                                    <Input id="companyWebsite" placeholder="https://www.example.com" value={leadsInput.companyWebsite} onChange={(e) => handleLeadsInputChange('companyWebsite', e.target.value)} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="industry">Industry</Label>
