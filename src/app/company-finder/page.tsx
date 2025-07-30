@@ -47,7 +47,8 @@ export default function CompanyFinderPage() {
         industry: "",
         companySize: "",
         location: "",
-        targetRole: ""
+        targetRole: "",
+        companyName: "",
     });
 
     const handleDrag = useCallback((e: React.DragEvent<HTMLDivElement | HTMLLabelElement>) => {
@@ -118,7 +119,7 @@ export default function CompanyFinderPage() {
     };
 
     const handleFindLeads = async () => {
-        if (!leadsInput.industry && !leadsInput.location && !leadsInput.targetRole) {
+        if (!leadsInput.industry && !leadsInput.companySize && !leadsInput.location && !leadsInput.targetRole && !leadsInput.companyName) {
             toast({
                 variant: "destructive",
                 title: "Input Required",
@@ -314,7 +315,11 @@ export default function CompanyFinderPage() {
                             <CardDescription>Find decision-makers using targeted filters. The AI will generate a list of potential contacts.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="companyName">Company</Label>
+                                    <Input id="companyName" placeholder="e.g., Google" value={leadsInput.companyName} onChange={(e) => handleLeadsInputChange('companyName', e.target.value)} />
+                                </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="industry">Industry</Label>
                                     <Input id="industry" placeholder="e.g., Fintech, Healthcare" value={leadsInput.industry} onChange={(e) => handleLeadsInputChange('industry', e.target.value)} />
@@ -413,5 +418,3 @@ export default function CompanyFinderPage() {
         </div>
     );
 }
-
-    

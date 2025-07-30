@@ -15,7 +15,8 @@ const FindSmartLeadsInputSchema = z.object({
   industry: z.string().optional().describe("The industry to target (e.g., 'Fintech', 'Healthcare Tech')."),
   companySize: z.string().optional().describe("The approximate size of the company (e.g., '1-50 employees', '51-200 employees')."),
   location: z.string().optional().describe("The city or region where the company is located (e.g., 'San Francisco Bay Area')."),
-  targetRole: z.string().optional().describe("The job title or role of the person to find (e.g., 'VP of Engineering', 'Head of Talent Acquisition').")
+  targetRole: z.string().optional().describe("The job title or role of the person to find (e.g., 'VP of Engineering', 'Head of Talent Acquisition')."),
+  companyName: z.string().optional().describe("The name of the company to target.")
 });
 export type FindSmartLeadsInput = z.infer<typeof FindSmartLeadsInputSchema>;
 
@@ -48,6 +49,7 @@ Your task is to generate a list of 5-10 highly relevant potential leads (decisio
 
 The user is looking for contacts that match the following profile:
 - Industry: {{#if industry}}'{{{industry}}}'{{else}}Any{{/if}}
+- Company Name: {{#if companyName}}'{{{companyName}}}'{{else}}Any{{/if}}
 - Company Size: {{#if companySize}}'{{{companySize}}}'{{else}}Any{{/if}}
 - Location: {{#if location}}'{{{location}}}'{{else}}Any{{/if}}
 - Target Role/Title: {{#if targetRole}}'{{{targetRole}}}'{{else}}Any key decision-maker{{/if}}
@@ -62,7 +64,7 @@ For each lead you generate, you must provide:
 7.  'companySize': The company's size range.
 
 Do not invent fictional data points beyond what is required. The results should be plausible and actionable for a recruiter.
-Generate a diverse list of leads from different companies if possible.
+Generate a diverse list of leads from different companies if possible, unless a specific company name is provided.
 `,
 });
 
@@ -73,12 +75,10 @@ const findSmartLeadsFlow = ai.defineFlow(
     outputSchema: FindSmartLeadsOutputSchema,
   },
   async (input) => {
-    if (!input.industry && !input.companySize && !input.location && !input.targetRole) {
+    if (!input.industry && !input.companySize && !input.location && !input.targetRole && !input.companyName) {
         throw new Error('At least one search criterion must be provided to find smart leads.');
     }
     const {output} = await findSmartLeadsPrompt(input);
     return output!;
   }
 );
-
-    
