@@ -24,7 +24,7 @@ const LeadSchema = z.object({
     fullName: z.string().describe("The full name of the contact person."),
     title: z.string().describe("The job title of the contact person."),
     email: z.string().describe("A generated, realistic-looking email address for the contact. Use common corporate email patterns (e.g., 'j.doe@company.com')."),
-    linkedinUrl: z.string().url().describe("A generated, realistic-looking LinkedIn profile URL for the contact."),
+    linkedinUrl: z.string().describe("A generated, realistic-looking LinkedIn profile URL for the contact."),
     companyName: z.string().describe("The name of the company where the contact works."),
     industry: z.string().describe("The industry of the company."),
     companySize: z.string().describe("The size of the company in employee count (e.g., '51-200 employees')."),
