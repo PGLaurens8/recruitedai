@@ -135,7 +135,6 @@ export default function CompanyFinderPage() {
             const result = await findSmartLeads(leadsInput);
             setLeadsOutput(result);
             if (result.insights && result.insights.length > 0) {
-              setActiveTab("insights");
               toast({
                 title: "Leads & Insights Generated!",
                 description: "AI found leads and important company insights."
@@ -197,15 +196,9 @@ export default function CompanyFinderPage() {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className={`grid w-full ${hasInsights ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="company-finder">Company Finder</TabsTrigger>
                     <TabsTrigger value="smart-leads">Smart Leads</TabsTrigger>
-                     {hasInsights && (
-                      <TabsTrigger value="insights">
-                        <Star className="mr-2 h-4 w-4 text-yellow-500" />
-                        Company Insights
-                      </TabsTrigger>
-                    )}
                 </TabsList>
                 <TabsContent value="company-finder" className="mt-6">
                     <div className="grid lg:grid-cols-3 gap-8 items-start">
@@ -324,7 +317,7 @@ export default function CompanyFinderPage() {
                         </div>
                     )}
                 </TabsContent>
-                <TabsContent value="smart-leads" className="mt-6">
+                <TabsContent value="smart-leads" className="mt-6 space-y-8">
                     <Card>
                         <CardHeader>
                             <CardTitle>Smart Leads Search</CardTitle>
@@ -384,7 +377,7 @@ export default function CompanyFinderPage() {
                         </Alert>
                     )}
                     {leadsOutput && leadsOutput.leads && (
-                        <Card className="mt-8">
+                        <Card>
                             <CardHeader>
                                 <div className="flex justify-between items-center">
                                     <CardTitle>Generated Leads ({leadsOutput.leads.length})</CardTitle>
@@ -429,31 +422,34 @@ export default function CompanyFinderPage() {
                             </CardContent>
                         </Card>
                     )}
+                     {hasInsights && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Star className="h-5 w-5 text-yellow-500" />
+                                    AI-Powered Company Insights
+                                </CardTitle>
+                                <CardDescription>
+                                Recent noteworthy updates for companies in your search results.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {leadsOutput.insights?.map((insight, index) => (
+                                <div key={index} className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                                    <h4 className="font-semibold text-blue-800 flex items-center gap-2">
+                                    <Building className="h-5 w-5" />
+                                    {insight.companyName}
+                                    </h4>
+                                    <p className="mt-2 text-sm text-blue-700">{insight.insight}</p>
+                                </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
                 </TabsContent>
-                 <TabsContent value="insights" className="mt-6">
-                   {hasInsights && (
-                     <Card>
-                       <CardHeader>
-                         <CardTitle>AI-Powered Company Insights</CardTitle>
-                         <CardDescription>
-                           Recent noteworthy updates for companies in your search results.
-                         </CardDescription>
-                       </CardHeader>
-                       <CardContent className="space-y-4">
-                         {leadsOutput.insights?.map((insight, index) => (
-                           <div key={index} className="p-4 border rounded-lg bg-blue-50 border-blue-200">
-                             <h4 className="font-semibold text-blue-800 flex items-center gap-2">
-                               <Building className="h-5 w-5" />
-                               {insight.companyName}
-                             </h4>
-                             <p className="mt-2 text-sm text-blue-700">{insight.insight}</p>
-                           </div>
-                         ))}
-                       </CardContent>
-                     </Card>
-                   )}
-                 </TabsContent>
             </Tabs>
         </div>
     );
 }
+
+    
