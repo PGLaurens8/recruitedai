@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const FindSmartLeadsInputSchema = z.object({
+const FindSmartLeadsInputSchema = z.object({
   industry: z.string().optional().describe("The industry to target (e.g., 'Fintech', 'Healthcare Tech')."),
   companySize: z.string().optional().describe("The approximate size of the company (e.g., '1-50 employees', '51-200 employees')."),
   location: z.string().optional().describe("The city or region where the company is located (e.g., 'San Francisco Bay Area')."),
@@ -30,7 +30,7 @@ const LeadSchema = z.object({
 });
 export type Lead = z.infer<typeof LeadSchema>;
 
-export const FindSmartLeadsOutputSchema = z.object({
+const FindSmartLeadsOutputSchema = z.object({
   leads: z.array(LeadSchema).describe('A list of 5 to 10 potential leads matching the search criteria.'),
 });
 export type FindSmartLeadsOutput = z.infer<typeof FindSmartLeadsOutputSchema>;
