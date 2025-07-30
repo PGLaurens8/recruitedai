@@ -24,15 +24,20 @@ const LeadSchema = z.object({
     fullName: z.string().describe("The full name of the contact person."),
     title: z.string().describe("The job title of the contact person."),
     email: z.string().describe("A generated, realistic-looking email address for the contact. Use common corporate email patterns (e.g., 'j.doe@company.com')."),
-    linkedinUrl: z.string().describe("A generated, realistic-looking LinkedIn profile URL for the contact."),
     companyName: z.string().describe("The name of the company where the contact works."),
     industry: z.string().describe("The industry of the company."),
     companySize: z.string().describe("The size of the company in employee count (e.g., '51-200 employees')."),
 });
 export type Lead = z.infer<typeof LeadSchema>;
 
+const CompanyInsightSchema = z.object({
+    companyName: z.string().describe("The name of the company the insight pertains to."),
+    insight: z.string().describe("A brief, actionable insight about the company's recent activities (e.g., recent funding, new product launch, hiring surge) that would be relevant for a recruiter or salesperson. Should be 1-2 sentences."),
+});
+
 const FindSmartLeadsOutputSchema = z.object({
   leads: z.array(LeadSchema).describe('A list of 5 to 10 potential leads matching the search criteria.'),
+  insights: z.array(CompanyInsightSchema).optional().describe("A list of recent, significant company updates or news for any of the companies in the lead list. Only include insights if there is notable activity in the last 6 months."),
 });
 export type FindSmartLeadsOutput = z.infer<typeof FindSmartLeadsOutputSchema>;
 
@@ -58,10 +63,11 @@ For each lead you generate, you must provide:
 1.  'fullName': A realistic-sounding full name.
 2.  'title': Their job title.
 3.  'email': A plausible corporate email address.
-4.  'linkedinUrl': A valid-looking LinkedIn profile URL. For example: https://www.linkedin.com/in/jane-doe-12345
-5.  'companyName': The name of the company. It should be a real or at least a realistic-sounding company name that fits the industry.
-6.  'industry': The company's industry.
-7.  'companySize': The company's size range.
+4.  'companyName': The name of the company. It should be a real or at least a realistic-sounding company name that fits the industry.
+5.  'industry': The company's industry.
+6.  'companySize': The company's size range.
+
+Additionally, for any company in the list that has had significant public news or updates in the last 6 months (e.g., new funding round, major product launch, leadership changes, hiring surge), provide a concise 'insight' summary. This should be a separate list.
 
 Do not invent fictional data points beyond what is required. The results should be plausible and actionable for a recruiter.
 Generate a diverse list of leads from different companies if possible, unless a specific company name is provided.

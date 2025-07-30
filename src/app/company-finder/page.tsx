@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Star, UploadCloud, Building, ExternalLink, AlertTriangle, Search, Briefcase, MapPin } from "lucide-react";
+import { Star, UploadCloud, Building, ExternalLink, AlertTriangle, Search, Briefcase, Info } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +29,7 @@ const howItWorksSteps = [
 
 export default function CompanyFinderPage() {
     const { toast } = useToast();
+    const [activeTab, setActiveTab] = useState("company-finder");
 
     // State for Company Finder tab
     const [candidateName, setCandidateName] = useState("");
@@ -133,10 +134,18 @@ export default function CompanyFinderPage() {
         try {
             const result = await findSmartLeads(leadsInput);
             setLeadsOutput(result);
-            toast({
-                title: "Leads Generated!",
-                description: "The AI has found potential leads based on your criteria."
-            });
+            if (result.insights && result.insights.length > 0) {
+              setActiveTab("insights");
+              toast({
+                title: "Leads & Insights Generated!",
+                description: "AI found leads and important company insights."
+              });
+            } else {
+              toast({
+                  title: "Leads Generated!",
+                  description: "The AI has found potential leads based on your criteria."
+              });
+            }
         } catch (e: any) {
             console.error("Error finding smart leads:", e);
             setLeadsError(e.message || "An unexpected error occurred.");
@@ -151,14 +160,13 @@ export default function CompanyFinderPage() {
     };
 
     const exportToCsv = (leads: Lead[]) => {
-        const headers = ["Full Name", "Title", "Email", "LinkedIn", "Company", "Industry", "Company Size"];
+        const headers = ["Full Name", "Title", "Email", "Company", "Industry", "Company Size"];
         const csvRows = [
             headers.join(','),
             ...leads.map(lead => [
                 `"${lead.fullName}"`,
                 `"${lead.title}"`,
                 `"${lead.email}"`,
-                `"${lead.linkedinUrl}"`,
                 `"${lead.companyName}"`,
                 `"${lead.industry}"`,
                 `"${lead.companySize}"`
@@ -177,6 +185,8 @@ export default function CompanyFinderPage() {
         document.body.removeChild(link);
     };
 
+    const hasInsights = leadsOutput && leadsOutput.insights && leadsOutput.insights.length > 0;
+
     return (
         <div className="space-y-8">
             <div>
@@ -186,10 +196,16 @@ export default function CompanyFinderPage() {
                 </p>
             </div>
 
-            <Tabs defaultValue="company-finder" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className={`grid w-full ${hasInsights ? 'grid-cols-3' : 'grid-cols-2'}`}>
                     <TabsTrigger value="company-finder">Company Finder</TabsTrigger>
                     <TabsTrigger value="smart-leads">Smart Leads</TabsTrigger>
+                     {hasInsights && (
+                      <TabsTrigger value="insights">
+                        <Star className="mr-2 h-4 w-4 text-yellow-500" />
+                        Company Insights
+                      </TabsTrigger>
+                    )}
                 </TabsList>
                 <TabsContent value="company-finder" className="mt-6">
                     <div className="grid lg:grid-cols-3 gap-8 items-start">
@@ -312,7 +328,7 @@ export default function CompanyFinderPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Smart Leads Search</CardTitle>
-                            <CardDescription>Find decision-makers using targeted filters. The AI will generate a list of potential contacts.</CardDescription>
+                            <CardDescription>Find decision-makers using targeted filters. The AI will generate a list of plausible contacts for outreach.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -401,7 +417,7 @@ export default function CompanyFinderPage() {
                                                 <TableCell>{lead.email}</TableCell>
                                                 <TableCell>
                                                     <Button asChild variant="ghost" size="sm">
-                                                        <Link href={lead.linkedinUrl} target="_blank" rel="noopener noreferrer">
+                                                        <Link href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${lead.fullName} ${lead.companyName}`)}`} target="_blank" rel="noopener noreferrer">
                                                             View Profile <ExternalLink className="ml-2 h-3 w-3" />
                                                         </Link>
                                                     </Button>
@@ -414,6 +430,29 @@ export default function CompanyFinderPage() {
                         </Card>
                     )}
                 </TabsContent>
+                 <TabsContent value="insights" className="mt-6">
+                   {hasInsights && (
+                     <Card>
+                       <CardHeader>
+                         <CardTitle>AI-Powered Company Insights</CardTitle>
+                         <CardDescription>
+                           Recent noteworthy updates for companies in your search results.
+                         </CardDescription>
+                       </CardHeader>
+                       <CardContent className="space-y-4">
+                         {leadsOutput.insights?.map((insight, index) => (
+                           <div key={index} className="p-4 border rounded-lg bg-blue-50 border-blue-200">
+                             <h4 className="font-semibold text-blue-800 flex items-center gap-2">
+                               <Building className="h-5 w-5" />
+                               {insight.companyName}
+                             </h4>
+                             <p className="mt-2 text-sm text-blue-700">{insight.insight}</p>
+                           </div>
+                         ))}
+                       </CardContent>
+                     </Card>
+                   )}
+                 </TabsContent>
             </Tabs>
         </div>
     );
