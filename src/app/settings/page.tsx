@@ -22,8 +22,8 @@ import {
   Save,
   CloudUpload
 } from 'lucide-react';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
@@ -36,7 +36,6 @@ export default function SettingsPage() {
   const [discoveredModels, setModels] = useState<ModelInfo[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
 
   // Persistence (Firestore state)
   const registryDocRef = useMemoFirebase(() => {
@@ -68,31 +67,23 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSyncToDatabase = async () => {
+  const handleSyncToDatabase = () => {
     if (!firestore || discoveredModels.length === 0) return;
     
-    setIsSyncing(true);
-    try {
-      const docRef = doc(firestore, 'modelRegistry', 'latest');
-      await setDoc(docRef, {
-        models: discoveredModels,
-        updatedAt: serverTimestamp(),
-        updatedBy: user?.email || 'Unknown Developer',
-      }, { merge: true });
-      
-      toast({
-        title: "Registry Synced",
-        description: "The discovered model list has been saved to the database.",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Sync Failed",
-        description: error.message,
-      });
-    } finally {
-      setIsSyncing(false);
-    }
+    const docRef = doc(firestore, 'modelRegistry', 'latest');
+    const data = {
+      models: discoveredModels,
+      updatedAt: serverTimestamp(),
+      updatedBy: user?.email || 'Unknown Developer',
+    };
+
+    // Use non-blocking write pattern
+    setDocumentNonBlocking(docRef, data, { merge: true });
+    
+    toast({
+      title: "Sync Initiated",
+      description: "The discovered model list is being saved to the database.",
+    });
   };
 
   if (!user) return null;
@@ -177,8 +168,8 @@ export default function SettingsPage() {
                   {isLoadingModels ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <CloudUpload className="mr-2 h-4 w-4" />}
                   Run Discovery
                 </Button>
-                <Button onClick={handleSyncToDatabase} disabled={discoveredModels.length === 0 || isSyncing} size="sm">
-                  {isSyncing ? <Spinner size={16} className="mr-2" /> : <Save className="mr-2 h-4 w-4" />}
+                <Button onClick={handleSyncToDatabase} disabled={discoveredModels.length === 0} size="sm">
+                  <Save className="mr-2 h-4 w-4" />
                   Save to Database
                 </Button>
               </div>

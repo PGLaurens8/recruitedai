@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { type ReactNode } from 'react';
 
 import { AuthProvider, useAuth } from '@/context/auth-context';
+import { FirebaseClientProvider } from '@/firebase';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Toaster } from "@/components/ui/toaster";
 import { Spinner } from '@/components/ui/spinner';
@@ -64,8 +65,10 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning>
         <AuthProvider>
-          <RootLayoutContent>{children}</RootLayoutContent>
-          <Toaster />
+          <FirebaseClientProvider>
+            <RootLayoutContent>{children}</RootLayoutContent>
+            <Toaster />
+          </FirebaseClientProvider>
         </AuthProvider>
       </body>
     </html>
