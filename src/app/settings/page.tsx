@@ -185,14 +185,14 @@ export default function SettingsPage() {
             <div className="bg-muted/30 p-6 rounded-lg border">
               <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
                 <Cpu className="h-5 w-5 text-primary" />
-                Troubleshooting 404/429 Errors
+                Troubleshooting Quota Errors
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
                 The application is configured to use <code>googleai/gemini-1.5-flash</code>. Ensure this model appears in the list above with support for <code>generateContent</code>.
               </p>
               <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
                 <CheckCircle2 className="h-4 w-4" />
-                <span>Developer Mode: Full bypass enabled. You see all data.</span>
+                <span>Developer Mode: Model Registry synced with Genkit config.</span>
               </div>
             </div>
           </TabsContent>
