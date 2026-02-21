@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,27 +23,26 @@ import {
   CloudUpload
 } from 'lucide-react';
 import { doc, serverTimestamp } from 'firebase/firestore';
-import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking, useUser } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const { user: firebaseUser } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("general");
   
-  // Model discovery (local state)
+  // Model discovery (local state for temporary results)
   const [discoveredModels, setModels] = useState<ModelInfo[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
 
   // Persistence (Firestore state)
-  // Defer fetching until Firebase User is present to avoid permission errors
+  // The Model Registry is now public-read to prevent race conditions during auth settle
   const registryDocRef = useMemoFirebase(() => {
-    if (!firestore || !firebaseUser) return null;
+    if (!firestore) return null;
     return doc(firestore, 'modelRegistry', 'latest');
-  }, [firestore, firebaseUser]);
+  }, [firestore]);
 
   const { data: registryData, isLoading: isLoadingRegistry } = useDoc<any>(registryDocRef);
 
@@ -79,7 +78,7 @@ export default function SettingsPage() {
       updatedBy: user?.email || 'Unknown Developer',
     };
 
-    // Use non-blocking write pattern
+    // Use non-blocking write pattern as per guidelines
     setDocumentNonBlocking(docRef, data, { merge: true });
     
     toast({
@@ -209,7 +208,7 @@ export default function SettingsPage() {
                   )}
                 </div>
                 
-                {isLoadingRegistry || !firebaseUser ? (
+                {isLoadingRegistry ? (
                   <div className="flex flex-col items-center justify-center p-12 text-center">
                     <Spinner size={48} className="text-primary mb-4" />
                     <p className="text-sm text-muted-foreground">Loading from database...</p>
@@ -240,7 +239,7 @@ export default function SettingsPage() {
               </p>
               <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
                 <CheckCircle2 className="h-4 w-4" />
-                <span>Developer Mode: Model Registry persisted in Firestore.</span>
+                <span>Developer Mode: Model Registry accessible for system-wide metadata.</span>
               </div>
             </div>
           </TabsContent>

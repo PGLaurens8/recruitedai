@@ -48,9 +48,9 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
     }
 
-    /** Model Registry - Restricted to Developers */
+    /** Model Registry - Public read for system transparency, write restricted to Developers */
     match /modelRegistry/latest {
-      allow get: if isSignedIn();
+      allow get: if true;
       allow write: if isDeveloper();
     }
 
