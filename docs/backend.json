@@ -2,68 +2,88 @@
 {
   "entities": {
     "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
       "description": "Represents a user of the CareerCraft AI application, storing their profile information, role, and company affiliation.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity (Firebase UID)."
-        },
-        "name": {
-          "type": "string",
-          "description": "The full name of the user."
-        },
-        "email": {
-          "type": "string",
-          "description": "The email address of the user.",
-          "format": "email"
-        },
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
         "role": {
           "type": "string",
-          "description": "The user's role (e.g., 'Candidate', 'Recruiter', 'Admin', 'Developer').",
           "enum": ["Candidate", "Recruiter", "Admin", "Sales", "Developer"]
         },
-        "companyId": {
-          "type": "string",
-          "description": "The unique identifier for the company/agency the user belongs to."
-        },
-        "plan": {
-          "type": "string",
-          "description": "The subscription plan of the user (e.g., 'free', 'premium')."
-        },
-        "onboardingStep": {
-          "type": "string",
-          "description": "Tracks the user's progress through the initial onboarding flow."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the user account was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the user account was last updated.",
-          "format": "date-time"
-        }
+        "companyId": { "type": "string" },
+        "plan": { "type": "string" },
+        "onboardingStep": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "name",
-        "email",
-        "role",
-        "companyId",
-        "plan",
-        "onboardingStep",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "name", "email", "role", "companyId", "plan", "createdAt", "updatedAt"]
+    },
+    "Company": {
+      "title": "Company",
+      "type": "object",
+      "description": "An agency or organization profile.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "logo": { "type": "string" },
+        "website": { "type": "string" },
+        "plan": { "type": "string", "enum": ["free", "premium", "enterprise"] },
+        "address": { "type": "string" }
+      }
+    },
+    "Candidate": {
+      "title": "Candidate",
+      "type": "object",
+      "description": "A candidate record within an agency's database.",
+      "properties": {
+        "id": { "type": "string" },
+        "companyId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "status": { "type": "string" },
+        "aiScore": { "type": "number" },
+        "currentJob": { "type": "string" },
+        "currentCompany": { "type": "string" },
+        "appliedForJobId": { "type": "string" },
+        "avatar": { "type": "string" }
+      }
+    },
+    "Job": {
+      "title": "Job",
+      "type": "object",
+      "description": "A job posting or specification.",
+      "properties": {
+        "id": { "type": "string" },
+        "companyId": { "type": "string" },
+        "title": { "type": "string" },
+        "salary": { "type": "string" },
+        "location": { "type": "string" },
+        "status": { "type": "string" },
+        "approval": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Client": {
+      "title": "Client",
+      "type": "object",
+      "description": "A client company hiring via the agency.",
+      "properties": {
+        "id": { "type": "string" },
+        "companyId": { "type": "string" },
+        "name": { "type": "string" },
+        "contactName": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "status": { "type": "string" },
+        "logo": { "type": "string" }
+      }
     },
     "ModelInfo": {
       "title": "ModelInfo",
       "type": "object",
-      "description": "Metadata about an AI model fetched from the provider.",
       "properties": {
         "name": { "type": "string" },
         "displayName": { "type": "string" },
@@ -74,7 +94,6 @@
     "ModelRegistry": {
       "title": "ModelRegistry",
       "type": "object",
-      "description": "A collection of available AI models stored in the database.",
       "properties": {
         "id": { "type": "string" },
         "models": { "type": "array", "items": { "$ref": "#/backend/entities/ModelInfo" } },
@@ -84,32 +103,33 @@
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
       {
         "path": "users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profile information. Auth: Only the user with matching userId can read/write their own document."
-        }
+        "definition": { "entityName": "User", "schema": { "$ref": "#/backend/entities/User" }, "description": "User profiles." }
+      },
+      {
+        "path": "companies/{companyId}",
+        "definition": { "entityName": "Company", "schema": { "$ref": "#/backend/entities/Company" }, "description": "Company metadata." }
+      },
+      {
+        "path": "companies/{companyId}/candidates/{candidateId}",
+        "definition": { "entityName": "Candidate", "schema": { "$ref": "#/backend/entities/Candidate" }, "description": "Agency candidate pool." }
+      },
+      {
+        "path": "companies/{companyId}/jobs/{jobId}",
+        "definition": { "entityName": "Job", "schema": { "$ref": "#/backend/entities/Job" }, "description": "Agency job postings." }
+      },
+      {
+        "path": "companies/{companyId}/clients/{clientId}",
+        "definition": { "entityName": "Client", "schema": { "$ref": "#/backend/entities/Client" }, "description": "Agency clients." }
       },
       {
         "path": "modelRegistry/latest",
-        "definition": {
-          "entityName": "ModelRegistry",
-          "schema": {
-            "$ref": "#/backend/entities/ModelRegistry"
-          },
-          "description": "Global storage for the latest fetched list of AI models. Publicly readable, write restricted to Developers."
-        }
+        "definition": { "entityName": "ModelRegistry", "schema": { "$ref": "#/backend/entities/ModelRegistry" }, "description": "AI model list." }
       }
     ]
   }

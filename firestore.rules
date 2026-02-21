@@ -3,29 +3,34 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * CAREERCRAFT AI - FIRESTORE SECURITY RULES
-     * Implements multitenancy and role-based access control.
-     */
-
-    // --- GLOBAL HELPER FUNCTIONS ---
+    // --- HELPER FUNCTIONS ---
 
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks if the user is a Developer (via their profile document). */
+    /** @description Checks if the user is a Developer. */
     function isDeveloper() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Developer';
+      return isSignedIn() && getUserData().role == 'Developer';
     }
 
-    /** @description Checks if the user has a specific role. */
-    function hasRole(role) {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    /** @description Checks if user belongs to a specific company. */
+    function belongsToCompany(companyId) {
+      return isSignedIn() && getUserData().companyId == companyId;
+    }
+
+    /** @description Checks if user has a role that can manage company data. */
+    function canManageCompany() {
+      let role = getUserData().role;
+      return role == 'Admin' || role == 'Recruiter' || role == 'Sales' || role == 'Developer';
     }
 
     // --- COLLECTION RULES ---
@@ -33,20 +38,36 @@ service cloud.firestore {
     /** Root User profile document */
     match /users/{userId} {
       allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && request.resource.data.id == userId;
+      allow create: if isSignedIn();
+      allow update: if isOwner(userId);
       allow delete: if isOwner(userId);
     }
 
-    /** Model Registry - Public read for transparency, write restricted to Developers */
+    /** Model Registry - Public read, write restricted to Developers */
     match /modelRegistry/latest {
       allow get: if true;
       allow write: if isDeveloper();
     }
 
+    /** Company Shared Data */
+    match /companies/{companyId} {
+      allow read: if belongsToCompany(companyId);
+      allow write: if belongsToCompany(companyId) && canManageCompany();
+
+      /** Nested multitenant collections */
+      match /candidates/{candidateId} {
+        allow read, write: if belongsToCompany(companyId) && canManageCompany();
+      }
+      match /jobs/{jobId} {
+        allow read, write: if belongsToCompany(companyId) && canManageCompany();
+      }
+      match /clients/{clientId} {
+        allow read, write: if belongsToCompany(companyId) && canManageCompany();
+      }
+    }
+
     /** 
-     * User Private Data
-     * All sub-resources are nested under /users/{userId} to ensure path-based ownership.
+     * User Private Data Legacy Support
      */
     match /users/{userId}/{allSubcollections=**} {
       allow read, write: if isOwner(userId);
