@@ -65,7 +65,7 @@ export default function AiParserPage() {
   const [parsedResume, setParsedResume] = useState<ParsedResume | null>(null);
   const [assessmentOutput, setAssessmentOutput] = useState<AssessJobMatchOutput | null>(null);
 
-  const [isParsing, setIsLoading] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
