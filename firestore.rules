@@ -1,73 +1,46 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
      * CAREERCRAFT AI - FIRESTORE SECURITY RULES
-     *
-     * Core Philosophy:
-     * This ruleset enforces a strict user-ownership model. The application architecture leverages a
-     * hierarchical path structure where all private user data is nested under /users/{userId}.
-     * Authorization is primarily derived from the user's authenticated UID matching the {userId}
-     * segment in the document path, ensuring high performance and security without cross-document lookups.
-     *
-     * Data Structure:
-     * - Private Data: Nested under /users/{userId}/... (Resumes, Specs, Payments, etc.)
-     * - Public Data: Mirrors of shareable content stored in top-level collections:
-     *   /onlineResumePagesPublic/ and /linkTreeBioPagesPublic/.
-     *
-     * Key Security Decisions:
-     * 1. Authorization Independence: Subcollections (like WorkExperience) rely on the userId in the
-     *    parent path. This allows for simple, atomic rule evaluation.
-     * 2. Structural Segregation: Publicly shareable pages are separated from the user's private
-     *    working copies to prevent accidental data leaks and simplify "Public Read" rules.
-     * 3. Prototyping Flexibility: Rules enforce WHO can write but do NOT enforce the exact
-     *    schema (types, optional fields) of WHAT is written, allowing for rapid frontend iteration.
-     * 4. Denormalization for Authorization: Public documents store both 'userId' and 'isPublic'
-     *    to allow the rules to verify owner-writes and public-reads without looking up private docs.
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
 
-    /** @description Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the authenticated user's UID matches the provided userId. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks ownership and ensures the document exists for state-changing operations. */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
-    /** @description Checks if a public document is marked as public. */
     function isDocPublic() {
       return resource.data.isPublic == true;
     }
 
-    /** @description Verifies the internal ID field matches the path segment on creation. */
     function matchesId(id) {
       return request.resource.data.id == id;
     }
 
-    /** @description Ensures a critical field remains unchanged during an update. */
     function isImmutable(field) {
       return request.resource.data[field] == resource.data[field];
     }
 
+    /** @description Checks if the user is a Developer (via their profile document). */
+    function isDeveloper() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Developer';
+    }
+
     // --- COLLECTION RULES ---
 
-    /**
-     * @description Rules for the root User profile document.
-     * @path /users/{userId}
-     * @allow (create) if auth.uid == userId, (update) if auth.uid == userId
-     * @deny (create) if auth.uid != userId
-     * @principle Self-creation and ownership for core profile data.
-     */
+    /** Root User profile document */
     match /users/{userId} {
       allow get, list: if isOwner(userId);
       allow create: if isOwner(userId) && matchesId(userId);
@@ -75,37 +48,25 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
     }
 
-    /**
-     * @description Rules for the foundational Master Resumes.
-     * @path /users/{userId}/masterResumes/{masterResumeId}
-     * @allow (get) if auth.uid == userId
-     * @deny (list) if auth.uid != userId
-     * @principle Path-based authorization for user-scoped subcollections.
-     */
+    /** Model Registry - Restricted to Developers */
+    match /modelRegistry/latest {
+      allow get: if isSignedIn();
+      allow write: if isDeveloper();
+    }
+
+    /** Foundational Master Resumes */
     match /users/{userId}/masterResumes/{masterResumeId} {
       allow get, list: if isOwner(userId);
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
 
-      // Sub-entities under MasterResume (WorkExperience, Education, Skill)
-      match /workExperiences/{id} {
-        allow get, list, create, update, delete: if isOwner(userId);
-      }
-      match /educations/{id} {
-        allow get, list, create, update, delete: if isOwner(userId);
-      }
-      match /skills/{id} {
-        allow get, list, create, update, delete: if isOwner(userId);
-      }
+      match /workExperiences/{id} { allow get, list, create, update, delete: if isOwner(userId); }
+      match /educations/{id} { allow get, list, create, update, delete: if isOwner(userId); }
+      match /skills/{id} { allow get, list, create, update, delete: if isOwner(userId); }
     }
 
-    /**
-     * @description Rules for uploaded Job Specifications.
-     * @path /users/{userId}/jobSpecs/{jobSpecId}
-     * @allow (write) if owner of the path
-     * @principle Restricts access to a user's own data tree.
-     */
+    /** Uploaded Job Specifications */
     match /users/{userId}/jobSpecs/{jobSpecId} {
       allow get, list: if isOwner(userId);
       allow create: if isOwner(userId);
@@ -113,95 +74,49 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
     }
 
-    /**
-     * @description Rules for AI-tailored Targeted Resumes.
-     * @path /users/{userId}/targetedResumes/{targetedResumeId}
-     * @allow (create) if auth.uid == userId
-     * @principle Enforces document ownership for writes and reads.
-     */
+    /** AI-tailored Targeted Resumes */
     match /users/{userId}/targetedResumes/{targetedResumeId} {
       allow get, list: if isOwner(userId);
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
 
-      // Sub-entities under TargetedResume
-      match /targetedWorkExperiences/{id} {
-        allow get, list, create, update, delete: if isOwner(userId);
-      }
-      match /targetedEducations/{id} {
-        allow get, list, create, update, delete: if isOwner(userId);
-      }
-      match /targetedSkills/{id} {
-        allow get, list, create, update, delete: if isOwner(userId);
-      }
+      match /targetedWorkExperiences/{id} { allow get, list, create, update, delete: if isOwner(userId); }
+      match /targetedEducations/{id} { allow get, list, create, update, delete: if isOwner(userId); }
+      match /targetedSkills/{id} { allow get, list, create, update, delete: if isOwner(userId); }
     }
 
-    /**
-     * @description Logs of AI Requests and outcomes.
-     * @path /users/{userId}/aiRequests/{aiRequestId}
-     * @allow (get, list) if owner
-     * @principle Private logging accessible only to the initiating user.
-     */
+    /** Logs of AI Requests */
     match /users/{userId}/aiRequests/{aiRequestId} {
       allow get, list: if isOwner(userId);
       allow create: if isOwner(userId);
-      allow update, delete: if false; // Logs should be immutable or system-managed
+      allow update, delete: if false;
     }
 
-    /**
-     * @description Transaction records for premium features.
-     * @path /users/{userId}/payments/{paymentId}
-     * @allow (read) if owner
-     * @principle Sensitive financial data restricted to the specific user.
-     */
+    /** Transaction records */
     match /users/{userId}/payments/{paymentId} {
       allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId); // Users initiate the record locally
-      allow update, delete: if false; // Payment records must be immutable
+      allow create: if isOwner(userId);
+      allow update, delete: if false;
     }
 
-    /**
-     * @description Private management of Online Resume Pages.
-     * @path /users/{userId}/onlineResumePages/{id}
-     * @principle Secure editing environment before publishing to the public mirror.
-     */
+    /** Online Resume Pages */
     match /users/{userId}/onlineResumePages/{id} {
       allow get, list, create, update, delete: if isOwner(userId);
     }
 
-    /**
-     * @description Public-facing mirror for Online Resumes.
-     * @path /onlineResumePagesPublic/{publicUrlPath}
-     * @allow (get) if resource.data.isPublic == true
-     * @deny (write) if auth.uid != resource.data.userId
-     * @principle Public consumption with owner-only writes via denormalized fields.
-     */
     match /onlineResumePagesPublic/{publicUrlPath} {
       allow get, list: if isDocPublic();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
-    /**
-     * @description Private management of LinkTree Bio Pages.
-     * @path /users/{userId}/linkTreeBioPages/{id}
-     * @principle Hierarchical ownership for private bio page configuration.
-     */
+    /** LinkTree Bio Pages */
     match /users/{userId}/linkTreeBioPages/{id} {
       allow get, list, create, update, delete: if isOwner(userId);
-
-      match /linkTreeLinks/{linkId} {
-        allow get, list, create, update, delete: if isOwner(userId);
-      }
+      match /linkTreeLinks/{linkId} { allow get, list, create, update, delete: if isOwner(userId); }
     }
 
-    /**
-     * @description Public-facing mirror for LinkTree Bio Pages.
-     * @path /linkTreeBioPagesPublic/{publicUrlPath}
-     * @allow (get) if isPublic is true
-     * @principle Enables unauthenticated discovery of public profile links.
-     */
     match /linkTreeBioPagesPublic/{publicUrlPath} {
       allow get, list: if isDocPublic();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;

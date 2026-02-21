@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/auth-context';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,17 +18,33 @@ import {
   AlertTriangle, 
   CheckCircle2, 
   Cpu,
-  ShieldCheck
+  ShieldCheck,
+  Save,
+  CloudUpload
 } from 'lucide-react';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const firestore = useFirestore();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("general");
   
-  // Model Registry State
-  const [models, setModels] = useState<ModelInfo[]>([]);
+  // Model discovery (local state)
+  const [discoveredModels, setModels] = useState<ModelInfo[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Persistence (Firestore state)
+  const registryDocRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'modelRegistry', 'latest');
+  }, [firestore]);
+
+  const { data: registryData, isLoading: isLoadingRegistry } = useDoc<any>(registryDocRef);
 
   const fetchModels = async () => {
     setIsLoadingModels(true);
@@ -36,18 +52,48 @@ export default function SettingsPage() {
     try {
       const data = await listAvailableModels();
       setModels(data);
+      toast({
+        title: "Models Discovered",
+        description: `Found ${data.length} models from the API. Click 'Save to Database' to persist.`,
+      });
     } catch (err: any) {
       setModelsError(err.message);
+      toast({
+        variant: "destructive",
+        title: "Discovery Failed",
+        description: err.message,
+      });
     } finally {
       setIsLoadingModels(false);
     }
   };
 
-  useEffect(() => {
-    if (activeTab === "developer" && user?.role === "Developer") {
-      fetchModels();
+  const handleSyncToDatabase = async () => {
+    if (!firestore || discoveredModels.length === 0) return;
+    
+    setIsSyncing(true);
+    try {
+      const docRef = doc(firestore, 'modelRegistry', 'latest');
+      await setDoc(docRef, {
+        models: discoveredModels,
+        updatedAt: serverTimestamp(),
+        updatedBy: user?.email || 'Unknown Developer',
+      }, { merge: true });
+      
+      toast({
+        title: "Registry Synced",
+        description: "The discovered model list has been saved to the database.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Sync Failed",
+        description: error.message,
+      });
+    } finally {
+      setIsSyncing(false);
     }
-  }, [activeTab, user]);
+  };
 
   if (!user) return null;
 
@@ -116,88 +162,127 @@ export default function SettingsPage() {
 
         {user.role === 'Developer' && (
           <TabsContent value="developer" className="mt-6 space-y-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
                   <Database className="h-6 w-6 text-primary" />
                   Model Registry
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Verify available Gemini models for your API key.
+                  Store and manage available Gemini models in Firestore.
                 </p>
               </div>
-              <Button onClick={fetchModels} disabled={isLoadingModels} variant="outline" size="sm">
-                <RefreshCw className={`mr-2 h-4 w-4 ${isLoadingModels ? 'animate-spin' : ''}`} />
-                Refresh Models
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={fetchModels} disabled={isLoadingModels} variant="outline" size="sm">
+                  {isLoadingModels ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <CloudUpload className="mr-2 h-4 w-4" />}
+                  Run Discovery
+                </Button>
+                <Button onClick={handleSyncToDatabase} disabled={discoveredModels.length === 0 || isSyncing} size="sm">
+                  {isSyncing ? <Spinner size={16} className="mr-2" /> : <Save className="mr-2 h-4 w-4" />}
+                  Save to Database
+                </Button>
+              </div>
             </div>
 
             {modelsError && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Connection Error</AlertTitle>
-                <AlertDescription>
-                  {modelsError}. Please check your GOOGLE_GENAI_API_KEY in the .env file.
-                </AlertDescription>
+                <AlertTitle>API Discovery Error</AlertTitle>
+                <AlertDescription>{modelsError}</AlertDescription>
               </Alert>
             )}
 
-            {isLoadingModels ? (
-              <div className="flex flex-col items-center justify-center p-12 text-center">
-                <Spinner size={48} className="text-primary mb-4" />
-                <p className="text-lg text-muted-foreground">Querying Google AI API...</p>
-              </div>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {models.length === 0 && !modelsError && (
-                  <div className="col-span-full text-center p-12 border-2 border-dashed rounded-lg">
-                    <p className="text-muted-foreground">No models returned from API.</p>
+            <div className="grid gap-8">
+              {/* Discovered Models (Temporary Results) */}
+              {discoveredModels.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground px-1">Discovered Models (Unsaved)</h3>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {discoveredModels.map((model) => (
+                      <ModelCard key={model.name} model={model} isNew={true} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Persisted Models (Database State) */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Persisted Registry</h3>
+                  {registryData && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      Last Sync: {registryData.updatedAt?.toDate().toLocaleString()}
+                    </Badge>
+                  )}
+                </div>
+                
+                {isLoadingRegistry ? (
+                  <div className="flex flex-col items-center justify-center p-12 text-center">
+                    <Spinner size={48} className="text-primary mb-4" />
+                    <p className="text-sm text-muted-foreground">Loading from database...</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {(!registryData || !registryData.models || registryData.models.length === 0) ? (
+                      <div className="col-span-full text-center p-12 border-2 border-dashed rounded-lg bg-muted/10">
+                        <p className="text-muted-foreground">The database is currently empty. Run Discovery and Sync to populate.</p>
+                      </div>
+                    ) : (
+                      registryData.models.map((model: ModelInfo) => (
+                        <ModelCard key={model.name} model={model} />
+                      ))
+                    )}
                   </div>
                 )}
-                {models.map((model) => (
-                  <Card key={model.name} className={model.name.includes('gemini-1.5-pro') ? 'border-primary' : ''}>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start gap-2">
-                        <CardTitle className="text-base font-bold break-all">{model.displayName}</CardTitle>
-                        {model.name.includes('gemini-1.5-pro') && (
-                          <Badge variant="default" className="shrink-0 text-[10px]">In Use</Badge>
-                        )}
-                      </div>
-                      <CardDescription className="font-mono text-[10px]">{model.name}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-xs text-muted-foreground line-clamp-3">
-                        {model.description}
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {model.supportedGenerationMethods.map((method) => (
-                          <Badge key={method} variant="outline" className="text-[10px]">
-                            {method.replace('generate', '')}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
               </div>
-            )}
+            </div>
 
             <div className="bg-muted/30 p-6 rounded-lg border">
               <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
                 <Cpu className="h-5 w-5 text-primary" />
-                Troubleshooting Quota Errors
+                Troubleshooting Configuration
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                The application is configured to use <code>googleai/gemini-1.5-pro</code>. Ensure this model appears in the list above with support for <code>generateContent</code>.
+                The application is configured to use <code>googleai/gemini-1.5-pro</code>. Ensure this model appears in the Persisted Registry after a successful Sync.
               </p>
               <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
                 <CheckCircle2 className="h-4 w-4" />
-                <span>Developer Mode: Model Registry synced with Genkit config.</span>
+                <span>Developer Mode: Model Registry persisted in Firestore.</span>
               </div>
             </div>
           </TabsContent>
         )}
       </Tabs>
     </div>
+  );
+}
+
+function ModelCard({ model, isNew = false }: { model: ModelInfo; isNew?: boolean }) {
+  const isInUse = model.name.includes('gemini-1.5-pro');
+  return (
+    <Card className={`${isInUse ? 'border-primary' : ''} ${isNew ? 'border-yellow-500/50 shadow-sm' : ''}`}>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start gap-2">
+          <CardTitle className="text-sm font-bold break-all">{model.displayName}</CardTitle>
+          <div className="flex flex-col items-end gap-1">
+            {isInUse && <Badge variant="default" className="text-[8px] h-4">In Use</Badge>}
+            {isNew && <Badge variant="secondary" className="text-[8px] h-4 bg-yellow-100 text-yellow-800">Discovery</Badge>}
+          </div>
+        </div>
+        <CardDescription className="font-mono text-[9px] truncate">{model.name}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-[11px] text-muted-foreground line-clamp-2">
+          {model.description}
+        </p>
+        <div className="flex flex-wrap gap-1">
+          {model.supportedGenerationMethods.map((method) => (
+            <Badge key={method} variant="outline" className="text-[8px] px-1">
+              {method.replace('generate', '')}
+            </Badge>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

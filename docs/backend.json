@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -47,6 +48,28 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "ModelInfo": {
+      "title": "ModelInfo",
+      "type": "object",
+      "description": "Metadata about an AI model fetched from the provider.",
+      "properties": {
+        "name": { "type": "string" },
+        "displayName": { "type": "string" },
+        "description": { "type": "string" },
+        "supportedGenerationMethods": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "ModelRegistry": {
+      "title": "ModelRegistry",
+      "type": "object",
+      "description": "A collection of available AI models stored in the database.",
+      "properties": {
+        "id": { "type": "string" },
+        "models": { "type": "array", "items": { "$ref": "#/backend/entities/ModelInfo" } },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string" }
+      }
     },
     "MasterResume": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -800,6 +823,16 @@
             "$ref": "#/backend/entities/User"
           },
           "description": "Stores user profile information, subscription plan, and onboarding status. Auth: Only the user with matching userId can read/write their own document."
+        }
+      },
+      {
+        "path": "modelRegistry/latest",
+        "definition": {
+          "entityName": "ModelRegistry",
+          "schema": {
+            "$ref": "#/backend/entities/ModelRegistry"
+          },
+          "description": "Global storage for the latest fetched list of AI models. Restricted to Developer role for writing."
         }
       },
       {
