@@ -9,5 +9,5 @@ export const ai = genkit({
   plugins: [
     googleAI() // Firebase Studio handles the API Key automatically in 2026
   ],
-  model: 'googleai/gemini-2.5-flash', // Use the string identifier for the Gemini 3 Flash model
+  model: 'googleai/gemini-3-flash', // Use the string identifier for the Gemini 3 Flash model
 });
