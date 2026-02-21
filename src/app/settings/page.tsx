@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -26,7 +27,7 @@ import {
   Briefcase,
   Building
 } from 'lucide-react';
-import { doc, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
@@ -103,9 +104,16 @@ export default function SettingsPage() {
       return;
     }
 
-    const companyId = user.role === 'Developer' ? 'demo-agency-123' : (user as any).companyId || 'default-company';
+    const companyId = 'demo-agency-123';
     
-    // 1. Seed Company
+    // 1. Ensure Developer Profile matches Company for rules
+    const userRef = doc(firestore, 'users', fbUser.uid);
+    setDocumentNonBlocking(userRef, {
+      companyId: companyId,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    // 2. Seed Company
     const companyRef = doc(firestore, 'companies', companyId);
     setDocumentNonBlocking(companyRef, {
       id: companyId,
@@ -115,7 +123,7 @@ export default function SettingsPage() {
       createdAt: serverTimestamp()
     }, { merge: true });
 
-    // 2. Seed Candidates
+    // 3. Seed Candidates
     SEED_DATA.candidates.forEach((cand, idx) => {
       const candId = `cand-${idx}`;
       const candRef = doc(firestore, 'companies', companyId, 'candidates', candId);
@@ -128,7 +136,7 @@ export default function SettingsPage() {
       }, { merge: true });
     });
 
-    // 3. Seed Jobs
+    // 4. Seed Jobs
     SEED_DATA.jobs.forEach((job, idx) => {
       const jobId = `job-${idx}`;
       const jobRef = doc(firestore, 'companies', companyId, 'jobs', jobId);
@@ -140,7 +148,7 @@ export default function SettingsPage() {
       }, { merge: true });
     });
 
-    // 4. Seed Clients
+    // 5. Seed Clients
     SEED_DATA.clients.forEach((client, idx) => {
       const clientId = `client-${idx}`;
       const clientRef = doc(firestore, 'companies', companyId, 'clients', clientId);
@@ -246,7 +254,7 @@ export default function SettingsPage() {
                   <AlertTriangle className="h-4 w-4 text-blue-600" />
                   <AlertTitle className="text-blue-800">Seed Configuration</AlertTitle>
                   <AlertDescription className="text-blue-700 text-xs">
-                    Seeded data will be assigned to <code>companyId: demo-agency-123</code>. Ensure your local storage user role is set correctly.
+                    Seeded data will be assigned to <code>companyId: demo-agency-123</code>. Your user record will also be updated to this ID.
                   </AlertDescription>
                 </Alert>
               </CardContent>

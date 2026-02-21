@@ -33,6 +33,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (fbUser) {
         const storedRole = localStorage.getItem('userRole') as Role;
         if (storedRole) {
+          // Determine default company for demo purposes
+          const defaultCompanyId = storedRole === 'Developer' ? 'demo-agency-123' : 'default-company';
+          
           // Sync the Demo Role to the Firestore User Profile for Security Rules
           const userRef = doc(firestore, 'users', fbUser.uid);
           setDoc(userRef, {
@@ -40,9 +43,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: 'Demo User',
             email: fbUser.email || 'demo@example.com',
             role: storedRole,
+            companyId: defaultCompanyId,
             plan: 'free',
             onboardingStep: 'completed',
             updatedAt: serverTimestamp(),
+            createdAt: serverTimestamp(), // Required by schema
           }, { merge: true });
         }
       }

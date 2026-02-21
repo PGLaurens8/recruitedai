@@ -37,10 +37,10 @@ service cloud.firestore {
 
     /** Root User profile document */
     match /users/{userId} {
-      allow get, list: if isOwner(userId);
+      allow get, list: if isOwner(userId) || isDeveloper();
       allow create: if isSignedIn();
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow update: if isOwner(userId) || isDeveloper();
+      allow delete: if isDeveloper();
     }
 
     /** Model Registry - Public read, write restricted to Developers */
@@ -51,18 +51,12 @@ service cloud.firestore {
 
     /** Company Shared Data */
     match /companies/{companyId} {
-      allow read: if belongsToCompany(companyId);
-      allow write: if belongsToCompany(companyId) && canManageCompany();
+      allow read: if belongsToCompany(companyId) || isDeveloper();
+      allow write: if (belongsToCompany(companyId) && canManageCompany()) || isDeveloper();
 
-      /** Nested multitenant collections */
-      match /candidates/{candidateId} {
-        allow read, write: if belongsToCompany(companyId) && canManageCompany();
-      }
-      match /jobs/{jobId} {
-        allow read, write: if belongsToCompany(companyId) && canManageCompany();
-      }
-      match /clients/{clientId} {
-        allow read, write: if belongsToCompany(companyId) && canManageCompany();
+      /** Nested multitenant collections (Candidates, Jobs, Clients) */
+      match /{allSubcollections=**} {
+        allow read, write: if belongsToCompany(companyId) && canManageCompany() || isDeveloper();
       }
     }
 
@@ -70,7 +64,7 @@ service cloud.firestore {
      * User Private Data Legacy Support
      */
     match /users/{userId}/{allSubcollections=**} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if isOwner(userId) || isDeveloper();
     }
   }
 }
