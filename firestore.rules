@@ -1,0 +1,180 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * RecruitedAI Security Rules
+     *
+     * CORE PHILOSOPHY:
+     * This ruleset enforces a strict User-Ownership model. Access is primarily determined by 
+     * the user's authenticated UID and its correspondence to the document's path and internal 
+     * denormalized ownership fields.
+     *
+     * DATA STRUCTURE:
+     * All application data is hierarchically organized under the /users/{userId} path. 
+     * This includes resumes, interview analyses, payments, and AI request logs.
+     *
+     * KEY SECURITY DECISIONS:
+     * 1. Denormalization for Authorization: To ensure performant and atomic rules, the userId 
+     *    and relevant parent IDs (e.g., resumeId) are denormalized into child documents. This 
+     *    allows rules to verify ownership and relational integrity without costly get() calls.
+     * 2. Prototyping Flexibility: These rules strictly enforce "Who" can access data but 
+     *    remain flexible on "What" the data looks like (schema-less), allowing for rapid iteration 
+     *    while maintaining a high security posture.
+     * 3. Structural Segregation: All private data is kept within user-specific subtrees, 
+     *    preventing accidental data leakage between users.
+     * 4. State-Change Protection: All update and delete operations require the document to 
+     *    exist and be owned by the requester.
+     */
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the user is authenticated with Firebase Auth. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** @description Checks if the provided UID matches the authenticated user's UID. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Combines ownership check with existence check for destructive/modifying operations. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    /** @description Validates that the internal 'id' field matches the intended document ID. */
+    function idMatchesPath(id) {
+      return request.resource.data.id == id;
+    }
+
+    /** @description Validates that the internal 'userId' field matches the path and the requester. */
+    function userIdMatchesPath(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    /** @description Validates that the internal 'resumeId' field matches the path. */
+    function resumeIdMatchesPath(resumeId) {
+      return request.resource.data.resumeId == resumeId;
+    }
+
+    /** @description Validates that the internal 'interviewAnalysisId' field matches the path. */
+    function analysisIdMatchesPath(analysisId) {
+      return request.resource.data.interviewAnalysisId == analysisId;
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for the User profile document.
+     * @path /users/{userId}
+     * @allow (get) If the auth UID matches the userId path segment.
+     * @deny (create) If the user attempts to create a profile with an ID other than their own.
+     * @principle Pattern 4: Self-Creation and Pattern 1: Ownership.
+     */
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && idMatchesPath(userId);
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Rules for Resumes owned by a user.
+       * @path /users/{userId}/resumes/{resumeId}
+       * @allow (create) If the auth UID matches {userId} and internal fields 'userId'/'id' match the path.
+       * @deny (update) If the user attempts to change the 'userId' or 'id' fields (immutability).
+       * @principle Pattern 1: Ownership with relational integrity.
+       */
+      match /resumes/{resumeId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && userIdMatchesPath(userId) && idMatchesPath(resumeId);
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId && request.resource.data.id == resource.data.id;
+        allow delete: if isExistingOwner(userId);
+
+        /**
+         * @description Subcollections of Resumes (WorkExperience, Education, Skill).
+         * @path /users/{userId}/resumes/{resumeId}/[subcollection]/{id}
+         * @allow (list) If the authenticated user is the owner of the parent tree.
+         * @deny (create) If the internal resumeId or userId does not match the path segments.
+         * @principle Denormalized ownership and path-to-data consistency.
+         */
+        match /workExperiences/{workExperienceId} {
+          allow get, list: if isOwner(userId);
+          allow create: if isOwner(userId) && userIdMatchesPath(userId) && resumeIdMatchesPath(resumeId) && idMatchesPath(workExperienceId);
+          allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId && request.resource.data.resumeId == resource.data.resumeId;
+          allow delete: if isExistingOwner(userId);
+        }
+
+        match /educations/{educationId} {
+          allow get, list: if isOwner(userId);
+          allow create: if isOwner(userId) && userIdMatchesPath(userId) && resumeIdMatchesPath(resumeId) && idMatchesPath(educationId);
+          allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId && request.resource.data.resumeId == resource.data.resumeId;
+          allow delete: if isExistingOwner(userId);
+        }
+
+        match /skills/{skillId} {
+          allow get, list: if isOwner(userId);
+          allow create: if isOwner(userId) && userIdMatchesPath(userId) && resumeIdMatchesPath(resumeId) && idMatchesPath(skillId);
+          allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId && request.resource.data.resumeId == resource.data.resumeId;
+          allow delete: if isExistingOwner(userId);
+        }
+      }
+
+      /**
+       * @description Rules for AI-powered Interview Analysis.
+       * @path /users/{userId}/interviewAnalyses/{interviewAnalysisId}
+       * @allow (get) If the user is the owner.
+       * @deny (delete) If the user is not authenticated as the owner of this specific analysis tree.
+       * @principle Ownership enforced via denormalized userId field.
+       */
+      match /interviewAnalyses/{interviewAnalysisId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && userIdMatchesPath(userId) && idMatchesPath(interviewAnalysisId);
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId && request.resource.data.id == resource.data.id;
+        allow delete: if isExistingOwner(userId);
+
+        /**
+         * @description Detailed Q&A pairs within an Interview Analysis.
+         * @path /users/{userId}/interviewAnalyses/{interviewAnalysisId}/questionAnswers/{qaId}
+         * @allow (create) If the auth UID and path IDs match the internal document data.
+         * @principle Relational integrity through denormalization.
+         */
+        match /questionAnswers/{qaId} {
+          allow get, list: if isOwner(userId);
+          allow create: if isOwner(userId) && userIdMatchesPath(userId) && analysisIdMatchesPath(interviewAnalysisId) && idMatchesPath(qaId);
+          allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId && request.resource.data.interviewAnalysisId == resource.data.interviewAnalysisId;
+          allow delete: if isExistingOwner(userId);
+        }
+      }
+
+      /**
+       * @description Logs of financial transactions for the user.
+       * @path /users/{userId}/payments/{paymentId}
+       * @allow (list) If the user lists their own payments.
+       * @deny (update) Payments are generally immutable records of truth.
+       * @principle Immutable owner-only access.
+       */
+      match /payments/{paymentId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && userIdMatchesPath(userId) && idMatchesPath(paymentId);
+        allow update: if false; // Payments should not be updated by the client
+        allow delete: if false; // Payments should not be deleted by the client
+      }
+
+      /**
+       * @description Audit logs for AI operations (Genkit flows).
+       * @path /users/{userId}/aiRequests/{aiRequestId}
+       * @allow (create) To log the initiation or result of an AI operation.
+       * @deny (write) If the userId field is missing or mismatched.
+       * @principle Auditability and Ownership.
+       */
+      match /aiRequests/{aiRequestId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && userIdMatchesPath(userId) && idMatchesPath(aiRequestId);
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+  }
+}

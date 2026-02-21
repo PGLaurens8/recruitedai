@@ -1,0 +1,671 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user account in the CareerCraft AI application, managing their profile and subscription details.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user, used for login and notifications.",
+          "format": "email"
+        },
+        "plan": {
+          "type": "string",
+          "description": "The subscription plan of the user (e.g., 'free', 'premium')."
+        },
+        "onboardingStep": {
+          "type": "string",
+          "description": "Current step in the user onboarding process, guiding them through initial setup."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "plan",
+        "onboardingStep"
+      ]
+    },
+    "Resume": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Resume",
+      "type": "object",
+      "description": "Represents a user's master resume or a targeted version, including extracted data and references to detailed sections.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Resume entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who owns this resume. (Relationship: User 1:N Resume)"
+        },
+        "title": {
+          "type": "string",
+          "description": "A descriptive title for the resume (e.g., 'Master Resume', 'Software Engineer Resume for Google')."
+        },
+        "createdDate": {
+          "type": "string",
+          "description": "Timestamp when the resume was first created.",
+          "format": "date-time"
+        },
+        "updatedDate": {
+          "type": "string",
+          "description": "Timestamp when the resume was last updated.",
+          "format": "date-time"
+        },
+        "sourceFileUrl": {
+          "type": "string",
+          "description": "URL to the original uploaded resume file (Word Doc or PDF) in Firebase Storage, if applicable.",
+          "format": "uri"
+        },
+        "candidateName": {
+          "type": "string",
+          "description": "The name of the candidate as extracted from the resume document or provided by the user."
+        },
+        "extractedRole": {
+          "type": "string",
+          "description": "The primary role or desired job title extracted from the resume document or determined by AI."
+        },
+        "noticePeriod": {
+          "type": "string",
+          "description": "The candidate's notice period as extracted from the resume or specified by the user."
+        },
+        "desiredSalary": {
+          "type": "string",
+          "description": "The candidate's desired salary as extracted from the resume or specified by the user."
+        },
+        "pcSpecs": {
+          "type": "string",
+          "description": "Specific PC or system specifications mentioned in the resume (e.g., for IT roles), if extracted by AI."
+        },
+        "summary": {
+          "type": "string",
+          "description": "A concise, 3-sentence summary of the candidate's profile, often AI-generated or extracted from the resume."
+        },
+        "workExperienceIds": {
+          "type": "array",
+          "description": "References to WorkExperience entries associated with this resume. (Relationship: Resume 1:N WorkExperience)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "educationIds": {
+          "type": "array",
+          "description": "References to Education entries associated with this resume. (Relationship: Resume 1:N Education)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "skillIds": {
+          "type": "array",
+          "description": "References to Skill entries associated with this resume. (Relationship: Resume 1:N Skill)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "title",
+        "createdDate",
+        "updatedDate"
+      ]
+    },
+    "WorkExperience": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WorkExperience",
+      "type": "object",
+      "description": "Details of a single work experience entry on a resume, designed to be referenced by a Resume entity.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the WorkExperience entity."
+        },
+        "resumeId": {
+          "type": "string",
+          "description": "Reference to the Resume this work experience belongs to. (Relationship: Resume 1:N WorkExperience)"
+        },
+        "jobTitle": {
+          "type": "string",
+          "description": "The title of the job position held."
+        },
+        "companyName": {
+          "type": "string",
+          "description": "The name of the company or organization."
+        },
+        "location": {
+          "type": "string",
+          "description": "The location (city, state, country) of the employment."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of employment (e.g., 'YYYY-MM' or 'YYYY-MM-DD').",
+          "format": "date"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of employment, or 'Present' if currently employed (e.g., 'YYYY-MM' or 'YYYY-MM-DD').",
+          "format": "date"
+        },
+        "description": {
+          "type": "array",
+          "description": "An array of bullet points describing responsibilities, achievements, and contributions.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of this experience within its parent resume."
+        }
+      },
+      "required": [
+        "id",
+        "resumeId",
+        "jobTitle",
+        "companyName",
+        "startDate",
+        "description"
+      ]
+    },
+    "Education": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Education",
+      "type": "object",
+      "description": "Details of a single educational entry on a resume, designed to be referenced by a Resume entity.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Education entity."
+        },
+        "resumeId": {
+          "type": "string",
+          "description": "Reference to the Resume this education entry belongs to. (Relationship: Resume 1:N Education)"
+        },
+        "institutionName": {
+          "type": "string",
+          "description": "The name of the educational institution."
+        },
+        "degree": {
+          "type": "string",
+          "description": "The degree, diploma, or certificate obtained (e.g., 'B.Sc.', 'M.A.')."
+        },
+        "fieldOfStudy": {
+          "type": "string",
+          "description": "The major or field of study pursued."
+        },
+        "location": {
+          "type": "string",
+          "description": "The location (city, state, country) of the institution."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of the educational period (e.g., 'YYYY-MM').",
+          "format": "date"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of the educational period, or 'Present' if ongoing (e.g., 'YYYY-MM').",
+          "format": "date"
+        },
+        "gpa": {
+          "type": "string",
+          "description": "Grade Point Average or equivalent academic metric (e.g., '3.8/4.0', 'First Class Honours')."
+        },
+        "description": {
+          "type": "string",
+          "description": "Relevant coursework, honors, scholarships, or other academic achievements."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of this education entry within its parent resume."
+        }
+      },
+      "required": [
+        "id",
+        "resumeId",
+        "institutionName",
+        "degree",
+        "fieldOfStudy",
+        "startDate"
+      ]
+    },
+    "Skill": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Skill",
+      "type": "object",
+      "description": "Represents a single skill or competency on a resume, designed to be referenced by a Resume entity.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Skill entity."
+        },
+        "resumeId": {
+          "type": "string",
+          "description": "Reference to the Resume this skill belongs to. (Relationship: Resume 1:N Skill)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the skill (e.g., 'JavaScript', 'Project Management', 'Communication')."
+        },
+        "proficiency": {
+          "type": "string",
+          "description": "The level of proficiency in the skill (e.g., 'Expert', 'Intermediate', 'Beginner', 'Proficient')."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the skill (e.g., 'Programming Languages', 'Soft Skills', 'Tools & Technologies')."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of this skill within its parent resume."
+        }
+      },
+      "required": [
+        "id",
+        "resumeId",
+        "name"
+      ]
+    },
+    "InterviewAnalysis": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InterviewAnalysis",
+      "type": "object",
+      "description": "Stores the structured results of an AI-powered interview transcript analysis, linked to a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the InterviewAnalysis entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who initiated this interview analysis. (Relationship: User 1:N InterviewAnalysis)"
+        },
+        "interviewDate": {
+          "type": "string",
+          "description": "The date and time the interview took place or when the analysis was generated.",
+          "format": "date-time"
+        },
+        "transcriptUrl": {
+          "type": "string",
+          "description": "URL to the original interview transcript file (e.g., text, audio) stored in Firebase Storage.",
+          "format": "uri"
+        },
+        "interviewerName": {
+          "type": "string",
+          "description": "The name of the interviewer identified in the transcript, if applicable."
+        },
+        "candidateName": {
+          "type": "string",
+          "description": "The name of the candidate identified in the transcript or linked from the user's profile."
+        },
+        "overallAssessment": {
+          "type": "string",
+          "description": "An overall summary or assessment of the interview performance generated by the AI."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when this interview analysis record was created.",
+          "format": "date-time"
+        },
+        "questionAnswerIds": {
+          "type": "array",
+          "description": "References to InterviewQuestionAnswer entities for detailed Q&A pairs. (Relationship: InterviewAnalysis 1:N InterviewQuestionAnswer)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "interviewDate",
+        "createdAt",
+        "questionAnswerIds"
+      ]
+    },
+    "InterviewQuestionAnswer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InterviewQuestionAnswer",
+      "type": "object",
+      "description": "Stores a single recruitment question and its extracted answer from an interview analysis.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the InterviewQuestionAnswer entity."
+        },
+        "interviewAnalysisId": {
+          "type": "string",
+          "description": "Reference to the InterviewAnalysis this Q&A pair belongs to. (Relationship: InterviewAnalysis 1:N InterviewQuestionAnswer)"
+        },
+        "question": {
+          "type": "string",
+          "description": "The specific recruitment question asked during the interview."
+        },
+        "answer": {
+          "type": "string",
+          "description": "The candidate's answer to the question, extracted from the transcript by AI."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of this question/answer pair within its parent interview analysis."
+        }
+      },
+      "required": [
+        "id",
+        "interviewAnalysisId",
+        "question",
+        "answer"
+      ]
+    },
+    "Payment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Payment",
+      "type": "object",
+      "description": "Records details of a payment transaction made by a user for subscription plans or features.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Payment entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who made the payment. (Relationship: User 1:N Payment)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the payment in the smallest currency unit (e.g., cents)."
+        },
+        "plan": {
+          "type": "string",
+          "description": "The subscription plan or feature purchased (e.g., 'premium', 'pro-addon')."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the payment (e.g., 'completed', 'pending', 'failed', 'refunded')."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp when the payment occurred or was processed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "amount",
+        "plan",
+        "status",
+        "timestamp"
+      ]
+    },
+    "AIRequest": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AIRequest",
+      "type": "object",
+      "description": "Logs requests made to AI services and their results for auditing and debugging across different application features.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the AIRequest entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who initiated the AI request. (Relationship: User 1:N AIRequest)"
+        },
+        "associatedEntityId": {
+          "type": "string",
+          "description": "Reference to the ID of the entity this AI request is associated with (e.g., ResumeId, InterviewAnalysisId). (Relationship: AIRequest 1:1 Resume or AIRequest 1:1 InterviewAnalysis)"
+        },
+        "associatedEntityType": {
+          "type": "string",
+          "description": "The type of entity this AI request is associated with (e.g., 'Resume', 'InterviewAnalysis')."
+        },
+        "type": {
+          "type": "string",
+          "description": "The specific type of AI operation performed (e.g., 'suggestSummary', 'extractCVData', 'analyzeInterview', 'matchJobSpec')."
+        },
+        "inputReference": {
+          "type": "string",
+          "description": "A URL or reference to the input data provided to the AI (e.g., sourceFileUrl for extractCVData, transcriptUrl for analyzeInterview)."
+        },
+        "resultSummary": {
+          "type": "string",
+          "description": "A brief summary or key outcome of the AI's processing, if available."
+        },
+        "fullResult": {
+          "type": "string",
+          "description": "The complete structured result or raw output received from the AI service, stored as a string (e.g., JSON string)."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp when the AI request was made or completed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "associatedEntityId",
+        "associatedEntityType",
+        "type",
+        "timestamp"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile and subscription details. The document ID (`userId`) must match the `id` field within the document and the authenticated user's UID (`request.auth.uid`).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user, derived from Firebase Authentication UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/resumes/{resumeId}",
+        "definition": {
+          "entityName": "Resume",
+          "schema": {
+            "$ref": "#/backend/entities/Resume"
+          },
+          "description": "Stores a user's master or targeted resume, including extracted data and references to detailed sections. The document ID (`resumeId`) must match the `id` field within the document. Includes denormalized 'userId' for authorization independence, which must match the path's `userId` segment.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns this resume."
+            },
+            {
+              "name": "resumeId",
+              "description": "The unique identifier for the resume document."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/resumes/{resumeId}/workExperiences/{workExperienceId}",
+        "definition": {
+          "entityName": "WorkExperience",
+          "schema": {
+            "$ref": "#/backend/entities/WorkExperience"
+          },
+          "description": "Details of a single work experience entry belonging to a specific resume. The document ID (`workExperienceId`) must match the `id` field within the document. To ensure authorization independence, documents in this collection MUST include denormalized 'userId' and 'resumeId' fields, matching the respective path segments.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the parent resume."
+            },
+            {
+              "name": "resumeId",
+              "description": "The unique identifier for the parent resume document."
+            },
+            {
+              "name": "workExperienceId",
+              "description": "The unique identifier for the work experience entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/resumes/{resumeId}/educations/{educationId}",
+        "definition": {
+          "entityName": "Education",
+          "schema": {
+            "$ref": "#/backend/entities/Education"
+          },
+          "description": "Details of a single educational entry belonging to a specific resume. The document ID (`educationId`) must match the `id` field within the document. To ensure authorization independence, documents in this collection MUST include denormalized 'userId' and 'resumeId' fields, matching the respective path segments.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the parent resume."
+            },
+            {
+              "name": "resumeId",
+              "description": "The unique identifier for the parent resume document."
+            },
+            {
+              "name": "educationId",
+              "description": "The unique identifier for the education entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/resumes/{resumeId}/skills/{skillId}",
+        "definition": {
+          "entityName": "Skill",
+          "schema": {
+            "$ref": "#/backend/entities/Skill"
+          },
+          "description": "Details of a single skill entry belonging to a specific resume. The document ID (`skillId`) must match the `id` field within the document. To ensure authorization independence, documents in this collection MUST include denormalized 'userId' and 'resumeId' fields, matching the respective path segments.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the parent resume."
+            },
+            {
+              "name": "resumeId",
+              "description": "The unique identifier for the parent resume document."
+            },
+            {
+              "name": "skillId",
+              "description": "The unique identifier for the skill entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/interviewAnalyses/{interviewAnalysisId}",
+        "definition": {
+          "entityName": "InterviewAnalysis",
+          "schema": {
+            "$ref": "#/backend/entities/InterviewAnalysis"
+          },
+          "description": "Stores structured results of an AI-powered interview analysis for a user. The document ID (`interviewAnalysisId`) must match the `id` field within the document. Includes denormalized 'userId' for authorization independence, which must match the path's `userId` segment.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who initiated this interview analysis."
+            },
+            {
+              "name": "interviewAnalysisId",
+              "description": "The unique identifier for the interview analysis document."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/interviewAnalyses/{interviewAnalysisId}/questionAnswers/{questionAnswerId}",
+        "definition": {
+          "entityName": "InterviewQuestionAnswer",
+          "schema": {
+            "$ref": "#/backend/entities/InterviewQuestionAnswer"
+          },
+          "description": "Stores a single recruitment question and its extracted answer as part of an interview analysis. The document ID (`questionAnswerId`) must match the `id` field within the document. To ensure authorization independence, documents in this collection MUST include denormalized 'userId' and 'interviewAnalysisId' fields, matching the respective path segments.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the parent interview analysis."
+            },
+            {
+              "name": "interviewAnalysisId",
+              "description": "The unique identifier for the parent interview analysis document."
+            },
+            {
+              "name": "questionAnswerId",
+              "description": "The unique identifier for the question and answer entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/payments/{paymentId}",
+        "definition": {
+          "entityName": "Payment",
+          "schema": {
+            "$ref": "#/backend/entities/Payment"
+          },
+          "description": "Records payment transactions made by a user. The document ID (`paymentId`) must match the `id` field within the document. Includes denormalized 'userId' for authorization independence, which must match the path's `userId` segment.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who made the payment."
+            },
+            {
+              "name": "paymentId",
+              "description": "The unique identifier for the payment transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/aiRequests/{aiRequestId}",
+        "definition": {
+          "entityName": "AIRequest",
+          "schema": {
+            "$ref": "#/backend/entities/AIRequest"
+          },
+          "description": "Logs requests made by a user to AI services for auditing and debugging. The document ID (`aiRequestId`) must match the `id` field within the document. Includes denormalized 'userId' for authorization independence, which must match the path's `userId` segment.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who initiated the AI request."
+            },
+            {
+              "name": "aiRequestId",
+              "description": "The unique identifier for the AI request log entry."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The recommended Firestore structure for 'RecruitedAI' (CareerCraft AI) prioritizes security, scalability, and debuggability by adhering strictly to the core design principles and mandates. The primary strategy employed is **Authorization Independence via Denormalization** and **Structural Segregation**.\n\n**Authorization Independence:**\nAll user-owned data is structured hierarchically under `/users/{userId}`. To eliminate the need for `get()` operations in Firestore Security Rules and enable atomic operations (like creating a parent and its sub-document in a single batch), the `userId` of the owner is denormalized into every document in subcollections (e.g., `resumes`, `interviewAnalyses`, `payments`, `aiRequests`).\n\nFurthermore, for nested subcollections like `workExperiences`, `educations`, `skills` (under `resumes`), and `questionAnswers` (under `interviewAnalyses`), not only `userId` but also the direct parent's ID (`resumeId` or `interviewAnalysisId`) is denormalized. This means a `workExperience` document, for example, will explicitly contain `userId` and `resumeId`. This allows security rules to evaluate ownership and parentage directly from the document's own data (`resource.data.userId == request.auth.uid` and `resource.data.resumeId == request.path[4]`), making rules atomic, simple, and robust. It prevents broken transactions where a parent document might not exist or be accessible during a child document's creation or update.\n\n**QAPs (Rules are not Filters):**\nThe structural segregation and consistent denormalization directly support Query-Able Paths (QAPs). All user-specific data is naturally partitioned by the authenticated user's ID. When a client queries a collection like `/users/{request.auth.uid}/resumes`, the security rules can directly compare `request.auth.uid` with the `userId` segment in the path and the `userId` field denormalized in the `Resume` documents. This ensures that `list` operations implicitly filter data by the authenticated user, preventing accidental exposure of other users' data and allowing Firestore's security rules to act as an enforcement layer, not a filtering mechanism. For subcollections, the rules will similarly verify `userId` and the parent ID (e.g., `resumeId`) against the path and the document's denormalized fields, ensuring all returned documents conform to the specified security posture.\n\n**Structural Segregation:**\nAll private, user-specific data is kept within the `/users/{userId}/` subtree. This ensures a homogeneous security posture: all documents within these collections are strictly owned by and accessible only to the `userId` specified in their path and document data. This avoids mixing public and private data in the same collection, simplifying security rules immensely.\n\n**Public-Facing Data (Online Resume/LinkTree):**\nAs the provided schemas do not include entities for public-facing documents, and the design principles mandate structural segregation (no mixing public/private in a single collection), this structure assumes that public resume views or LinkTree content would be generated by a Firebase Cloud Function that reads the authenticated user's private data and serves a public-facing representation. If direct public Firestore access were required, new entity schemas for 'PublicResume' or 'LinkTreeProfile' would be created and placed in a top-level collection (e.g., `/publicResumes/{publicResumeId}`) with appropriate public read rules.\n\n**Overall:**\nThis design leverages a deep, user-centric hierarchy with crucial data denormalization to enable highly secure, scalable, and easily debuggable Firestore security rules. It ensures that authorization logic is straightforward, relies solely on `request.auth.uid` and document data, and supports efficient querying while maintaining data integrity."
+  }
+}
