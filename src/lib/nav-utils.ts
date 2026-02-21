@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -18,7 +17,8 @@ import {
   ScanText,
   ClipboardCheck,
   UserCheck,
-  FileSearch
+  FileSearch,
+  Database
 } from 'lucide-react';
 
 export interface NavLink {
@@ -67,6 +67,7 @@ const navGroups: NavGroup[] = [
     title: 'System',
     roles: ['Admin'],
     links: [
+       { href: '/debug/models', label: 'Model Registry', icon: React.createElement(Database, { size: 18 }), roles: ['Admin'] },
        { href: '/settings', label: 'Settings', icon: React.createElement(Settings, { size: 18 }), roles: ['Admin'] },
     ]
    }
