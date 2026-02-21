@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Briefcase } from 'lucide-react';
+import { Users, Briefcase, Code } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -42,7 +42,7 @@ export default function LoginPage() {
               <Select onValueChange={(value: Role) => setRole(value)} defaultValue={role}>
                 <SelectTrigger>
                   <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
+                    {role === 'Developer' ? <Code className="h-4 w-4" /> : <Users className="h-4 w-4" />}
                     <SelectValue placeholder="Select a role" />
                   </div>
                 </SelectTrigger>
@@ -51,6 +51,7 @@ export default function LoginPage() {
                   <SelectItem value="Recruiter">Recruiter</SelectItem>
                   <SelectItem value="Admin">Admin</SelectItem>
                   <SelectItem value="Sales">Sales</SelectItem>
+                  <SelectItem value="Developer">Developer</SelectItem>
                 </SelectContent>
               </Select>
             </div>

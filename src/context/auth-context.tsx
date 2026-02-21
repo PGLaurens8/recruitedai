@@ -4,7 +4,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
-export type Role = 'Admin' | 'Recruiter' | 'Sales' | 'Candidate';
+export type Role = 'Admin' | 'Recruiter' | 'Sales' | 'Candidate' | 'Developer';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -48,6 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const handleRedirect = (role: Role) => {
      switch (role) {
       case 'Admin':
+      case 'Developer':
         router.push('/dashboard/admin');
         break;
       case 'Recruiter':
