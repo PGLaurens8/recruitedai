@@ -187,13 +187,13 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Application Preferences</CardTitle>
-              <CardDescription>Stable environment configuration for 2026.</CardDescription>
+              <CardDescription>Stable environment configuration.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
                 <div className="space-y-0.5">
                   <p className="text-sm font-medium">Model Standard</p>
-                  <p className="text-xs text-muted-foreground">Using <strong>Gemini 3 Flash</strong>.</p>
+                  <p className="text-xs text-muted-foreground">Using <strong>Gemini 2.5 Flash</strong>.</p>
                 </div>
                 <Badge variant="outline">Stable (2026)</Badge>
               </div>
@@ -326,7 +326,7 @@ export default function SettingsPage() {
 }
 
 function ModelCard({ model, isNew = false }: { model: ModelInfo; isNew?: boolean }) {
-  const isInUse = model.name.includes('gemini-3-flash');
+  const isInUse = model.name.includes('gemini-2.5-flash');
   return (
     <Card className={`${isInUse ? 'border-primary' : ''} ${isNew ? 'border-yellow-500/50 shadow-sm' : ''}`}>
       <CardHeader className="pb-2">
