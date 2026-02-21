@@ -10,88 +10,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, Eye, Plus, Search, Star, X, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { collection, doc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { Spinner } from '@/components/ui/spinner';
 
-const jobSpecifications = [
-  {
-    title: "Senior Frontend Developer",
-    company: "TechCorp",
-    location: "San Francisco, CA",
-    salary: "$120k - $150k",
-    description: "We are looking for an experienced frontend developer to join our dynamic team.",
-  },
-  {
-    title: "Data Scientist",
-    company: "DataFlow Inc",
-    location: "Remote",
-    salary: "$100k - $130k",
-    description: "Join our data science team to build cutting-edge ML models and analytics solutions.",
-  },
-  {
-    title: "UX Designer",
-    company: "DesignStudio",
-    location: "New York, NY",
-    salary: "$80k - $100k",
-    description: "Create beautiful and intuitive user experiences for our digital products.",
-  },
-];
+interface Job {
+  id: string;
+  title: string;
+  salary?: string;
+  company?: string;
+  location?: string;
+  status: string;
+  approval: string;
+  description?: string;
+  candidates?: number;
+  aiMatches?: number;
+  createdAt?: any;
+}
 
-export const jobPostings = [
-  {
-    id: "J001",
-    title: "Senior Frontend Developer",
-    salary: "$120k - $150k",
-    posted: "Full-time • Posted 3 days ago",
-    company: "TechCorp",
-    location: "San Francisco, CA",
-    status: "active",
-    approval: "approved",
-    candidates: 15,
-    aiMatches: 8,
-  },
-  {
-    id: "J002",
-    title: "Data Scientist",
-    salary: "$100k - $130k",
-    posted: "Full-time • Posted 1 day ago",
-    company: "DataFlow Inc",
-    location: "Remote",
-    status: "pending",
-    approval: "pending",
-    candidates: 7,
-    aiMatches: 3,
-  },
-  {
-    id: "J003",
-    title: "UX Designer",
-    salary: "$80k - $100k",
-    posted: "Contract • Posted 1 week ago",
-    company: "DesignStudio",
-    location: "New York, NY",
-    status: "active",
-    approval: "approved",
-    candidates: 22,
-    aiMatches: 12,
-  },
-    {
-    id: "J004",
-    title: "Backend Engineer",
-    salary: "$110k - $140k",
-    posted: "Full-time • Posted 5 days ago",
-    company: "CloudNet",
-    location: "Austin, TX",
-    status: "closed",
-    approval: "approved",
-    candidates: 35,
-    aiMatches: 20,
-  },
-];
-
-type JobPosting = typeof jobPostings[0];
-type JobPostingKey = keyof JobPosting;
-
+type JobKey = keyof Job;
 
 const getStatusBadgeClass = (status: string) => {
-    switch(status) {
+    switch(status?.toLowerCase()) {
         case 'active': return 'bg-green-100 text-green-800 border-green-200';
         case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
         case 'closed': return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -100,7 +40,7 @@ const getStatusBadgeClass = (status: string) => {
 }
 
 const getApprovalBadgeClass = (approval: string) => {
-    switch(approval) {
+    switch(approval?.toLowerCase()) {
         case 'approved': return 'bg-green-100 text-green-800 border-green-200';
         case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
         case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
@@ -108,33 +48,36 @@ const getApprovalBadgeClass = (approval: string) => {
     }
 }
 
-
 export default function JobsPage() {
-  const [sortConfig, setSortConfig] = useState<{ key: JobPostingKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
+  const firestore = useFirestore();
+  const { user: fbUser } = useUser();
+  const [sortConfig, setSortConfig] = useState<{ key: JobKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
-  const sortedJobPostings = useMemo(() => {
-    let sortableItems = [...jobPostings];
+  // Multitenancy logic
+  const profileRef = useMemoFirebase(() => fbUser ? doc(firestore, 'users', fbUser.uid) : null, [firestore, fbUser]);
+  const { data: profile } = useDoc(profileRef);
+  const companyId = profile?.companyId;
+
+  const jobsRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'jobs') : null, [firestore, companyId]);
+  const { data: jobs, isLoading } = useCollection<Job>(jobsRef);
+
+  const sortedJobs = useMemo(() => {
+    if (!jobs) return [];
+    let sortableItems = [...jobs];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
-        const aValue = a[sortConfig.key!];
-        const bValue = b[sortConfig.key!];
-
-        if (aValue === null || aValue === undefined) return 1;
-        if (bValue === null || bValue === undefined) return -1;
+        const aValue = a[sortConfig.key!] || "";
+        const bValue = b[sortConfig.key!] || "";
         
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
     return sortableItems;
-  }, [sortConfig]);
+  }, [jobs, sortConfig]);
 
-  const requestSort = (key: JobPostingKey) => {
+  const requestSort = (key: JobKey) => {
     let direction: 'asc' | 'desc' = 'desc';
     if (sortConfig.key === key && sortConfig.direction === 'desc') {
       direction = 'asc';
@@ -142,7 +85,7 @@ export default function JobsPage() {
     setSortConfig({ key, direction });
   };
 
-  const SortableTableHeader = ({ sortKey, children, className }: { sortKey: JobPostingKey; children: React.ReactNode; className?: string }) => {
+  const SortableTableHeader = ({ sortKey, children, className }: { sortKey: JobKey; children: React.ReactNode; className?: string }) => {
     const isSorted = sortConfig.key === sortKey;
     return (
         <TableHead className={className}>
@@ -156,6 +99,14 @@ export default function JobsPage() {
     );
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12">
+        <Spinner size={48} className="text-primary mb-4" />
+        <p className="text-muted-foreground">Loading job data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -178,41 +129,11 @@ export default function JobsPage() {
             <TabsTrigger value="postings">Job Postings</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="specifications" className="mt-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Job Specifications ({jobSpecifications.length})</CardTitle>
-                    <CardDescription>
-                        These are the core requirements for roles. Use them to generate tailored job postings.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {jobSpecifications.map((spec, index) => (
-                        <Card key={index} className="flex flex-col">
-                          <CardHeader>
-                            <CardTitle>{spec.title}</CardTitle>
-                            <CardDescription>{spec.company} • {spec.location}</CardDescription>
-                            <p className="font-semibold text-green-600 pt-1">{spec.salary}</p>
-                          </CardHeader>
-                          <CardContent className="flex-grow">
-                            <p className="text-muted-foreground text-sm">{spec.description}</p>
-                          </CardContent>
-                          <CardFooter>
-                            <Button className="w-full" variant="secondary">
-                              <Star className="mr-2 h-4 w-4" /> Create Posting
-                            </Button>
-                          </CardFooter>
-                        </Card>
-                    ))}
-                </CardContent>
-            </Card>
-        </TabsContent>
-
         <TabsContent value="postings" className="mt-6">
             <Card>
                 <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <CardTitle>All Job Postings ({sortedJobPostings.length})</CardTitle>
+                        <CardTitle>All Job Postings ({sortedJobs.length})</CardTitle>
                         <CardDescription>
                             View and manage all active, pending, and closed job postings.
                         </CardDescription>
@@ -222,16 +143,6 @@ export default function JobsPage() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input placeholder="Search postings..." className="pl-9 w-full md:w-64" />
                         </div>
-                        <Select>
-                            <SelectTrigger className="w-full md:w-[180px]">
-                            <SelectValue placeholder="All Statuses" />
-                            </SelectTrigger>
-                            <SelectContent>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="closed">Closed</SelectItem>
-                            </SelectContent>
-                        </Select>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -239,71 +150,58 @@ export default function JobsPage() {
                         <TableHeader>
                             <TableRow>
                             <SortableTableHeader sortKey="title">Job Details</SortableTableHeader>
-                            <SortableTableHeader sortKey="company">Company & Location</SortableTableHeader>
                             <SortableTableHeader sortKey="status">Status</SortableTableHeader>
                             <SortableTableHeader sortKey="approval">Approval</SortableTableHeader>
                             <SortableTableHeader sortKey="candidates">Candidates</SortableTableHeader>
-                            <SortableTableHeader sortKey="aiMatches">AI Matches</SortableTableHeader>
                             <TableHead className="w-[120px]">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {sortedJobPostings.map((job) => (
-                            <TableRow key={job.id}>
-                                <TableCell>
-                                <p className="font-medium">{job.title}</p>
-                                <p className="text-sm text-green-600 font-semibold">{job.salary}</p>
-                                <p className="text-xs text-muted-foreground">{job.posted}</p>
-                                </TableCell>
-                                <TableCell>
-                                <p className="font-medium">{job.company}</p>
-                                <p className="text-sm text-muted-foreground">{job.location}</p>
-                                </TableCell>
-                                <TableCell>
-                                <Badge variant="outline" className={getStatusBadgeClass(job.status) + " capitalize"}>{job.status}</Badge>
-                                </TableCell>
-                                <TableCell>
-                                <Badge variant="outline" className={getApprovalBadgeClass(job.approval) + " capitalize"}>{job.approval}</Badge>
-                                </TableCell>
-                                <TableCell>
-                                <p className="font-medium">{job.candidates}</p>
-                                <p className="text-sm text-muted-foreground">applied</p>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-1 font-semibold">
-                                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />
-                                        <span>{job.aiMatches}</span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-1">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                                            <Eye className="h-4 w-4" />
-                                        </Button>
-                                        {job.approval === 'pending' && (
-                                            <>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:text-green-700">
-                                                    <Check className="h-4 w-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700">
-                                                    <X className="h-4 w-4" />
-                                                </Button>
-                                            </>
-                                        )}
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                            ))}
+                            {sortedJobs.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">No job postings found.</TableCell>
+                                </TableRow>
+                            ) : (
+                                sortedJobs.map((job) => (
+                                <TableRow key={job.id}>
+                                    <TableCell>
+                                    <p className="font-medium">{job.title}</p>
+                                    <p className="text-sm text-green-600 font-semibold">{job.salary}</p>
+                                    <p className="text-xs text-muted-foreground">{job.location}</p>
+                                    </TableCell>
+                                    <TableCell>
+                                    <Badge variant="outline" className={getStatusBadgeClass(job.status) + " capitalize"}>{job.status}</Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                    <Badge variant="outline" className={getApprovalBadgeClass(job.approval) + " capitalize"}>{job.approval}</Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                    <p className="font-medium">{job.candidates || 0}</p>
+                                    <p className="text-sm text-muted-foreground">applied</p>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                            {job.approval === 'pending' && (
+                                                <>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:text-green-700">
+                                                        <Check className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700">
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
-                <CardFooter className="flex justify-between items-center">
-                    <p className="text-sm text-muted-foreground">Showing 1 to {sortedJobPostings.length} of {jobPostings.length} postings</p>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm">Previous</Button>
-                        <Button variant="outline" size="sm">Next</Button>
-                    </div>
-                </CardFooter>
             </Card>
         </TabsContent>
       </Tabs>

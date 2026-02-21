@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -40,6 +41,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { ResumeSection } from "@/components/feature/resume-section";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { collection, doc, serverTimestamp } from "firebase/firestore";
+import { useFirestore, useUser, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -78,6 +81,13 @@ export default function AiParserPage() {
   const brandedCvRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user: fbUser } = useUser();
+
+  // Get Multitenant ID from User Profile
+  const profileRef = useMemoFirebase(() => fbUser ? doc(firestore, 'users', fbUser.uid) : null, [firestore, fbUser]);
+  const { data: profile } = useDoc(profileRef);
+  const companyId = profile?.companyId;
 
   useEffect(() => {
     const name = localStorage.getItem(COMPANY_STORAGE_KEYS.NAME);
@@ -237,15 +247,30 @@ export default function AiParserPage() {
 
   const handleSaveCandidate = (save: boolean) => {
     setShowSaveDialog(false);
-    if (save) {
+    if (save && parsedResume && companyId) {
+      const candidatesRef = collection(firestore, 'companies', companyId, 'candidates');
+      addDocumentNonBlocking(candidatesRef, {
+        name: parsedResume.fullName || "Unknown",
+        email: parsedResume.contactInfo?.email || "",
+        currentJob: parsedResume.currentJobTitle || parsedResume.extractedData?.role || "",
+        currentCompany: "",
+        status: "Sourced",
+        aiScore: assessmentOutput?.matchScore || 0,
+        extractedDetails: parsedResume.extractedData,
+        fullResumeText: parsedResume.reformattedResume,
+        skills: parsedResume.skills || [],
+        createdAt: serverTimestamp(),
+        companyId: companyId,
+      });
+
       toast({
         title: "Candidate Saved",
         description: "The record and branded CV have been added to your database.",
       });
+    } else if (save) {
+        toast({ variant: "destructive", title: "Cannot Save", description: "Missing company ID or parsed data." });
     } else {
-      toast({
-        description: "Branded CV downloaded. Record not saved.",
-      });
+      toast({ description: "Branded CV downloaded. Record not saved." });
     }
   };
 

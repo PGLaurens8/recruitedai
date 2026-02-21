@@ -8,63 +8,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Building, Eye, FilePenLine, MoreHorizontal, Plus, Search, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { collection, doc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, deleteDocumentNonBlocking } from '@/firebase';
+import { Spinner } from '@/components/ui/spinner';
 
-const clients = [
-  {
-    id: "CLI001",
-    name: "TechCorp",
-    logo: "https://placehold.co/40x40.png",
-    contactName: "John Doe",
-    contactEmail: "john.doe@techcorp.com",
-    status: "Active",
-    openJobs: 5,
-  },
-  {
-    id: "CLI002",
-    name: "Innovate LLC",
-    logo: "https://placehold.co/40x40.png",
-    contactName: "Jane Smith",
-    contactEmail: "jane.s@innovatellc.com",
-    status: "Active",
-    openJobs: 2,
-  },
-  {
-    id: "CLI003",
-    name: "Data Solutions",
-    logo: "https://placehold.co/40x40.png",
-    contactName: "Sam Wilson",
-    contactEmail: "sam.w@datasolutions.com",
-    status: "Prospect",
-    openJobs: 0,
-  },
-  {
-    id: "CLI004",
-    name: "Growth Partners",
-    logo: "https://placehold.co/40x40.png",
-    contactName: "Emily White",
-    contactEmail: "emily.w@growthpartners.com",
-    status: "On Hold",
-    openJobs: 1,
-  },
-  {
-    id: "CLI005",
-    name: "CloudNet",
-    logo: "https://placehold.co/40x40.png",
-    contactName: "Michael Brown",
-    contactEmail: "michael.b@cloudnet.com",
-    status: "Inactive",
-    openJobs: 0,
-  },
-];
+interface Client {
+  id: string;
+  name: string;
+  logo?: string;
+  contactName?: string;
+  contactEmail?: string;
+  status: string;
+  openJobs?: number;
+  companyId: string;
+}
 
-type Client = typeof clients[0];
 type ClientKey = keyof Client;
 
 const getStatusBadgeVariant = (status: string) => {
-  switch (status.toLowerCase()) {
+  switch (status?.toLowerCase()) {
     case "active":
       return "bg-green-100 text-green-800 border-green-200";
     case "prospect":
@@ -79,29 +43,33 @@ const getStatusBadgeVariant = (status: string) => {
 };
 
 export default function ClientsPage() {
+  const firestore = useFirestore();
+  const { user: fbUser } = useUser();
   const [sortConfig, setSortConfig] = useState<{ key: ClientKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
+  // Multitenancy logic
+  const profileRef = useMemoFirebase(() => fbUser ? doc(firestore, 'users', fbUser.uid) : null, [firestore, fbUser]);
+  const { data: profile } = useDoc(profileRef);
+  const companyId = profile?.companyId;
+
+  const clientsRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'clients') : null, [firestore, companyId]);
+  const { data: clients, isLoading } = useCollection<Client>(clientsRef);
+
   const sortedClients = useMemo(() => {
+    if (!clients) return [];
     let sortableItems = [...clients];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
-        const aValue = a[sortConfig.key!];
-        const bValue = b[sortConfig.key!];
+        const aValue = a[sortConfig.key!] || "";
+        const bValue = b[sortConfig.key!] || "";
 
-        if (aValue === null || aValue === undefined) return 1;
-        if (bValue === null || bValue === undefined) return -1;
-
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
     return sortableItems;
-  }, [sortConfig]);
+  }, [clients, sortConfig]);
 
   const requestSort = (key: ClientKey) => {
     let direction: 'asc' | 'desc' = 'desc';
@@ -125,6 +93,20 @@ export default function ClientsPage() {
     );
   };
 
+  const handleDelete = (clientId: string) => {
+    if (!companyId || !confirm("Are you sure you want to delete this client?")) return;
+    deleteDocumentNonBlocking(doc(firestore, 'companies', companyId, 'clients', clientId));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12">
+        <Spinner size={48} className="text-primary mb-4" />
+        <p className="text-muted-foreground">Loading clients...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -138,19 +120,8 @@ export default function ClientsPage() {
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by client name or contact..." className="pl-9 w-64" />
+            <Input placeholder="Search by client name..." className="pl-9 w-64" />
           </div>
-          <Select>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="prospect">Prospect</SelectItem>
-              <SelectItem value="on_hold">On Hold</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
         <div className="flex items-center gap-2">
           <Button><Plus className="mr-2 h-4 w-4" /> Add Client</Button>
@@ -174,57 +145,55 @@ export default function ClientsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedClients.map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="rounded-md">
-                        <AvatarImage src={client.logo} data-ai-hint="company logo"/>
-                        <AvatarFallback className="rounded-md bg-muted"><Building className="h-5 w-5 text-muted-foreground"/></AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium">{client.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{client.contactName}</p>
-                      <p className="text-sm text-muted-foreground">{client.contactEmail}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={getStatusBadgeVariant(client.status)}>{client.status}</Badge>
-                  </TableCell>
-                  <TableCell className="text-center font-medium">
-                    {client.openJobs > 0 ? client.openJobs : "-"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem><Eye className="mr-2 h-4 w-4" /> View Details</DropdownMenuItem>
-                        <DropdownMenuItem><FilePenLine className="mr-2 h-4 w-4" /> Edit Client</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete Client
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+              {sortedClients.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">No clients found.</TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                sortedClients.map((client) => (
+                  <TableRow key={client.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="rounded-md">
+                          <AvatarImage src={client.logo} data-ai-hint="company logo"/>
+                          <AvatarFallback className="rounded-md bg-muted"><Building className="h-5 w-5 text-muted-foreground"/></AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{client.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{client.contactName}</p>
+                        <p className="text-sm text-muted-foreground">{client.contactEmail}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={getStatusBadgeVariant(client.status)}>{client.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-center font-medium">
+                      {client.openJobs || "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem><Eye className="mr-2 h-4 w-4" /> View Details</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(client.id)}>
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete Client
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
-        <CardFooter className="flex justify-between items-center">
-            <p className="text-sm text-muted-foreground">Showing 1 to {sortedClients.length} of {clients.length} clients</p>
-            <div className="flex gap-2">
-                <Button variant="outline" size="sm">Previous</Button>
-                <Button variant="outline" size="sm">Next</Button>
-            </div>
-        </CardFooter>
       </Card>
     </div>
   );

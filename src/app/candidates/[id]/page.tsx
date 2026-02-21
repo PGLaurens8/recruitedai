@@ -3,11 +3,9 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,78 +15,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { generateCandidateProfile } from '@/ai/flows/generate-candidate-profile';
-import { cn } from '@/lib/utils';
-import { ArrowLeft, Upload, User, Mail, Briefcase, Sparkles, Save, Star, Percent, AlertTriangle } from 'lucide-react';
-
-const initialCandidates = [
-  {
-    id: "C001",
-    name: "Elena Rodriguez",
-    email: "elena.r@example.com",
-    avatar: "https://placehold.co/40x40.png",
-    status: "Sourced",
-    aiScore: 92,
-    currentJob: "Senior UX Designer",
-    company: "Innovate Inc.",
-    appliedFor: "Lead Product Designer",
-  },
-  {
-    id: "C002",
-    name: "Marcus Chen",
-    email: "marcus.c@example.com",
-    avatar: "https://placehold.co/40x40.png",
-    status: "Applied",
-    aiScore: 88,
-    currentJob: "Data Scientist",
-    company: "DataDriven Co.",
-    appliedFor: "Senior Data Scientist",
-  },
-  {
-    id: "C003",
-    name: "Aisha Khan",
-    email: "aisha.k@example.com",
-    avatar: "https://placehold.co/40x40.png",
-    status: "Interviewing",
-    aiScore: 95,
-    currentJob: "Backend Engineer",
-    company: "CloudNet",
-    appliedFor: "Senior Backend Engineer",
-  },
-  {
-    id: "C004",
-    name: "David Miller",
-    email: "david.m@example.com",
-    avatar: "https://placehold.co/40x40.png",
-    status: "Offer",
-    aiScore: 85,
-    currentJob: "Marketing Manager",
-    company: "GrowthLeap",
-    appliedFor: "Head of Marketing",
-  },
-  {
-    id: "C005",
-    name: "Sophia Loren",
-    email: "sophia.l@example.com",
-    avatar: "https://placehold.co/40x40.png",
-    status: "Hired",
-    aiScore: 91,
-    currentJob: "DevOps Engineer",
-    company: "SecureStack",
-    appliedFor: "DevOps Lead",
-  },
-  {
-    id: "C006",
-    name: "James Smith",
-    email: "james.s@example.com",
-    avatar: "https://placehold.co/40x40.png",
-    status: "Applied",
-    aiScore: 78,
-    currentJob: "Frontend Developer",
-    company: "WebWeavers",
-    appliedFor: "Senior Frontend Developer",
-  },
-];
-type Candidate = typeof initialCandidates[0];
+import { ArrowLeft, Upload, Mail, Briefcase, Sparkles, Save, Star, Percent, AlertTriangle } from 'lucide-react';
+import { doc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
 
 const screeningQuestions = [
   "Can you tell me about your background and experience?",
@@ -99,33 +28,38 @@ const screeningQuestions = [
   "Do you have any questions for me?",
 ];
 
-
 export default function CandidateDetailPage() {
     const params = useParams();
     const router = useRouter();
     const candidateId = params.id as string;
     const { toast } = useToast();
+    const firestore = useFirestore();
+    const { user: fbUser } = useUser();
 
-    const [candidate, setCandidate] = useState<Candidate | null>(null);
+    const profileRef = useMemoFirebase(() => fbUser ? doc(firestore, 'users', fbUser.uid) : null, [firestore, fbUser]);
+    const { data: profile } = useDoc(profileRef);
+    const companyId = profile?.companyId;
+
+    const candidateRef = useMemoFirebase(() => (companyId && candidateId) ? doc(firestore, 'companies', companyId, 'candidates', candidateId) : null, [firestore, companyId, candidateId]);
+    const { data: candidate, isLoading: isCandLoading } = useDoc<any>(candidateRef);
+
     const [notes, setNotes] = useState<Record<string, string>>({});
     const [scores, setScores] = useState<Record<string, number | null>>({});
     const [summary, setSummary] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const foundCandidate = initialCandidates.find(c => c.id === candidateId);
-        setCandidate(foundCandidate || null);
-        
-        // Initialize state for questions
-        const initialNotes = screeningQuestions.reduce((acc, q) => ({ ...acc, [q]: '' }), {});
-        const initialScores = screeningQuestions.reduce((acc, q) => ({ ...acc, [q]: null }), {});
-        setNotes(initialNotes);
-        setScores(initialScores);
-    }, [candidateId]);
+        if (candidate) {
+            setNotes(candidate.interviewNotes || {});
+            setScores(candidate.interviewScores || {});
+            setSummary(candidate.aiSummary || '');
+        }
+    }, [candidate]);
     
     const { completionPercentage, averageScore } = useMemo(() => {
-        const answeredNotes = Object.values(notes).filter(note => note.trim() !== '');
+        const answeredNotes = Object.values(notes).filter(note => note && note.trim() !== '');
         const completion = (answeredNotes.length / screeningQuestions.length) * 100;
 
         const validScores = Object.values(scores).filter((score): score is number => score !== null);
@@ -133,7 +67,6 @@ export default function CandidateDetailPage() {
         
         return { completionPercentage: completion, averageScore: avg };
     }, [notes, scores]);
-
 
     const handleNoteChange = (question: string, value: string) => {
         setNotes(prev => ({ ...prev, [question]: value }));
@@ -147,7 +80,7 @@ export default function CandidateDetailPage() {
         if (!candidate) return;
 
         const allNotes = Object.entries(notes)
-          .filter(([, note]) => note.trim() !== '')
+          .filter(([, note]) => note && note.trim() !== '')
           .map(([question, note]) => `Question: ${question}\nAnswer/Notes: ${note}`)
           .join('\n\n');
 
@@ -166,7 +99,7 @@ export default function CandidateDetailPage() {
         try {
           const result = await generateCandidateProfile({
             candidateName: candidate.name,
-            candidateRole: candidate.appliedFor,
+            candidateRole: candidate.currentJob,
             interviewNotes: allNotes,
           });
           setSummary(result.profileSummary);
@@ -176,21 +109,39 @@ export default function CandidateDetailPage() {
           });
         } catch (e: any) {
           setError(e.message || "An unexpected error occurred.");
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: e.message,
-          });
+          toast({ variant: "destructive", title: "Error", description: e.message });
         } finally {
           setIsLoading(false);
         }
     };
 
-    if (!candidate) {
+    const handleSaveProfile = () => {
+        if (!candidateRef) return;
+        setIsSaving(true);
+        updateDocumentNonBlocking(candidateRef, {
+            interviewNotes: notes,
+            interviewScores: scores,
+            aiSummary: summary,
+            updatedAt: serverTimestamp(),
+        });
+        toast({ title: "Profile Saved", description: "Interview notes and AI summary have been persisted." });
+        setTimeout(() => setIsSaving(false), 500);
+    };
+
+    if (isCandLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)]">
                 <Spinner size={32} />
                 <p className="mt-4 text-muted-foreground">Loading candidate profile...</p>
+            </div>
+        );
+    }
+
+    if (!candidate) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)]">
+                <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
+                <p className="text-lg font-bold">Candidate Not Found</p>
                  <Button variant="outline" onClick={() => router.push('/candidates')} className="mt-4">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Candidates
@@ -214,7 +165,7 @@ export default function CandidateDetailPage() {
                     </Button>
                     <Avatar className="h-16 w-16">
                         <AvatarImage src={candidate.avatar} data-ai-hint="person portrait"/>
-                        <AvatarFallback className="text-2xl">{candidate.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        <AvatarFallback className="text-2xl">{candidate.name?.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                     </Avatar>
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">{candidate.name}</h1>
@@ -222,7 +173,7 @@ export default function CandidateDetailPage() {
                            <Mail className="h-4 w-4" /> {candidate.email}
                         </p>
                         <p className="text-muted-foreground flex items-center gap-2">
-                           <Briefcase className="h-4 w-4" /> Applying for {candidate.appliedFor}
+                           <Briefcase className="h-4 w-4" /> {candidate.currentJob || "Role not set"}
                         </p>
                     </div>
                 </div>
@@ -237,7 +188,7 @@ export default function CandidateDetailPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{completionPercentage.toFixed(0)}%</div>
-                        <p className="text-xs text-muted-foreground">{Object.values(notes).filter(n => n.trim()).length} of {screeningQuestions.length} questions noted</p>
+                        <p className="text-xs text-muted-foreground">{Object.values(notes).filter(n => n?.trim()).length} of {screeningQuestions.length} questions noted</p>
                         <Progress value={completionPercentage} className="mt-2 h-2" indicatorClassName={progressColor} />
                     </CardContent>
                 </Card>
@@ -265,7 +216,7 @@ export default function CandidateDetailPage() {
                             <Label htmlFor={`question-${index}`} className="font-semibold">{question}</Label>
                             <div className="flex items-center gap-2 w-40">
                                 <Label htmlFor={`score-${index}`} className="text-sm shrink-0">Score</Label>
-                                <Select onValueChange={(value) => handleScoreChange(question, value)}>
+                                <Select onValueChange={(value) => handleScoreChange(question, value)} value={String(scores[question] || "")}>
                                     <SelectTrigger id={`score-${index}`}>
                                         <SelectValue placeholder="N/A" />
                                     </SelectTrigger>
@@ -313,9 +264,9 @@ export default function CandidateDetailPage() {
                     )}
                 </CardContent>
                 <CardFooter>
-                    <Button disabled>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save Profile (Coming Soon)
+                    <Button onClick={handleSaveProfile} disabled={isSaving}>
+                        {isSaving ? <Spinner size={16} className="mr-2" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Profile Changes
                     </Button>
                 </CardFooter>
             </Card>

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useState, useMemo, Suspense } from "react";
 import Link from 'next/link';
 import { useSearchParams } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,81 +13,27 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowDown, ArrowUp, ArrowUpDown, Eye, FilePenLine, Plus, Search, Star, Trash2, Upload } from "lucide-react";
+import { collection, doc } from "firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, deleteDocumentNonBlocking } from "@/firebase";
+import { Spinner } from "@/components/ui/spinner";
 
-const initialCandidates = [
-  {
-    id: "C001",
-    name: "Elena Rodriguez",
-    email: "elena.r@example.com",
-    avatar: "https://placehold.co/40x40.png",
-    status: "Sourced",
-    aiScore: 92,
-    currentJob: "Senior UX Designer",
-    company: "Innovate Inc.",
-    appliedFor: "Lead Product Designer",
-  },
-  {
-    id: "C002",
-    name: "Marcus Chen",
-    email: "marcus.c@example.com",
-    avatar: "https://placehold.co/40x40.png",
-    status: "Applied",
-    aiScore: 88,
-    currentJob: "Data Scientist",
-    company: "DataDriven Co.",
-    appliedFor: "Senior Data Scientist",
-  },
-  {
-    id: "C003",
-    name: "Aisha Khan",
-    email: "aisha.k@example.com",
-    avatar: "https://placehold.co/40x40.png",
-    status: "Interviewing",
-    aiScore: 95,
-    currentJob: "Backend Engineer",
-    company: "CloudNet",
-    appliedFor: "Senior Backend Engineer",
-  },
-  {
-    id: "C004",
-    name: "David Miller",
-    email: "david.m@example.com",
-    avatar: "https://placehold.co/40x40.png",
-    status: "Offer",
-    aiScore: 85,
-    currentJob: "Marketing Manager",
-    company: "GrowthLeap",
-    appliedFor: "Head of Marketing",
-  },
-  {
-    id: "C005",
-    name: "Sophia Loren",
-    email: "sophia.l@example.com",
-    avatar: "https://placehold.co/40x40.png",
-    status: "Hired",
-    aiScore: 91,
-    currentJob: "DevOps Engineer",
-    company: "SecureStack",
-    appliedFor: "DevOps Lead",
-  },
-    {
-    id: "C006",
-    name: "James Smith",
-    email: "james.s@example.com",
-    avatar: "https://placehold.co/40x40.png",
-    status: "Applied",
-    aiScore: 78,
-    currentJob: "Frontend Developer",
-    company: "WebWeavers",
-    appliedFor: "Senior Frontend Developer",
-  },
-];
+interface Candidate {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  status: string;
+  aiScore?: number;
+  currentJob?: string;
+  currentCompany?: string;
+  appliedFor?: string;
+  companyId: string;
+}
 
-type Candidate = typeof initialCandidates[0];
 type CandidateKey = keyof Candidate;
 
 const getStatusBadgeVariant = (status: string) => {
-  switch (status.toLowerCase()) {
+  switch (status?.toLowerCase()) {
     case "sourced":
       return "bg-blue-100 text-blue-800 border-blue-200";
     case "applied":
@@ -105,22 +51,26 @@ const getStatusBadgeVariant = (status: string) => {
 
 function CandidatesPageContent() {
   const searchParams = useSearchParams();
+  const firestore = useFirestore();
+  const { user: fbUser } = useUser();
   const [sortConfig, setSortConfig] = useState<{ key: CandidateKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
-  useEffect(() => {
-    const sortBy = searchParams.get('sortBy') as CandidateKey | null;
-    const order = searchParams.get('order') as 'asc' | 'desc' | null;
-    if (sortBy) {
-      setSortConfig({ key: sortBy, direction: order || 'desc' });
-    }
-  }, [searchParams]);
+  // Get User Profile to get Company ID
+  const profileRef = useMemoFirebase(() => fbUser ? doc(firestore, 'users', fbUser.uid) : null, [firestore, fbUser]);
+  const { data: profile } = useDoc(profileRef);
+  const companyId = profile?.companyId;
+
+  // Get Candidates for the Company
+  const candidatesRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'candidates') : null, [firestore, companyId]);
+  const { data: candidates, isLoading } = useCollection<Candidate>(candidatesRef);
 
   const sortedCandidates = useMemo(() => {
-    let sortableItems = [...initialCandidates];
+    if (!candidates) return [];
+    let sortableItems = [...candidates];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
-        const aValue = a[sortConfig.key!];
-        const bValue = b[sortConfig.key!];
+        const aValue = a[sortConfig.key!] || "";
+        const bValue = b[sortConfig.key!] || "";
 
         if (aValue < bValue) {
           return sortConfig.direction === 'asc' ? -1 : 1;
@@ -132,7 +82,7 @@ function CandidatesPageContent() {
       });
     }
     return sortableItems;
-  }, [sortConfig]);
+  }, [candidates, sortConfig]);
 
   const requestSort = (key: CandidateKey) => {
     let direction: 'asc' | 'desc' = 'desc';
@@ -156,13 +106,27 @@ function CandidatesPageContent() {
     );
   };
 
+  const handleDelete = (candidateId: string) => {
+    if (!companyId || !confirm("Are you sure you want to delete this candidate?")) return;
+    const ref = doc(firestore, 'companies', companyId, 'candidates', candidateId);
+    deleteDocumentNonBlocking(ref);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12">
+        <Spinner size={48} className="text-primary mb-4" />
+        <p className="text-muted-foreground">Loading candidates...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Candidate Management</h1>
         <p className="mt-1 text-muted-foreground">
-          View, manage, and track all candidates in your pipeline. Click column headers to sort.
+          View, manage, and track all candidates in your pipeline.
         </p>
       </div>
 
@@ -170,7 +134,7 @@ function CandidatesPageContent() {
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by name, skills, or role..." className="pl-9 w-64" />
+            <Input placeholder="Search by name..." className="pl-9 w-64" />
           </div>
           <Select>
             <SelectTrigger className="w-[180px]">
@@ -184,21 +148,10 @@ function CandidatesPageContent() {
               <SelectItem value="hired">Hired</SelectItem>
             </SelectContent>
           </Select>
-           <Select>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="AI Match Score" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="90+">90+</SelectItem>
-              <SelectItem value="80-89">80-89</SelectItem>
-              <SelectItem value="70-79">70-79</SelectItem>
-              <SelectItem value="below-70">Below 70</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline"><Upload className="mr-2 h-4 w-4" /> Bulk Import</Button>
-          <Button><Plus className="mr-2 h-4 w-4" /> Add Candidate</Button>
+          <Button asChild><Link href="/ai-parser"><Plus className="mr-2 h-4 w-4" /> Add Candidate</Link></Button>
         </div>
       </div>
 
@@ -214,72 +167,66 @@ function CandidatesPageContent() {
                   <Checkbox />
                 </TableHead>
                 <SortableTableHeader sortKey="name">Candidate</SortableTableHeader>
-                <SortableTableHeader sortKey="status" className="w-auto">Status</SortableTableHeader>
-                <SortableTableHeader sortKey="aiScore" className="w-auto">AI Score</SortableTableHeader>
+                <SortableTableHeader sortKey="status">Status</SortableTableHeader>
+                <SortableTableHeader sortKey="aiScore">AI Score</SortableTableHeader>
                 <SortableTableHeader sortKey="currentJob">Current Job / Company</SortableTableHeader>
-                <SortableTableHeader sortKey="appliedFor">Applied For</SortableTableHeader>
                 <TableHead className="w-[120px] text-left pl-4">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedCandidates.map((candidate) => (
-                <TableRow key={candidate.id}>
-                  <TableCell>
-                    <Checkbox />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={candidate.avatar} data-ai-hint="person portrait"/>
-                        <AvatarFallback>{candidate.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <Link href={`/candidates/${candidate.id}`} className="font-medium hover:underline">{candidate.name}</Link>
-                        <p className="text-sm text-muted-foreground">{candidate.email}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={getStatusBadgeVariant(candidate.status)}>{candidate.status}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />
-                      <span className="font-semibold">{candidate.aiScore}%</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <p className="font-medium">{candidate.currentJob}</p>
-                    <p className="text-sm text-muted-foreground">{candidate.company}</p>
-                  </TableCell>
-                  <TableCell>
-                    <p className="font-medium">{candidate.appliedFor}</p>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <FilePenLine className="h-4 w-4" />
-                      </Button>
-                       <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+              {sortedCandidates.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    No candidates found. Use the Smart Parser to add your first candidate.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                sortedCandidates.map((candidate) => (
+                  <TableRow key={candidate.id}>
+                    <TableCell>
+                      <Checkbox />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage src={candidate.avatar} data-ai-hint="person portrait"/>
+                          <AvatarFallback>{candidate.name?.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <Link href={`/candidates/${candidate.id}`} className="font-medium hover:underline">{candidate.name}</Link>
+                          <p className="text-sm text-muted-foreground">{candidate.email}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={getStatusBadgeVariant(candidate.status)}>{candidate.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />
+                        <span className="font-semibold">{candidate.aiScore || 0}%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <p className="font-medium">{candidate.currentJob || "N/A"}</p>
+                      <p className="text-sm text-muted-foreground">{candidate.currentCompany || "N/A"}</p>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                          <Link href={`/candidates/${candidate.id}`}><Eye className="h-4 w-4" /></Link>
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(candidate.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
-        <CardFooter className="flex justify-between items-center">
-            <p className="text-sm text-muted-foreground">Showing 1 to {sortedCandidates.length} of {initialCandidates.length} candidates</p>
-            <div className="flex gap-2">
-                <Button variant="outline" size="sm">Previous</Button>
-                <Button variant="outline" size="sm">Next</Button>
-            </div>
-        </CardFooter>
       </Card>
     </div>
   );
