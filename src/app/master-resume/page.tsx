@@ -9,7 +9,7 @@ import { reformatResume, type ReformatResumeOutput } from '@/ai/flows/reformat-r
 import { fileToDataURI } from '@/lib/file-utils';
 import { ResumeSection } from '@/components/feature/resume-section';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, FileText, HelpCircle, AlertTriangle, UploadCloud, Download, Linkedin, Mail, MapPin, Phone, Edit } from 'lucide-react';
+import { Lightbulb, FileText, HelpCircle, AlertTriangle, UploadCloud, Download, Linkedin, Mail, MapPin, Phone, Edit, UserPlus } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,6 +19,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser, useDoc, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useAuth } from '@/context/auth-context';
 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -44,6 +48,15 @@ export default function MasterResumePage() {
   const [processedTimestamp, setProcessedTimestamp] = useState<string | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
+
+  // Firebase Hooks
+  const { user } = useAuth();
+  const { user: fbUser } = useUser();
+  const firestore = useFirestore();
+  const profileRef = useMemoFirebase(() => fbUser ? doc(firestore, 'users', fbUser.uid) : null, [firestore, fbUser]);
+  const { data: profile } = useDoc(profileRef);
+  const companyId = profile?.companyId;
+  const isAgencyRole = user?.role === 'Recruiter' || user?.role === 'Admin' || user?.role === 'Developer';
 
   useEffect(() => {
     const storedUserTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE);
@@ -162,6 +175,38 @@ export default function MasterResumePage() {
     }
   };
 
+  const handleSaveAsCandidate = () => {
+    if (!aiOutput || !companyId) {
+      toast({
+        variant: "destructive",
+        title: "Cannot Save",
+        description: !companyId ? "No agency profile found. Please ensure you are logged in correctly." : "No parsed data to save.",
+      });
+      return;
+    }
+
+    const candidatesRef = collection(firestore, 'companies', companyId, 'candidates');
+    addDocumentNonBlocking(candidatesRef, {
+      name: aiOutput.fullName || "Unknown",
+      email: aiOutput.contactInfo?.email || "",
+      currentJob: aiOutput.currentJobTitle || "",
+      currentCompany: "", 
+      status: "Sourced",
+      aiScore: 0,
+      fullResumeText: aiOutput.reformattedResume,
+      skills: aiOutput.skills || [],
+      contactInfo: aiOutput.contactInfo || {},
+      avatar: avatarUri || "",
+      createdAt: serverTimestamp(),
+      companyId: companyId,
+    });
+
+    toast({
+      title: "Candidate Added to Agency",
+      description: `${aiOutput.fullName || 'Candidate'} has been successfully added to your database.`,
+    });
+  };
+
   const downloadTextFile = (filename: string, text: string) => {
     const element = document.createElement("a");
     const fileBlob = new Blob([text], {type: 'text/plain;charset=utf-8'});
@@ -224,7 +269,7 @@ export default function MasterResumePage() {
     if (aiOutput.contactInfo?.email) contactParts.push(aiOutput.contactInfo.email);
     if (aiOutput.contactInfo?.linkedin && aiOutput.contactInfo.linkedin !== 'null') contactParts.push(aiOutput.contactInfo.linkedin);
 
-    const doc = new Document({
+    const docObj = new Document({
         sections: [{
             children: [
                 new Paragraph({
@@ -272,7 +317,7 @@ export default function MasterResumePage() {
         }
     });
 
-    Packer.toBlob(doc).then(blob => {
+    Packer.toBlob(docObj).then(blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -437,7 +482,12 @@ export default function MasterResumePage() {
               />
             )}
             
-            <div className="mt-8 text-center">
+            <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
+                {isAgencyRole && (
+                  <Button size="lg" variant="outline" onClick={handleSaveAsCandidate} className="border-primary text-primary hover:bg-primary/5">
+                    <UserPlus className="mr-2 h-5 w-5" /> Add to Agency Candidates
+                  </Button>
+                )}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button size="lg" disabled={!aiOutput.reformattedResume}>
@@ -452,8 +502,8 @@ export default function MasterResumePage() {
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
-                <p className="text-xs text-muted-foreground mt-2">Editing capabilities are available via the 'My Resumes' dashboard (feature in development).</p>
             </div>
+            <p className="text-center text-xs text-muted-foreground mt-2">Editing capabilities are available via the 'My Resumes' dashboard (feature in development).</p>
           </div>
         </div>
       )}
