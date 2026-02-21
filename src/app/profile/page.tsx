@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -157,7 +156,7 @@ export default function ProfilePage() {
                         className="pl-9" 
                         placeholder="www.youragency.com"
                         value={companyWebsite}
-                        onChange={(e) => setJobSpecUrl(e.target.value)}
+                        onChange={(e) => setCompanyWebsite(e.target.value)}
                       />
                     </div>
                   </div>
