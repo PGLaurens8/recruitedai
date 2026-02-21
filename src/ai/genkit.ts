@@ -13,5 +13,5 @@ export const ai = genkit({
       // The API key is automatically handled by the GOOGLE_GENAI_API_KEY environment variable.
     }),
   ],
-  model: 'googleai/gemini-2.0-flash', // Switched to Pro stable to ensure quota availability
+  model: 'googleai/gemini-1.5-pro', // Standardized on 1.5 Pro for maximum stability and free-tier compatibility
 });

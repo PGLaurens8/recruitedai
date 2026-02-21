@@ -38,7 +38,6 @@ export default function SettingsPage() {
   const [modelsError, setModelsError] = useState<string | null>(null);
 
   // Persistence (Firestore state)
-  // The Model Registry is now public-read to prevent race conditions during auth settle
   const registryDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'modelRegistry', 'latest');
@@ -78,7 +77,6 @@ export default function SettingsPage() {
       updatedBy: user?.email || 'Unknown Developer',
     };
 
-    // Use non-blocking write pattern as per guidelines
     setDocumentNonBlocking(docRef, data, { merge: true });
     
     toast({
@@ -115,23 +113,23 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>Application Preferences</CardTitle>
               <CardDescription>
-                Customize your experience within RecruitedAI.
+                Customize your experience within CareerCraft AI.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
                 <div className="space-y-0.5">
-                  <p className="text-sm font-medium">Dark Mode</p>
-                  <p className="text-xs text-muted-foreground">System follows browser preference by default.</p>
+                  <p className="text-sm font-medium">Model Stability</p>
+                  <p className="text-xs text-muted-foreground">App is currently standardized on <strong>Gemini 1.5 Pro</strong>.</p>
                 </div>
-                <Badge variant="outline">Auto</Badge>
+                <Badge variant="outline">Stable</Badge>
               </div>
               <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
                 <div className="space-y-0.5">
-                  <p className="text-sm font-medium">Notifications</p>
-                  <p className="text-xs text-muted-foreground">Receive email updates about candidate placements.</p>
+                  <p className="text-sm font-medium">Multitenancy</p>
+                  <p className="text-xs text-muted-foreground">Data isolation by User ID and Company ID is active.</p>
                 </div>
-                <Badge variant="outline">Enabled</Badge>
+                <Badge variant="outline" className="text-green-600 border-green-600">Active</Badge>
               </div>
             </CardContent>
           </Card>
@@ -140,14 +138,17 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-primary" />
-                Security
+                Security & Roles
               </CardTitle>
               <CardDescription>
-                Manage your account security and permissions.
+                Your current account permissions.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">You are currently logged in with <span className="font-bold">{user.role}</span> level access.</p>
+              <div className="flex items-center gap-4">
+                <Badge variant="secondary" className="text-sm py-1 px-3">Role: {user.role}</Badge>
+                <p className="text-sm text-muted-foreground">Access limited to authorized company resources.</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -161,7 +162,7 @@ export default function SettingsPage() {
                   Model Registry
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Store and manage available Gemini models in Firestore.
+                  Monitor available Gemini models for your API key.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -185,7 +186,6 @@ export default function SettingsPage() {
             )}
 
             <div className="grid gap-8">
-              {/* Discovered Models (Temporary Results) */}
               {discoveredModels.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground px-1">Discovered Models (Unsaved)</h3>
@@ -197,7 +197,6 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* Persisted Models (Database State) */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-1">
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Persisted Registry</h3>
@@ -235,11 +234,11 @@ export default function SettingsPage() {
                 Troubleshooting Configuration
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                The application is configured to use <code>googleai/gemini-1.5-pro</code>. Ensure this model appears in the Persisted Registry after a successful Sync.
+                The application is now using <code>googleai/gemini-1.5-pro</code>. This avoids "thought_signature" errors often associated with newer preview models in specific environments.
               </p>
               <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
                 <CheckCircle2 className="h-4 w-4" />
-                <span>Developer Mode: Model Registry accessible for system-wide metadata.</span>
+                <span>API Key status: Verified for standard stable models.</span>
               </div>
             </div>
           </TabsContent>

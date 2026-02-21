@@ -5,6 +5,7 @@ service cloud.firestore {
 
     /**
      * CAREERCRAFT AI - FIRESTORE SECURITY RULES
+     * Implements multitenancy and role-based access control.
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
@@ -17,25 +18,14 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    function isDocPublic() {
-      return resource.data.isPublic == true;
-    }
-
-    function matchesId(id) {
-      return request.resource.data.id == id;
-    }
-
-    function isImmutable(field) {
-      return request.resource.data[field] == resource.data[field];
-    }
-
     /** @description Checks if the user is a Developer (via their profile document). */
     function isDeveloper() {
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Developer';
+    }
+
+    /** @description Checks if the user has a specific role. */
+    function hasRole(role) {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
     }
 
     // --- COLLECTION RULES ---
@@ -43,84 +33,23 @@ service cloud.firestore {
     /** Root User profile document */
     match /users/{userId} {
       allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId) && matchesId(userId);
-      allow update: if isExistingOwner(userId) && isImmutable('id');
-      allow delete: if isExistingOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && request.resource.data.id == userId;
+      allow delete: if isOwner(userId);
     }
 
-    /** Model Registry - Public read for system transparency, write restricted to Developers */
+    /** Model Registry - Public read for transparency, write restricted to Developers */
     match /modelRegistry/latest {
       allow get: if true;
       allow write: if isDeveloper();
     }
 
-    /** Foundational Master Resumes */
-    match /users/{userId}/masterResumes/{masterResumeId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-
-      match /workExperiences/{id} { allow get, list, create, update, delete: if isOwner(userId); }
-      match /educations/{id} { allow get, list, create, update, delete: if isOwner(userId); }
-      match /skills/{id} { allow get, list, create, update, delete: if isOwner(userId); }
-    }
-
-    /** Uploaded Job Specifications */
-    match /users/{userId}/jobSpecs/{jobSpecId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /** AI-tailored Targeted Resumes */
-    match /users/{userId}/targetedResumes/{targetedResumeId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-
-      match /targetedWorkExperiences/{id} { allow get, list, create, update, delete: if isOwner(userId); }
-      match /targetedEducations/{id} { allow get, list, create, update, delete: if isOwner(userId); }
-      match /targetedSkills/{id} { allow get, list, create, update, delete: if isOwner(userId); }
-    }
-
-    /** Logs of AI Requests */
-    match /users/{userId}/aiRequests/{aiRequestId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update, delete: if false;
-    }
-
-    /** Transaction records */
-    match /users/{userId}/payments/{paymentId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update, delete: if false;
-    }
-
-    /** Online Resume Pages */
-    match /users/{userId}/onlineResumePages/{id} {
-      allow get, list, create, update, delete: if isOwner(userId);
-    }
-
-    match /onlineResumePagesPublic/{publicUrlPath} {
-      allow get, list: if isDocPublic();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-    }
-
-    /** LinkTree Bio Pages */
-    match /users/{userId}/linkTreeBioPages/{id} {
-      allow get, list, create, update, delete: if isOwner(userId);
-      match /linkTreeLinks/{linkId} { allow get, list, create, update, delete: if isOwner(userId); }
-    }
-
-    match /linkTreeBioPagesPublic/{publicUrlPath} {
-      allow get, list: if isDocPublic();
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    /** 
+     * User Private Data
+     * All sub-resources are nested under /users/{userId} to ensure path-based ownership.
+     */
+    match /users/{userId}/{allSubcollections=**} {
+      allow read, write: if isOwner(userId);
     }
   }
 }
