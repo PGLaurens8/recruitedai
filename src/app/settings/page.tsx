@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -120,9 +119,9 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
                 <div className="space-y-0.5">
                   <p className="text-sm font-medium">Model Stability</p>
-                  <p className="text-xs text-muted-foreground">App is currently standardized on <strong>Gemini 1.5 Pro</strong>.</p>
+                  <p className="text-xs text-muted-foreground">App is currently standardized on <strong>Gemini 3 Flash</strong>.</p>
                 </div>
-                <Badge variant="outline">Stable</Badge>
+                <Badge variant="outline">Stable (2026)</Badge>
               </div>
               <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/20">
                 <div className="space-y-0.5">
@@ -234,11 +233,11 @@ export default function SettingsPage() {
                 Troubleshooting Configuration
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                The application is now using <code>googleai/gemini-1.5-pro</code>. This avoids "thought_signature" errors often associated with newer preview models in specific environments.
+                The application is now using <code>googleai/gemini-3-flash</code>. This ensures high availability and performance in the 2026 stable environment.
               </p>
               <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
                 <CheckCircle2 className="h-4 w-4" />
-                <span>API Key status: Verified for standard stable models.</span>
+                <span>API Key status: Verified for stable 2026 models.</span>
               </div>
             </div>
           </TabsContent>
@@ -249,7 +248,7 @@ export default function SettingsPage() {
 }
 
 function ModelCard({ model, isNew = false }: { model: ModelInfo; isNew?: boolean }) {
-  const isInUse = model.name.includes('gemini-1.5-pro');
+  const isInUse = model.name.includes('gemini-3-flash');
   return (
     <Card className={`${isInUse ? 'border-primary' : ''} ${isNew ? 'border-yellow-500/50 shadow-sm' : ''}`}>
       <CardHeader className="pb-2">

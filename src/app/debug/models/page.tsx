@@ -69,11 +69,11 @@ export default function DebugModelsPage() {
             </div>
           )}
           {models.map((model) => (
-            <Card key={model.name} className={model.name.includes('gemini-1.5-flash') ? 'border-primary' : ''}>
+            <Card key={model.name} className={model.name.includes('gemini-3-flash') ? 'border-primary' : ''}>
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start gap-2">
                   <CardTitle className="text-lg font-bold break-all">{model.displayName}</CardTitle>
-                  {model.name.includes('gemini-1.5-flash') && (
+                  {model.name.includes('gemini-3-flash') && (
                     <Badge variant="default" className="shrink-0">In Use</Badge>
                   )}
                 </div>
@@ -102,11 +102,11 @@ export default function DebugModelsPage() {
           Troubleshooting 404 Errors
         </h3>
         <p className="text-sm text-muted-foreground mb-4">
-          If the model string in your Genkit config (currently <code>gemini-1.5-flash</code>) does not match exactly one of the <code>name</code> fields listed above (usually starting with <code>models/</code>), the AI calls will fail with a 404.
+          If the model string in your Genkit config (currently <code>gemini-3-flash</code>) does not match exactly one of the <code>name</code> fields listed above (usually starting with <code>models/</code>), the AI calls will fail with a 404.
         </p>
         <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
           <CheckCircle2 className="h-4 w-4" />
-          <span>If you see "models/gemini-1.5-flash" in the list above, your API key is correctly configured.</span>
+          <span>If you see "models/gemini-3-flash" in the list above, your API key is correctly configured.</span>
         </div>
       </div>
     </div>

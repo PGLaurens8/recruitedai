@@ -1,17 +1,13 @@
-import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/google-genai';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai'; 
 
 /**
  * Genkit initialization for RecruitedAI.
- * Uses the modern @genkit-ai/google-genai plugin.
- * 
- * IMPORTANT: Ensure your GOOGLE_GENAI_API_KEY is correctly set in your .env file.
+ * Standardized on Gemini 3 Flash for the 2026 stable environment.
  */
 export const ai = genkit({
   plugins: [
-    googleAI({
-      // The API key is automatically handled by the GOOGLE_GENAI_API_KEY environment variable.
-    }),
+    googleAI() // Firebase Studio handles the API Key automatically in 2026
   ],
-  model: 'googleai/gemini-1.5-pro', // Standardized on 1.5 Pro for maximum stability and free-tier compatibility
+  model: 'googleai/gemini-3-flash', // Use the string identifier for the Gemini 3 Flash model
 });
