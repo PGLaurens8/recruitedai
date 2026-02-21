@@ -1,7 +1,7 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,8 @@ import {
   Printer,
   Download,
   Save,
-  CheckCircle2
+  CheckCircle2,
+  Building
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
@@ -64,7 +65,7 @@ export default function AiParserPage() {
   const [parsedResume, setParsedResume] = useState<ParsedResume | null>(null);
   const [assessmentOutput, setAssessmentOutput] = useState<AssessJobMatchOutput | null>(null);
 
-  const [isParsing, setIsParsing] = useState(false);
+  const [isParsing, setIsLoading] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
