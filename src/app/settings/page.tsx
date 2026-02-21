@@ -155,11 +155,11 @@ export default function SettingsPage() {
                   </div>
                 )}
                 {models.map((model) => (
-                  <Card key={model.name} className={model.name.includes('gemini-1.5-flash') ? 'border-primary' : ''}>
+                  <Card key={model.name} className={model.name.includes('gemini-1.5-pro') ? 'border-primary' : ''}>
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start gap-2">
                         <CardTitle className="text-base font-bold break-all">{model.displayName}</CardTitle>
-                        {model.name.includes('gemini-1.5-flash') && (
+                        {model.name.includes('gemini-1.5-pro') && (
                           <Badge variant="default" className="shrink-0 text-[10px]">In Use</Badge>
                         )}
                       </div>
@@ -188,7 +188,7 @@ export default function SettingsPage() {
                 Troubleshooting Quota Errors
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                The application is configured to use <code>googleai/gemini-1.5-flash</code>. Ensure this model appears in the list above with support for <code>generateContent</code>.
+                The application is configured to use <code>googleai/gemini-1.5-pro</code>. Ensure this model appears in the list above with support for <code>generateContent</code>.
               </p>
               <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
                 <CheckCircle2 className="h-4 w-4" />
