@@ -18,9 +18,10 @@ import {
   ScanText,
   ClipboardCheck,
   UserCheck,
-  FileSearch,
-  Database,
-  Mic
+  Mic,
+  Target,
+  Zap,
+  HelpCircle
 } from 'lucide-react';
 
 export interface NavLink {
@@ -39,78 +40,65 @@ export interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    title: 'Main Features',
-    roles: ['Admin', 'Recruiter', 'Sales', 'Developer'],
+    title: 'Operational Dashboard',
+    roles: ['Admin', 'Recruiter', 'Sales', 'Developer', 'Candidate'],
     links: [
-      { href: '/dashboard/admin', label: 'Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
-      { href: '/candidates', label: 'Candidates', icon: React.createElement(Users, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'] },
-      { href: '/jobs', label: 'Jobs', icon: React.createElement(Briefcase, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
-      { href: '/clients', label: 'Clients', icon: React.createElement(Building, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
-      { href: '/company-finder', label: 'Company Finder', icon: React.createElement(Search, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'] },
-      { href: '/ai-parser', label: 'Smart Parser & Match', icon: React.createElement(ScanText, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'], badge: 'New' },
-      { href: '/interview-analysis', label: 'AI Note Taker', icon: React.createElement(Mic, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'], badge: 'New' },
-      { href: '/candidate-profiles', label: 'Candidate Notes', icon: React.createElement(UserCheck, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'] },
-      { href: '/reports', label: 'Reports', icon: React.createElement(BarChart, { size: 18 }), roles: ['Admin', 'Sales', 'Developer'] },
+      { href: '/dashboard/admin', label: 'Agency Overview', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
+      { href: '/dashboard', label: 'Candidate Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Candidate'] },
     ]
   },
   {
-    title: 'Candidate Tools',
+    title: 'Module: Talent Engine',
+    roles: ['Admin', 'Recruiter', 'Developer'],
+    links: [
+      { href: '/candidates', label: 'Talent Pool', icon: React.createElement(Users, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'] },
+      { href: '/ai-parser', label: 'Smart Parser & Match', icon: React.createElement(ScanText, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'], badge: 'New' },
+      { href: '/interview-analysis', label: 'AI Note Taker', icon: React.createElement(Mic, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'], badge: 'New' },
+      { href: '/candidate-profiles', label: 'Screening Notes', icon: React.createElement(UserCheck, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'] },
+    ]
+  },
+  {
+    title: 'Module: Business Hub',
+    roles: ['Admin', 'Recruiter', 'Sales', 'Developer'],
+    links: [
+      { href: '/jobs', label: 'Job Board', icon: React.createElement(Briefcase, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
+      { href: '/clients', label: 'Client CRM', icon: React.createElement(Building, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
+      { href: '/company-finder', label: 'Smart Lead Finder', icon: React.createElement(Search, { size: 18 }), roles: ['Admin', 'Sales', 'Developer'] },
+    ]
+  },
+  {
+    title: 'Module: Candidate Portal',
     roles: ['Admin', 'Candidate', 'Developer'],
     links: [
-      { href: '/dashboard', label: 'Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Candidate', 'Developer'] },
-      { href: '/master-resume', label: 'Master Resume', icon: React.createElement(FileText, { size: 18 }), roles: ['Admin', 'Candidate', 'Developer'], badge: 'Premium' },
-      { href: '/targeted-resume', label: 'Job Matching', icon: React.createElement(Bot, { size: 18 }), roles: ['Candidate', 'Developer'] },
+      { href: '/master-resume', label: 'Resume Builder', icon: React.createElement(FileText, { size: 18 }), roles: ['Admin', 'Candidate', 'Developer'], badge: 'Premium' },
+      { href: '/targeted-resume', label: 'AI Job Matcher', icon: React.createElement(Target, { size: 18 }), roles: ['Candidate', 'Developer'] },
       { href: '/online-resume', label: 'Online Profile', icon: React.createElement(User, { size: 18 }), roles: ['Candidate', 'Developer'] },
       { href: '/linktree-bio', label: 'LinkTree Bio', icon: React.createElement(LinkIcon, { size: 18 }), roles: ['Candidate', 'Developer'] },
       { href: '/interview-prep', label: 'Interview Prep', icon: React.createElement(ClipboardCheck, { size: 18 }), roles: ['Admin', 'Candidate', 'Recruiter', 'Developer'] },
     ]
   },
-   {
+  {
+    title: 'Strategic Insights',
+    roles: ['Admin', 'Sales', 'Developer'],
+    links: [
+      { href: '/reports', label: 'Analytics & ROI', icon: React.createElement(BarChart, { size: 18 }), roles: ['Admin', 'Sales', 'Developer'] },
+    ]
+  },
+  {
     title: 'System',
     roles: ['Admin', 'Developer'],
     links: [
-       { href: '/settings', label: 'Settings', icon: React.createElement(Settings, { size: 18 }), roles: ['Admin', 'Developer'] },
+       { href: '/settings', label: 'System Settings', icon: React.createElement(Settings, { size: 18 }), roles: ['Admin', 'Developer'] },
     ]
    }
 ];
 
 
 export function getNavLinksForRole(role: Role) {
-    let accessibleGroups = navGroups
+    return navGroups
     .map(group => ({
       ...group,
       links: group.links.filter(link => link.roles.includes(role))
     }))
     .filter(group => group.links.length > 0 && group.roles.includes(role));
-
-    if (role === 'Recruiter' || role === 'Sales' || role === 'Admin' || role === 'Developer') {
-        const adminDashboardLink = navGroups[0].links.find(l => l.href === '/dashboard/admin');
-        if (adminDashboardLink) {
-            let dashboardHref = '/dashboard/recruiter'; 
-            if (role === 'Sales') dashboardHref = '/dashboard/sales';
-            if (role === 'Admin' || role === 'Developer') dashboardHref = '/dashboard/admin';
-            
-            const newDashboardLink = {...adminDashboardLink, href: dashboardHref};
-            const mainFeaturesGroup = accessibleGroups.find(g => g.title === 'Main Features');
-            if (mainFeaturesGroup) {
-                const dashboardIndex = mainFeaturesGroup.links.findIndex(l => l.href === '/dashboard/admin');
-                if (dashboardIndex !== -1) {
-                    mainFeaturesGroup.links[dashboardIndex] = newDashboardLink;
-                } else {
-                     mainFeaturesGroup.links.unshift(newDashboardLink);
-                }
-            }
-        }
-    }
-   if (role === 'Candidate' || role === 'Developer') {
-       const candidateDashboard = accessibleGroups.find(g => g.title === 'Candidate Tools');
-       if(candidateDashboard) {
-           const dashboardIndex = candidateDashboard.links.findIndex(l => l.href === '/dashboard');
-           if (dashboardIndex === -1) {
-               candidateDashboard.links.unshift({ href: '/dashboard', label: 'Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Candidate', 'Developer'] });
-           }
-       }
-   }
-   
-   return accessibleGroups;
 }

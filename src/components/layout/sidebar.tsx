@@ -7,6 +7,7 @@ import {
   Briefcase,
   LogOut, 
   User,
+  HelpCircle,
 } from 'lucide-react';
 
 import { useAuth } from '@/context/auth-context';
@@ -41,12 +42,12 @@ export function Sidebar() {
             <Briefcase className="h-7 w-7 text-primary" />
             <span>RecruitedAI</span>
           </Link>
-          <div className="text-sm text-muted-foreground mt-1 capitalize">{user.role}</div>
+          <div className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest font-bold">2026 Enterprise Edition</div>
         </div>
-        <nav className="flex-1 px-2 py-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-2 py-4 space-y-6 overflow-y-auto">
           {accessibleGroups.map((group) => (
             <div key={group.title}>
-              <h3 className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <h3 className="px-3 py-2 text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/5 rounded-sm mb-2">
                 {group.title}
               </h3>
               <div className="space-y-1">
@@ -56,43 +57,35 @@ export function Sidebar() {
                     href={link.href}
                     className={cn(
                       'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:text-primary hover:bg-muted',
-                      (pathname === link.href || (link.href.includes(user.role) && pathname.includes(link.href))) && 'bg-muted text-primary'
+                      (pathname === link.href) && 'bg-muted text-primary'
                     )}
                   >
                     {link.icon}
                     <span className="flex-1">{link.label}</span>
-                     {link.badge && <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">{link.badge}</Badge>}
+                     {link.badge && <Badge variant="outline" className="text-[9px] h-4 bg-primary/10 text-primary border-primary/20">{link.badge}</Badge>}
                   </Link>
                 ))}
               </div>
             </div>
           ))}
         </nav>
-        <div className="mt-auto p-4 border-t space-y-1">
-           <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" asChild className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
-                    <Link href="/profile">
-                        <User className="h-5 w-5 mr-3" />
-                        Profile
-                    </Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" align="center">
-                <p>My Profile</p>
-              </TooltipContent>
-            </Tooltip>
-           <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" onClick={logout} className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
-                  <LogOut className="h-5 w-5 mr-3" />
-                  Log Out
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right" align="center">
-                <p>Log Out</p>
-              </TooltipContent>
-            </Tooltip>
+        <div className="mt-auto p-4 border-t space-y-1 bg-muted/10">
+           <Button variant="ghost" asChild className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
+                <Link href="/profile">
+                    <User className="h-5 w-5 mr-3" />
+                    Profile & Billing
+                </Link>
+            </Button>
+            <Button variant="ghost" asChild className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
+                <Link href="/about">
+                    <HelpCircle className="h-5 w-5 mr-3" />
+                    Strategy & About
+                </Link>
+            </Button>
+            <Button variant="ghost" onClick={logout} className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/5 mt-2">
+              <LogOut className="h-5 w-5 mr-3" />
+              Log Out
+            </Button>
         </div>
       </aside>
     </TooltipProvider>

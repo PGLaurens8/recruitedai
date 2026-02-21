@@ -1,8 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, Briefcase, LogOut, User } from 'lucide-react';
+import { Menu, Briefcase, LogOut, User, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
@@ -48,8 +49,8 @@ export function Header() {
                             <span>RecruitedAI</span>
                         </Link>
                         {accessibleGroups.map((group) => (
-                          <div key={group.title}>
-                             <h3 className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          <div key={group.title} className="mb-4">
+                             <h3 className="px-3 py-2 text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/5 rounded-sm mb-2">
                                 {group.title}
                             </h3>
                              {group.links.map((link) => (
@@ -58,13 +59,13 @@ export function Header() {
                                     href={link.href}
                                     onClick={handleLinkClick}
                                     className={cn(
-                                        'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
+                                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-all hover:text-primary',
                                         pathname === link.href && 'text-primary bg-muted'
                                     )}
                                 >
                                     {link.icon}
                                     <span className="flex-1">{link.label}</span>
-                                    {link.badge && <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">{link.badge}</Badge>}
+                                    {link.badge && <Badge variant="outline" className="text-[9px] bg-primary/10 text-primary border-primary/20">{link.badge}</Badge>}
                                 </Link>
                             ))}
                           </div>
@@ -78,7 +79,13 @@ export function Header() {
                                     Profile
                                 </Link>
                             </Button>
-                            <Button variant="ghost" onClick={handleLogoutClick} className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
+                            <Button variant="ghost" asChild className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
+                                <Link href="/about" onClick={handleLinkClick}>
+                                    <HelpCircle className="h-5 w-5 mr-3" />
+                                    About Strategy
+                                </Link>
+                            </Button>
+                            <Button variant="ghost" onClick={handleLogoutClick} className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-muted">
                                 <LogOut className="h-5 w-5 mr-3" />
                                 Log Out
                             </Button>

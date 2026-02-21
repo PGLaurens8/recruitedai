@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreditCard, Building, User, UploadCloud, Save, Globe, Mail, MapPin } from 'lucide-react';
+import { CreditCard, Building, User, UploadCloud, Save, Globe, Mail, MapPin, Zap, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { fileToDataURI } from '@/lib/file-utils';
@@ -21,6 +21,12 @@ const LOCAL_STORAGE_KEYS = {
   COMPANY_WEBSITE: 'recruitedAI_companyWebsite',
   COMPANY_EMAIL: 'recruitedAI_companyEmail',
   COMPANY_ADDRESS: 'recruitedAI_companyAddress',
+};
+
+const PLAN_FEATURES = {
+  Free: ["Basic Resume Builder", "Single Profile", "Community Support"],
+  Professional: ["Master Resume Toolkit", "Unlimited Job Matching", "LinkTree Bio", "AI Coaching"],
+  Agency: ["Full Talent Engine Module", "Full Business Hub Module", "Branded CV Exports", "API Access", "Custom Dashboards"]
 };
 
 export default function ProfilePage() {
@@ -58,32 +64,15 @@ export default function ProfilePage() {
         description: "Your branding details have been updated successfully.",
       });
     } catch (e: any) {
-      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-        toast({
-          variant: "destructive",
-          title: "Storage Limit Exceeded",
-          description: "The logo file is too large to store in the browser. Please use a smaller image (under 500KB).",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Save Failed",
-          description: "Could not update company profile. Please try again.",
-        });
-      }
+      toast({ variant: "destructive", title: "Save Failed", description: "Storage limit reached." });
     }
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // Check size (500KB is a safe bet for localStorage when multiple items are stored)
       if (file.size > 500 * 1024) {
-        toast({
-          variant: "destructive",
-          title: "Image Too Large",
-          description: "Agency logos should be under 500KB for browser storage safety.",
-        });
+        toast({ variant: "destructive", title: "Image Too Large", description: "Max 500KB." });
         return;
       }
       const uri = await fileToDataURI(file);
@@ -95,23 +84,24 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Profile & Branding</h1>
-        <p className="mt-1 text-muted-foreground">
-          Manage your personal settings and company branding for candidate reports.
-        </p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Account & Billing</h1>
+          <p className="mt-1 text-muted-foreground">Manage your credentials, branding, and subscription tier.</p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href="/about">Strategic About Page</Link>
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="user" className="flex items-center gap-2">
-            <User size={16} /> User Profile
-          </TabsTrigger>
-          <TabsTrigger value="company" className="flex items-center gap-2">
-            <Building size={16} /> Company Branding
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 max-w-xl">
+          <TabsTrigger value="user" className="flex items-center gap-2"><User size={16} /> Profile</TabsTrigger>
+          <TabsTrigger value="company" className="flex items-center gap-2"><Building size={16} /> Branding</TabsTrigger>
+          <TabsTrigger value="plans" className="flex items-center gap-2"><Zap size={16} /> Plans</TabsTrigger>
         </TabsList>
 
+        {/* USER TAB */}
         <TabsContent value="user" className="mt-6">
           <div className="grid lg:grid-cols-3 gap-8">
             <Card className="lg:col-span-1">
@@ -121,181 +111,120 @@ export default function ProfilePage() {
                   <AvatarFallback className="text-3xl">{avatarFallback}</AvatarFallback>
                 </Avatar>
                 <CardTitle>{user.name}</CardTitle>
-                <CardDescription>
-                  <Badge variant="secondary" className="capitalize mt-1">{user.role}</Badge>
-                </CardDescription>
+                <Badge variant="secondary" className="capitalize mt-1">{user.role}</Badge>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground text-center">
-                <p>This is a demo account. Profile editing is not yet available.</p>
+                <p>Member since Feb 2026</p>
               </CardContent>
             </Card>
-
-            <div className="lg:col-span-2 space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5 text-primary" />
-                    Subscription & Billing
-                  </CardTitle>
-                  <CardDescription>
-                    Manage your current plan, view invoices, and update payment methods.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="mb-4">You are currently on the <span className="font-semibold text-primary">Free Tier</span> plan.</p>
-                  <Button asChild>
-                    <Link href="/billing">
-                      Manage Billing & Plans
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Session Credentials</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-2">
+                  <Label>Email Address</Label>
+                  <Input readOnly value="demo-user@recruitedai.com" />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Assigned Role</Label>
+                  <Input readOnly value={user.role} />
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
+        {/* BRANDING TAB */}
         <TabsContent value="company" className="mt-6">
           <div className="grid lg:grid-cols-3 gap-8">
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Agency Branding Details</CardTitle>
-                <CardDescription>
-                  This information is used to generate branded CVs and headers for candidate submissions.
-                </CardDescription>
+                <CardTitle>Agency Profile</CardTitle>
+                <CardDescription>Details used for automated candidate profile branding.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="companyName">Agency/Company Name</Label>
-                    <Input 
-                      id="companyName" 
-                      placeholder="e.g. TalentSource Pro" 
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                    />
+                    <Label htmlFor="companyName">Agency Name</Label>
+                    <Input id="companyName" value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="companyWebsite">Website</Label>
-                    <div className="relative">
-                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="companyWebsite" 
-                        className="pl-9" 
-                        placeholder="www.youragency.com"
-                        value={companyWebsite}
-                        onChange={(e) => setCompanyWebsite(e.target.value)}
-                      />
-                    </div>
+                    <Input id="companyWebsite" value={companyWebsite} onChange={(e) => setCompanyName(e.target.value)} />
                   </div>
                 </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="companyEmail">Business Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="companyEmail" 
-                        className="pl-9" 
-                        placeholder="contact@youragency.com"
-                        value={companyEmail}
-                        onChange={(e) => setCompanyEmail(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="companyAddress">Location/Address</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="companyAddress" 
-                        className="pl-9" 
-                        placeholder="City, Country"
-                        value={companyAddress}
-                        onChange={(e) => setCompanyAddress(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 <div className="space-y-2">
                   <Label>Agency Logo</Label>
                   <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/20">
-                    {companyLogo ? (
-                      <div className="relative h-16 w-16 bg-white border rounded p-1">
-                        <img src={companyLogo} alt="Preview" className="h-full w-full object-contain" />
-                        <Button 
-                          variant="destructive" 
-                          size="icon" 
-                          className="absolute -top-2 -right-2 h-5 w-5 rounded-full"
-                          onClick={() => setCompanyLogo('')}
-                        >
-                          ×
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="h-16 w-16 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
-                        <Building size={24} />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Upload high-resolution logo</p>
-                      <p className="text-xs text-muted-foreground">PNG, JPG recommended. Max 500KB.</p>
+                    <div className="h-12 w-12 border rounded bg-white flex items-center justify-center">
+                      {companyLogo ? <img src={companyLogo} className="h-full object-contain" /> : <Building />}
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()}>
-                      <UploadCloud size={16} className="mr-2" /> Select Logo
-                    </Button>
-                    <input 
-                      ref={logoInputRef}
-                      type="file" 
-                      className="hidden" 
-                      accept="image/*" 
-                      onChange={handleLogoUpload}
-                    />
+                    <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()}>Change Logo</Button>
+                    <input ref={logoInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
                   </div>
                 </div>
               </CardContent>
               <CardFooter className="border-t pt-6">
-                <Button onClick={handleSaveCompany} className="ml-auto">
-                  <Save size={16} className="mr-2" /> Save Company Profile
-                </Button>
+                <Button onClick={handleSaveCompany} className="ml-auto"><Save size={16} className="mr-2" /> Save Changes</Button>
               </CardFooter>
             </Card>
+          </div>
+        </TabsContent>
 
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Preview Header</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="p-4 border rounded-lg bg-white shadow-sm">
-                    <div className="flex items-center justify-between border-b pb-3 mb-3">
-                      {companyLogo ? (
-                        <img src={companyLogo} alt="Logo" className="h-8 object-contain" />
-                      ) : (
-                        <div className="h-8 w-8 bg-primary/10 rounded flex items-center justify-center text-primary font-bold">
-                          {companyName?.charAt(0) || 'A'}
-                        </div>
-                      )}
-                      <div className="text-right">
-                        <p className="text-xs font-bold text-primary uppercase">{companyName || 'Your Agency Name'}</p>
-                        <p className="text-[10px] text-muted-foreground">{companyWebsite || 'www.agency.com'}</p>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="h-2 w-2/3 bg-muted rounded animate-pulse" />
-                      <div className="h-2 w-1/2 bg-muted rounded animate-pulse" />
-                    </div>
-                  </div>
-                  <p className="mt-4 text-xs text-muted-foreground italic">
-                    * This is how your agency header will appear on generated Branded CVs.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+        {/* PLANS TAB */}
+        <TabsContent value="plans" className="mt-6">
+          <div className="grid md:grid-cols-3 gap-6">
+            <PlanCard 
+              name="Personal" 
+              price="Free" 
+              description="Basic tools for job seekers."
+              features={PLAN_FEATURES.Free}
+              isCurrent={user.role === 'Candidate'}
+            />
+            <PlanCard 
+              name="Professional" 
+              price="$19/mo" 
+              description="Advanced candidate branding toolkit."
+              features={PLAN_FEATURES.Professional}
+              highlight
+            />
+            <PlanCard 
+              name="Agency Enterprise" 
+              price="$199/mo" 
+              description="Full Talent Engine & Business Hub modules."
+              features={PLAN_FEATURES.Agency}
+              isCurrent={['Admin', 'Recruiter', 'Sales', 'Developer'].includes(user.role)}
+            />
           </div>
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function PlanCard({ name, price, description, features, isCurrent, highlight }: any) {
+  return (
+    <Card className={highlight ? "border-primary shadow-lg ring-1 ring-primary" : ""}>
+      <CardHeader>
+        <CardTitle>{name}</CardTitle>
+        <div className="text-3xl font-bold mt-2">{price}</div>
+        <CardDescription className="text-xs">{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ul className="space-y-2">
+          {features.map((f: string, i: number) => (
+            <li key={i} className="text-xs flex items-center gap-2">
+              <CheckCircle2 className="h-3 w-3 text-green-500" /> {f}
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+      <CardFooter>
+        <Button className="w-full" variant={isCurrent ? "outline" : "default"} disabled={isCurrent}>
+          {isCurrent ? "Active Tier" : "Upgrade Now"}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
