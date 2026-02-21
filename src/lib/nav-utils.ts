@@ -19,7 +19,8 @@ import {
   ClipboardCheck,
   UserCheck,
   FileSearch,
-  Database
+  Database,
+  Mic
 } from 'lucide-react';
 
 export interface NavLink {
@@ -47,7 +48,7 @@ const navGroups: NavGroup[] = [
       { href: '/clients', label: 'Clients', icon: React.createElement(Building, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
       { href: '/company-finder', label: 'Company Finder', icon: React.createElement(Search, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'] },
       { href: '/ai-parser', label: 'Smart Parser & Match', icon: React.createElement(ScanText, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'], badge: 'New' },
-      { href: '/interview-analysis', label: 'Interview Analysis', icon: React.createElement(FileSearch, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'], badge: 'New' },
+      { href: '/interview-analysis', label: 'AI Note Taker', icon: React.createElement(Mic, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'], badge: 'New' },
       { href: '/candidate-profiles', label: 'Candidate Notes', icon: React.createElement(UserCheck, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'] },
       { href: '/reports', label: 'Reports', icon: React.createElement(BarChart, { size: 18 }), roles: ['Admin', 'Sales', 'Developer'] },
     ]
@@ -82,11 +83,10 @@ export function getNavLinksForRole(role: Role) {
     }))
     .filter(group => group.links.length > 0 && group.roles.includes(role));
 
-    // Special case for recruiter/sales/admin/developer seeing the correct dashboard link
     if (role === 'Recruiter' || role === 'Sales' || role === 'Admin' || role === 'Developer') {
         const adminDashboardLink = navGroups[0].links.find(l => l.href === '/dashboard/admin');
         if (adminDashboardLink) {
-            let dashboardHref = '/dashboard/recruiter'; // default
+            let dashboardHref = '/dashboard/recruiter'; 
             if (role === 'Sales') dashboardHref = '/dashboard/sales';
             if (role === 'Admin' || role === 'Developer') dashboardHref = '/dashboard/admin';
             
@@ -102,7 +102,6 @@ export function getNavLinksForRole(role: Role) {
             }
         }
     }
-   // Special case for candidate seeing their dashboard link
    if (role === 'Candidate' || role === 'Developer') {
        const candidateDashboard = accessibleGroups.find(g => g.title === 'Candidate Tools');
        if(candidateDashboard) {
