@@ -3,6 +3,9 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { initializeFirebase } from '@/firebase';
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export type Role = 'Admin' | 'Recruiter' | 'Sales' | 'Candidate' | 'Developer';
 
@@ -23,10 +26,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
 
   useEffect(() => {
+    const { auth, firestore } = initializeFirebase();
+
+    // Listen for Firebase Auth changes to sync profile
+    const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
+      if (fbUser) {
+        const storedRole = localStorage.getItem('userRole') as Role;
+        if (storedRole) {
+          // Sync the Demo Role to the Firestore User Profile for Security Rules
+          const userRef = doc(firestore, 'users', fbUser.uid);
+          setDoc(userRef, {
+            id: fbUser.uid,
+            name: 'Demo User',
+            email: fbUser.email || 'demo@example.com',
+            role: storedRole,
+            plan: 'free',
+            onboardingStep: 'completed',
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+        }
+      }
+    });
+
     try {
       const storedRole = localStorage.getItem('userRole') as Role;
       if (storedRole) {
         setUser({ name: 'Demo User', role: storedRole });
+        // Ensure signed in to Firebase if role exists
+        if (!auth.currentUser) {
+          signInAnonymously(auth);
+        }
         if (pathname === '/' || pathname === '/login') {
             handleRedirect(storedRole);
         }
@@ -43,6 +72,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     finally {
       setIsLoading(false);
     }
+
+    return () => unsubscribeAuth();
   }, [pathname, router]);
 
   const handleRedirect = (role: Role) => {
@@ -64,15 +95,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const login = (selectedRole: Role) => {
+    const { auth } = initializeFirebase();
     const newUser = { name: 'Demo User', role: selectedRole };
     setUser(newUser);
     localStorage.setItem('userRole', selectedRole);
+    
+    // Sign into Firebase to enable Security Rules
+    signInAnonymously(auth);
+    
     handleRedirect(selectedRole);
   };
 
   const logout = () => {
+    const { auth } = initializeFirebase();
     setUser(null);
     localStorage.removeItem('userRole');
+    auth.signOut();
     router.push('/');
   };
 

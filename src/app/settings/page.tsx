@@ -23,11 +23,12 @@ import {
   CloudUpload
 } from 'lucide-react';
 import { doc, serverTimestamp } from 'firebase/firestore';
-import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const { user: firebaseUser } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("general");
@@ -38,10 +39,11 @@ export default function SettingsPage() {
   const [modelsError, setModelsError] = useState<string | null>(null);
 
   // Persistence (Firestore state)
+  // Defer fetching until Firebase User is present to avoid permission errors
   const registryDocRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !firebaseUser) return null;
     return doc(firestore, 'modelRegistry', 'latest');
-  }, [firestore]);
+  }, [firestore, firebaseUser]);
 
   const { data: registryData, isLoading: isLoadingRegistry } = useDoc<any>(registryDocRef);
 
@@ -207,7 +209,7 @@ export default function SettingsPage() {
                   )}
                 </div>
                 
-                {isLoadingRegistry ? (
+                {isLoadingRegistry || !firebaseUser ? (
                   <div className="flex flex-col items-center justify-center p-12 text-center">
                     <Spinner size={48} className="text-primary mb-4" />
                     <p className="text-sm text-muted-foreground">Loading from database...</p>
