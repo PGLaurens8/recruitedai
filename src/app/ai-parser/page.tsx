@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,11 +20,15 @@ import {
   Lightbulb,
   BarChartBig,
   Brain,
+  Clock,
+  DollarSign,
+  Monitor,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { fileToDataURI, textToDataURI } from "@/lib/file-utils";
 import { reformatResume, type ReformatResumeOutput } from "@/ai/flows/reformat-resume";
+import { extractCVData, type ExtractCVDataOutput } from "@/ai/flows/extract-cv-data";
 import { assessJobMatch, type AssessJobMatchInput, type AssessJobMatchOutput } from "@/ai/flows/assess-job-match";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +37,7 @@ import { ResumeSection } from "@/components/feature/resume-section";
 
 type ParsedResume = ReformatResumeOutput & {
   fileName: string;
+  extractedData?: ExtractCVDataOutput;
 };
 
 export default function AiParserPage() {
@@ -89,11 +94,22 @@ export default function AiParserPage() {
 
       try {
         const resumeDataUri = await fileToDataURI(file);
-        const result = await reformatResume({ resumeDataUri });
-        setParsedResume({ ...result, fileName: file.name });
+        
+        // Run both flows in parallel for testing
+        const [reformatResult, extractResult] = await Promise.all([
+          reformatResume({ resumeDataUri }),
+          extractCVData({ resumeDataUri })
+        ]);
+
+        setParsedResume({ 
+          ...reformatResult, 
+          fileName: file.name,
+          extractedData: extractResult
+        });
+
         toast({
-          title: "Resume Parsed!",
-          description: "Candidate details have been extracted.",
+          title: "Resume Parsed & Analyzed!",
+          description: "Candidate details and core metrics have been extracted.",
         });
       } catch (err: any) {
         setError(err.message || "An unexpected error occurred during parsing.");
@@ -218,10 +234,10 @@ export default function AiParserPage() {
              {isParsing && (
               <div className="mt-4 flex justify-center items-center gap-2 text-primary">
                 <Spinner size={16} />
-                <p>Parsing {resumeFile?.name}...</p>
+                <p>Parsing & Analyzing {resumeFile?.name}...</p>
               </div>
             )}
-            <p className="text-xs text-muted-foreground text-center mt-4">AI will automatically extract: Name, Email, Experience, Skills, Education</p>
+            <p className="text-xs text-muted-foreground text-center mt-4">AI will automatically extract: Name, Email, Experience, Skills, Education, Salary, and Notice Period</p>
           </CardContent>
         </Card>
 
@@ -285,14 +301,14 @@ export default function AiParserPage() {
       )}
 
       {parsedResume && (
-        <div className="mt-8">
-            <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
-              <Users/> Parsed Resume
-            </h2>
-            <Card>
+        <div className="mt-8 grid md:grid-cols-3 gap-6">
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5"/> Parsed Profile</CardTitle>
+              </CardHeader>
               <CardContent className="p-6">
                 <div className="flex flex-col sm:flex-row gap-4">
-                    <div>
+                    <div className="flex-1">
                       <h3 className="text-xl font-semibold">{parsedResume.fullName || 'Name Not Found'}</h3>
                       <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
                         <Mail className="h-4 w-4" />
@@ -302,20 +318,53 @@ export default function AiParserPage() {
                         <Briefcase className="h-4 w-4" />
                         {parsedResume.currentJobTitle || "Current title not found"}
                       </p>
+                      
+                      <div className="mt-6">
+                        <h4 className="text-sm font-semibold mb-2">AI Summary:</h4>
+                        <p className="text-sm text-muted-foreground italic">"{parsedResume.extractedData?.summary || 'No summary generated.'}"</p>
+                      </div>
+
                       <div className="mt-4">
-                        <h4 className="text-sm font-semibold">Skills:</h4>
+                        <h4 className="text-sm font-semibold">Top Skills:</h4>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {parsedResume.skills && parsedResume.skills.length > 0 ? (
-                            parsedResume.skills.slice(0, 5).map((skill, index) => <Badge key={`${skill}-${index}`} variant="secondary">{skill}</Badge>)
+                            parsedResume.skills.slice(0, 10).map((skill, index) => <Badge key={`${skill}-${index}`} variant="secondary">{skill}</Badge>)
                           ) : (
                             <p className="text-sm text-muted-foreground">No skills extracted.</p>
-                          )}
-                          {parsedResume.skills && parsedResume.skills.length > 5 && (
-                            <Badge variant="outline">+{parsedResume.skills.length - 5}</Badge>
                           )}
                         </div>
                       </div>
                     </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Core Metrics</CardTitle>
+                <CardDescription>Extracted from Resume</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>Notice Period</span>
+                  </div>
+                  <Badge variant="outline" className="text-primary">{parsedResume.extractedData?.noticePeriod || 'N/A'}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <DollarSign className="h-4 w-4" />
+                    <span>Salary Expectation</span>
+                  </div>
+                  <Badge variant="outline" className="text-green-600">{parsedResume.extractedData?.salary || 'N/A'}</Badge>
+                </div>
+                <div className="pt-4 border-t">
+                  <div className="flex items-center gap-2 text-sm font-semibold mb-2">
+                    <Monitor className="h-4 w-4 text-primary" />
+                    <span>PC Specifications:</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{parsedResume.extractedData?.pcSpecs || 'No hardware details found.'}</p>
                 </div>
               </CardContent>
             </Card>

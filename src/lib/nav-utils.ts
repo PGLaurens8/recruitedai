@@ -17,7 +17,8 @@ import {
   Search,
   ScanText,
   ClipboardCheck,
-  UserCheck
+  UserCheck,
+  FileSearch
 } from 'lucide-react';
 
 export interface NavLink {
@@ -25,7 +26,7 @@ export interface NavLink {
   label: string;
   icon: React.ReactNode;
   roles: Role[];
-  badge?: 'Premium';
+  badge?: 'Premium' | 'New';
 }
 
 export interface NavGroup {
@@ -44,8 +45,9 @@ const navGroups: NavGroup[] = [
       { href: '/jobs', label: 'Jobs', icon: React.createElement(Briefcase, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales'] },
       { href: '/clients', label: 'Clients', icon: React.createElement(Building, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales'] },
       { href: '/company-finder', label: 'Company Finder', icon: React.createElement(Search, { size: 18 }), roles: ['Admin', 'Recruiter'] },
-      { href: '/ai-parser', label: 'Job Matcher', icon: React.createElement(ScanText, { size: 18 }), roles: ['Admin', 'Recruiter'] },
-      { href: '/candidate-profiles', label: 'Candidate Profiles', icon: React.createElement(UserCheck, { size: 18 }), roles: ['Admin', 'Recruiter'] },
+      { href: '/ai-parser', label: 'Smart Parser & Match', icon: React.createElement(ScanText, { size: 18 }), roles: ['Admin', 'Recruiter'], badge: 'New' },
+      { href: '/interview-analysis', label: 'Interview Analysis', icon: React.createElement(FileSearch, { size: 18 }), roles: ['Admin', 'Recruiter'], badge: 'New' },
+      { href: '/candidate-profiles', label: 'Candidate Notes', icon: React.createElement(UserCheck, { size: 18 }), roles: ['Admin', 'Recruiter'] },
       { href: '/reports', label: 'Reports', icon: React.createElement(BarChart, { size: 18 }), roles: ['Admin', 'Sales'] },
     ]
   },
