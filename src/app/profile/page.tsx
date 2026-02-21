@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -45,21 +46,47 @@ export default function ProfilePage() {
   }, []);
 
   const handleSaveCompany = () => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_NAME, companyName);
-    localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_LOGO, companyLogo);
-    localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_WEBSITE, companyWebsite);
-    localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_EMAIL, companyEmail);
-    localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_ADDRESS, companyAddress);
-    
-    toast({
-      title: "Company Profile Saved",
-      description: "Your branding details have been updated successfully.",
-    });
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_NAME, companyName);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_LOGO, companyLogo);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_WEBSITE, companyWebsite);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_EMAIL, companyEmail);
+      localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_ADDRESS, companyAddress);
+      
+      toast({
+        title: "Company Profile Saved",
+        description: "Your branding details have been updated successfully.",
+      });
+    } catch (e: any) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        toast({
+          variant: "destructive",
+          title: "Storage Limit Exceeded",
+          description: "The logo file is too large to store in the browser. Please use a smaller image (under 500KB).",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Save Failed",
+          description: "Could not update company profile. Please try again.",
+        });
+      }
+    }
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const uri = await fileToDataURI(e.target.files[0]);
+      const file = e.target.files[0];
+      // Check size (500KB is a safe bet for localStorage when multiple items are stored)
+      if (file.size > 500 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Image Too Large",
+          description: "Agency logos should be under 500KB for browser storage safety.",
+        });
+        return;
+      }
+      const uri = await fileToDataURI(file);
       setCompanyLogo(uri);
     }
   };
@@ -213,7 +240,7 @@ export default function ProfilePage() {
                     )}
                     <div className="flex-1">
                       <p className="text-sm font-medium">Upload high-resolution logo</p>
-                      <p className="text-xs text-muted-foreground">PNG, JPG recommended. Max 2MB.</p>
+                      <p className="text-xs text-muted-foreground">PNG, JPG recommended. Max 500KB.</p>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()}>
                       <UploadCloud size={16} className="mr-2" /> Select Logo
