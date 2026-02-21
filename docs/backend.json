@@ -1,14 +1,14 @@
 {
   "entities": {
-    "UserProfile": {
+    "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserProfile",
+      "title": "User",
       "type": "object",
-      "description": "Stores profile information and subscription details for a user of the CareerCraft AI application. This serves as the core identity for managing user-specific data.",
+      "description": "Represents a user of the CareerCraft AI application, storing their profile information and subscription plan.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the UserProfile entity."
+          "description": "Unique identifier for the User entity."
         },
         "name": {
           "type": "string",
@@ -16,25 +16,25 @@
         },
         "email": {
           "type": "string",
-          "description": "The user's email address, used for login and notifications.",
+          "description": "The email address of the user, used for login and notifications.",
           "format": "email"
         },
         "plan": {
           "type": "string",
-          "description": "The current subscription plan of the user (e.g., 'free', 'premium', 'enterprise')."
+          "description": "The subscription plan of the user (e.g., 'free', 'premium')."
         },
         "onboardingStep": {
           "type": "string",
-          "description": "Tracks the user's progress through the initial application onboarding flow."
+          "description": "Tracks the user's progress through the initial onboarding flow."
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp when the user profile was created.",
+          "description": "Timestamp when the user account was created.",
           "format": "date-time"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Timestamp of the last update to the user profile.",
+          "description": "Timestamp when the user account was last updated.",
           "format": "date-time"
         }
       },
@@ -48,73 +48,45 @@
         "updatedAt"
       ]
     },
-    "Resume": {
+    "MasterResume": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Resume",
+      "title": "MasterResume",
       "type": "object",
-      "description": "Represents a user's resume document, which can be a comprehensive 'Master Resume' or a 'Targeted Resume' adapted for a specific job.",
+      "description": "Represents the user's primary, comprehensive resume, often built from an uploaded document and AI restructuring. This serves as the foundational resume.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Resume entity."
+          "description": "Unique identifier for the MasterResume entity."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the UserProfile who owns this resume. (Relationship: UserProfile 1:N Resume)"
+          "description": "Reference to the User who owns this master resume. (Relationship: User 1:N MasterResume)"
         },
         "title": {
           "type": "string",
-          "description": "A descriptive title for the resume (e.g., 'Master Resume', 'Software Engineer for Google')."
-        },
-        "isMasterResume": {
-          "type": "boolean",
-          "description": "Indicates if this resume is the user's primary, comprehensive master resume."
-        },
-        "masterResumeId": {
-          "type": "string",
-          "description": "Reference to the Master Resume from which this targeted resume was derived. Only applicable if 'isMasterResume' is false. (Relationship: Resume 1:N Resume)"
-        },
-        "jobSpecId": {
-          "type": "string",
-          "description": "Reference to the JobSpecification entity for which this resume was tailored. Only applicable if 'isMasterResume' is false. (Relationship: JobSpecification 1:N Resume)"
-        },
-        "sourceFileId": {
-          "type": "string",
-          "description": "Reference to the UploadedFile entity from which this resume was initially built or uploaded. (Relationship: UploadedFile 1:N Resume)"
+          "description": "A user-defined title for the master resume (e.g., 'My Core Resume')."
         },
         "summary": {
           "type": "string",
-          "description": "The AI-generated or user-provided professional summary or objective for the resume."
+          "description": "A concise overview or professional summary of the user's experience and goals."
         },
-        "workExperienceIds": {
-          "type": "array",
-          "description": "References to WorkExperience entities associated with this resume, ordered by importance or date. (Relationship: Resume 1:N WorkExperience)",
-          "items": {
-            "type": "string"
-          }
+        "originalFileName": {
+          "type": "string",
+          "description": "The original file name of the uploaded document (e.g., 'John_Doe_CV.pdf') from which this master resume was generated. Null if created from scratch."
         },
-        "educationIds": {
-          "type": "array",
-          "description": "References to Education entities associated with this resume, ordered by importance or date. (Relationship: Resume 1:N Education)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "skillIds": {
-          "type": "array",
-          "description": "References to Skill entities associated with this resume, representing expertise areas. (Relationship: Resume 1:N Skill)",
-          "items": {
-            "type": "string"
-          }
+        "originalFileUrl": {
+          "type": "string",
+          "description": "URL to the stored original resume file in cloud storage. Null if created from scratch.",
+          "format": "uri"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp when the resume was first created.",
+          "description": "Timestamp when the master resume was first created.",
           "format": "date-time"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Timestamp of the last modification to the resume.",
+          "description": "Timestamp when the master resume was last updated.",
           "format": "date-time"
         }
       },
@@ -122,11 +94,7 @@
         "id",
         "userId",
         "title",
-        "isMasterResume",
         "summary",
-        "workExperienceIds",
-        "educationIds",
-        "skillIds",
         "createdAt",
         "updatedAt"
       ]
@@ -135,239 +103,193 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "WorkExperience",
       "type": "object",
-      "description": "Represents a single work experience entry on a resume, detailing a past or current job role.",
+      "description": "Represents a single work experience entry within a master resume. These entries are the building blocks for targeted resumes.",
       "properties": {
         "id": {
           "type": "string",
           "description": "Unique identifier for the WorkExperience entity."
         },
-        "resumeId": {
+        "masterResumeId": {
           "type": "string",
-          "description": "Reference to the Resume entity this work experience belongs to. (Relationship: Resume 1:N WorkExperience)"
+          "description": "Reference to the MasterResume this experience belongs to. (Relationship: MasterResume 1:N WorkExperience)"
         },
-        "title": {
+        "jobTitle": {
           "type": "string",
-          "description": "The job title held (e.g., 'Senior Software Engineer')."
+          "description": "The title of the position held."
         },
         "companyName": {
           "type": "string",
-          "description": "The name of the company where the experience was gained."
+          "description": "The name of the company or organization."
         },
         "location": {
           "type": "string",
-          "description": "The city and state/country of the employment."
+          "description": "The location of the job (city, state, country)."
         },
         "startDate": {
           "type": "string",
-          "description": "The start date of the employment.",
+          "description": "The start date of employment.",
           "format": "date"
         },
         "endDate": {
           "type": "string",
-          "description": "The end date of the employment. This field is null if 'isCurrent' is true.",
+          "description": "The end date of employment. Can be null if currently employed.",
           "format": "date"
-        },
-        "isCurrent": {
-          "type": "boolean",
-          "description": "Indicates if this is a current job role."
         },
         "description": {
           "type": "string",
-          "description": "A detailed description of responsibilities and key achievements in the role."
+          "description": "A detailed description of responsibilities and achievements in the role, typically as bullet points or paragraphs."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of this experience within the resume section, lower numbers appear first."
         }
       },
       "required": [
         "id",
-        "resumeId",
-        "title",
+        "masterResumeId",
+        "jobTitle",
         "companyName",
+        "location",
         "startDate",
         "description",
-        "isCurrent"
+        "order"
       ]
     },
     "Education": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Education",
       "type": "object",
-      "description": "Represents a single education entry on a resume, detailing academic achievements.",
+      "description": "Represents an educational background entry within a master resume.",
       "properties": {
         "id": {
           "type": "string",
           "description": "Unique identifier for the Education entity."
         },
-        "resumeId": {
+        "masterResumeId": {
           "type": "string",
-          "description": "Reference to the Resume entity this education entry belongs to. (Relationship: Resume 1:N Education)"
+          "description": "Reference to the MasterResume this education entry belongs to. (Relationship: MasterResume 1:N Education)"
+        },
+        "degree": {
+          "type": "string",
+          "description": "The degree or qualification obtained (e.g., 'B.Sc. Computer Science', 'MBA')."
+        },
+        "fieldOfStudy": {
+          "type": "string",
+          "description": "The main field of study."
         },
         "institutionName": {
           "type": "string",
           "description": "The name of the educational institution."
         },
-        "degree": {
+        "location": {
           "type": "string",
-          "description": "The degree or qualification obtained (e.g., 'Bachelor of Science', 'Master of Arts')."
+          "description": "The location of the institution."
         },
-        "fieldOfStudy": {
+        "graduationDate": {
           "type": "string",
-          "description": "The specific field or major of study (e.g., 'Computer Science', 'Business Administration')."
-        },
-        "startDate": {
-          "type": "string",
-          "description": "The start date of the education period.",
+          "description": "The date of graduation or completion.",
           "format": "date"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "The end date of the education period.",
-          "format": "date"
-        },
-        "grade": {
-          "type": "string",
-          "description": "Optional: GPA, honors, or other academic distinctions (e.g., '3.8 GPA', 'Magna Cum Laude')."
         },
         "description": {
           "type": "string",
-          "description": "Optional: Relevant coursework, academic projects, or activities."
+          "description": "Additional details like honors, relevant coursework, or GPA."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of this education entry within the resume section, lower numbers appear first."
         }
       },
       "required": [
         "id",
-        "resumeId",
-        "institutionName",
+        "masterResumeId",
         "degree",
-        "fieldOfStudy",
-        "startDate",
-        "endDate"
+        "institutionName",
+        "location",
+        "order"
       ]
     },
     "Skill": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Skill",
       "type": "object",
-      "description": "Represents a specific skill or area of expertise relevant to a resume.",
+      "description": "Represents a skill listed within a master resume.",
       "properties": {
         "id": {
           "type": "string",
           "description": "Unique identifier for the Skill entity."
         },
-        "resumeId": {
+        "masterResumeId": {
           "type": "string",
-          "description": "Reference to the Resume entity this skill is associated with. (Relationship: Resume 1:N Skill)"
+          "description": "Reference to the MasterResume this skill belongs to. (Relationship: MasterResume 1:N Skill)"
         },
         "name": {
           "type": "string",
-          "description": "The name of the skill (e.g., 'Python', 'Project Management', 'Data Analysis')."
-        },
-        "category": {
-          "type": "string",
-          "description": "Optional: A category for the skill (e.g., 'Programming Languages', 'Soft Skills', 'Tools')."
+          "description": "The name of the skill (e.g., 'Python', 'Project Management')."
         },
         "proficiency": {
           "type": "string",
-          "description": "Optional: The user's proficiency level with the skill (e.g., 'Beginner', 'Intermediate', 'Advanced', 'Expert')."
+          "description": "The user's proficiency level in the skill (e.g., 'Beginner', 'Intermediate', 'Expert')."
+        },
+        "category": {
+          "type": "string",
+          "description": "A categorization of the skill (e.g., 'Programming Languages', 'Soft Skills', 'Tools')."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of this skill within its category or the skills section, lower numbers appear first."
         }
       },
       "required": [
         "id",
-        "resumeId",
-        "name"
+        "masterResumeId",
+        "name",
+        "order"
       ]
     },
-    "UploadedFile": {
+    "JobSpec": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UploadedFile",
+      "title": "JobSpec",
       "type": "object",
-      "description": "Stores metadata about files (e.g., resumes, job specifications) uploaded by users for processing.",
+      "description": "Represents a job specification uploaded or linked by the user for resume targeting.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the UploadedFile entity."
+          "description": "Unique identifier for the JobSpec entity."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the UserProfile who uploaded this file. (Relationship: UserProfile 1:N UploadedFile)"
-        },
-        "fileName": {
-          "type": "string",
-          "description": "The original name of the uploaded file."
-        },
-        "fileType": {
-          "type": "string",
-          "description": "The MIME type of the file (e.g., 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')."
-        },
-        "storagePath": {
-          "type": "string",
-          "description": "The path or URL to the file's location in cloud storage (e.g., Firebase Storage).",
-          "format": "uri"
-        },
-        "contentType": {
-          "type": "string",
-          "description": "Specifies what the uploaded file represents (e.g., 'resume', 'jobSpec')."
-        },
-        "uploadedAt": {
-          "type": "string",
-          "description": "Timestamp when the file was uploaded.",
-          "format": "date-time"
-        },
-        "originalContent": {
-          "type": "string",
-          "description": "The extracted plain text content from the file, or the URL if it was a web link upload."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "fileName",
-        "fileType",
-        "storagePath",
-        "contentType",
-        "uploadedAt"
-      ]
-    },
-    "JobSpecification": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "JobSpecification",
-      "type": "object",
-      "description": "Stores the details of a job specification provided by the user, used for tailoring resumes.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the JobSpecification entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile who provided this job specification. (Relationship: UserProfile 1:N JobSpecification)"
+          "description": "Reference to the User who uploaded this job specification. (Relationship: User 1:N JobSpec)"
         },
         "title": {
           "type": "string",
-          "description": "The job title extracted from the specification (e.g., 'Senior Software Engineer')."
-        },
-        "companyName": {
-          "type": "string",
-          "description": "The company name associated with the job specification."
-        },
-        "description": {
-          "type": "string",
-          "description": "The full text content of the job description."
+          "description": "A user-friendly title for the job specification (e.g., 'Software Engineer - Google')."
         },
         "sourceUrl": {
           "type": "string",
-          "description": "The original URL if the job specification was provided via a web link.",
+          "description": "The web URL if the job spec was provided as a link. Null if uploaded as a file.",
           "format": "uri"
         },
-        "associatedFileId": {
+        "uploadedFileName": {
           "type": "string",
-          "description": "Reference to the UploadedFile entity if the job spec was from an uploaded document. (Relationship: UploadedFile 1:N JobSpecification)"
+          "description": "The original file name if the job spec was uploaded as a document. Null if provided as a URL."
         },
-        "uploadedAt": {
+        "uploadedFileUrl": {
           "type": "string",
-          "description": "Timestamp when the job specification was provided or uploaded.",
+          "description": "URL to the stored uploaded job specification file in cloud storage. Null if provided as a URL.",
+          "format": "uri"
+        },
+        "extractedText": {
+          "type": "string",
+          "description": "The full text content extracted from the job specification, used for AI analysis and matching."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the job specification was created/uploaded.",
           "format": "date-time"
         },
-        "lastAnalyzedAt": {
+        "updatedAt": {
           "type": "string",
-          "description": "Timestamp of the last AI analysis performed on this job specification.",
+          "description": "Timestamp when the job specification was last updated.",
           "format": "date-time"
         }
       },
@@ -375,77 +297,238 @@
         "id",
         "userId",
         "title",
-        "description",
-        "uploadedAt"
+        "extractedText",
+        "createdAt",
+        "updatedAt"
       ]
     },
-    "AIRequest": {
+    "TargetedResume": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AIRequest",
+      "title": "TargetedResume",
       "type": "object",
-      "description": "Logs details of AI-powered processing requests made by users, such as resume suggestions or job matching analysis.",
+      "description": "Represents a version of a resume tailored specifically for a particular job specification, derived from a MasterResume. It has its own summary and can have modified sections.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the AIRequest entity."
+          "description": "Unique identifier for the TargetedResume entity."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the UserProfile who initiated the AI request. (Relationship: UserProfile 1:N AIRequest)"
+          "description": "Reference to the User who owns this targeted resume. (Relationship: User 1:N TargetedResume)"
         },
-        "resumeId": {
+        "masterResumeId": {
           "type": "string",
-          "description": "Reference to the Resume entity if the request is related to a specific resume. (Relationship: Resume 1:N AIRequest)"
+          "description": "Reference to the MasterResume from which this targeted resume was derived. (Relationship: MasterResume 1:N TargetedResume)"
         },
         "jobSpecId": {
           "type": "string",
-          "description": "Reference to the JobSpecification entity if the request is related to a specific job specification. (Relationship: JobSpecification 1:N AIRequest)"
+          "description": "Reference to the JobSpec this resume is targeting. (Relationship: JobSpec 1:N TargetedResume)"
         },
-        "type": {
+        "title": {
           "type": "string",
-          "description": "The type of AI request (e.g., 'suggestSummary', 'reformatMasterResume', 'matchJobSpec', 'answerQuestion')."
+          "description": "A descriptive title for this targeted resume (e.g., 'Software Engineer Resume for Google')."
         },
-        "inputData": {
+        "customSummary": {
           "type": "string",
-          "description": "The input parameters or data sent to the AI model, stored as a JSON string."
+          "description": "A summary specifically tailored for this targeted job application, potentially AI-generated."
         },
-        "result": {
-          "type": "string",
-          "description": "The structured output or response received from the AI model, stored as a JSON string."
+        "matchScore": {
+          "type": "number",
+          "description": "An AI-generated score (e.g., 0-100) indicating how well this resume matches the job specification."
         },
-        "status": {
+        "aiAnalysisReport": {
           "type": "string",
-          "description": "Current status of the AI request (e.g., 'pending', 'completed', 'failed')."
+          "description": "A detailed report from the AI explaining the match assessment and suggestions for this targeted resume."
         },
-        "errorMessage": {
+        "createdAt": {
           "type": "string",
-          "description": "Details if the AI request failed."
-        },
-        "requestedAt": {
-          "type": "string",
-          "description": "Timestamp when the AI request was initiated.",
+          "description": "Timestamp when the targeted resume was created.",
           "format": "date-time"
         },
-        "completedAt": {
+        "updatedAt": {
           "type": "string",
-          "description": "Timestamp when the AI request was completed or failed.",
+          "description": "Timestamp when the targeted resume was last updated.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
         "userId",
-        "type",
-        "inputData",
-        "status",
-        "requestedAt"
+        "masterResumeId",
+        "jobSpecId",
+        "title",
+        "customSummary",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "TargetedWorkExperience": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TargetedWorkExperience",
+      "type": "object",
+      "description": "A work experience entry specifically tailored for a TargetedResume, derived from a MasterResume's WorkExperience.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the TargetedWorkExperience entity."
+        },
+        "targetedResumeId": {
+          "type": "string",
+          "description": "Reference to the TargetedResume this experience belongs to. (Relationship: TargetedResume 1:N TargetedWorkExperience)"
+        },
+        "masterWorkExperienceId": {
+          "type": "string",
+          "description": "Reference to the original WorkExperience in the MasterResume from which this entry was derived. (Relationship: WorkExperience 1:N TargetedWorkExperience)"
+        },
+        "jobTitle": {
+          "type": "string",
+          "description": "The tailored title of the position held."
+        },
+        "companyName": {
+          "type": "string",
+          "description": "The company name."
+        },
+        "location": {
+          "type": "string",
+          "description": "The tailored location of the job."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of employment for this entry.",
+          "format": "date"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of employment for this entry. Can be null if currently employed.",
+          "format": "date"
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of responsibilities and achievements in the role, tailored to the job specification."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of this tailored experience within the targeted resume section."
+        }
+      },
+      "required": [
+        "id",
+        "targetedResumeId",
+        "masterWorkExperienceId",
+        "jobTitle",
+        "companyName",
+        "location",
+        "startDate",
+        "description",
+        "order"
+      ]
+    },
+    "TargetedEducation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TargetedEducation",
+      "type": "object",
+      "description": "An education entry specifically tailored for a TargetedResume, derived from a MasterResume's Education.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the TargetedEducation entity."
+        },
+        "targetedResumeId": {
+          "type": "string",
+          "description": "Reference to the TargetedResume this education entry belongs to. (Relationship: TargetedResume 1:N TargetedEducation)"
+        },
+        "masterEducationId": {
+          "type": "string",
+          "description": "Reference to the original Education in the MasterResume from which this entry was derived. (Relationship: Education 1:N TargetedEducation)"
+        },
+        "degree": {
+          "type": "string",
+          "description": "The tailored degree or qualification."
+        },
+        "fieldOfStudy": {
+          "type": "string",
+          "description": "The tailored field of study."
+        },
+        "institutionName": {
+          "type": "string",
+          "description": "The institution name."
+        },
+        "location": {
+          "type": "string",
+          "description": "The tailored location of the institution."
+        },
+        "graduationDate": {
+          "type": "string",
+          "description": "The graduation or completion date for this entry.",
+          "format": "date"
+        },
+        "description": {
+          "type": "string",
+          "description": "Additional details like honors, relevant coursework, or GPA, tailored to the job specification."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of this tailored education entry within the targeted resume section."
+        }
+      },
+      "required": [
+        "id",
+        "targetedResumeId",
+        "masterEducationId",
+        "degree",
+        "institutionName",
+        "location",
+        "order"
+      ]
+    },
+    "TargetedSkill": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TargetedSkill",
+      "type": "object",
+      "description": "A skill entry specifically tailored for a TargetedResume, derived from a MasterResume's Skill.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the TargetedSkill entity."
+        },
+        "targetedResumeId": {
+          "type": "string",
+          "description": "Reference to the TargetedResume this skill belongs to. (Relationship: TargetedResume 1:N TargetedSkill)"
+        },
+        "masterSkillId": {
+          "type": "string",
+          "description": "Reference to the original Skill in the MasterResume from which this entry was derived. (Relationship: Skill 1:N TargetedSkill)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The tailored name of the skill."
+        },
+        "proficiency": {
+          "type": "string",
+          "description": "The tailored proficiency level in the skill."
+        },
+        "category": {
+          "type": "string",
+          "description": "The tailored categorization of the skill."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of this tailored skill within the targeted resume section."
+        }
+      },
+      "required": [
+        "id",
+        "targetedResumeId",
+        "masterSkillId",
+        "name",
+        "order"
       ]
     },
     "Payment": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Payment",
       "type": "object",
-      "description": "Records payment transactions made by users for plan upgrades or subscriptions.",
+      "description": "Records payment transactions made by users for premium features.",
       "properties": {
         "id": {
           "type": "string",
@@ -453,7 +536,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the UserProfile who made the payment. (Relationship: UserProfile 1:N Payment)"
+          "description": "Reference to the User who made the payment. (Relationship: User 1:N Payment)"
         },
         "amount": {
           "type": "number",
@@ -465,28 +548,19 @@
         },
         "plan": {
           "type": "string",
-          "description": "The subscription plan purchased (e.g., 'premium', 'enterprise')."
+          "description": "The subscription plan associated with this payment (e.g., 'premium')."
         },
         "status": {
           "type": "string",
-          "description": "The status of the payment (e.g., 'succeeded', 'failed', 'pending', 'refunded')."
+          "description": "The status of the payment (e.g., 'completed', 'failed', 'pending')."
         },
-        "transactionId": {
+        "paymentProviderTransactionId": {
           "type": "string",
-          "description": "The unique transaction ID from the payment gateway (e.g., Stripe)."
-        },
-        "paymentMethod": {
-          "type": "string",
-          "description": "The payment method used (e.g., 'card', 'paypal', 'bank_transfer')."
+          "description": "The transaction ID from the payment provider (e.g., Stripe)."
         },
         "createdAt": {
           "type": "string",
           "description": "Timestamp when the payment record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp of the last update to the payment record.",
           "format": "date-time"
         }
       },
@@ -497,136 +571,216 @@
         "currency",
         "plan",
         "status",
-        "transactionId",
+        "paymentProviderTransactionId",
+        "createdAt"
+      ]
+    },
+    "AIRequest": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AIRequest",
+      "type": "object",
+      "description": "Logs all AI-powered requests and their outcomes, such as resume suggestions, restructuring, or job spec analysis.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the AIRequest entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who initiated the AI request. (Relationship: User 1:N AIRequest)"
+        },
+        "masterResumeId": {
+          "type": "string",
+          "description": "Reference to the MasterResume involved in the AI request, if applicable. (Relationship: MasterResume 1:N AIRequest)"
+        },
+        "jobSpecId": {
+          "type": "string",
+          "description": "Reference to the JobSpec involved in the AI request, if applicable. (Relationship: JobSpec 1:N AIRequest)"
+        },
+        "targetedResumeId": {
+          "type": "string",
+          "description": "Reference to the TargetedResume involved in the AI request, if applicable. (Relationship: TargetedResume 1:N AIRequest)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of AI request (e.g., 'suggestSummary', 'assessMatch', 'restructureResume', 'extractJobSpec')."
+        },
+        "requestPayload": {
+          "type": "string",
+          "description": "The input data sent to the AI model for the request, typically a JSON string of relevant data."
+        },
+        "responseResult": {
+          "type": "string",
+          "description": "The output or result received from the AI model, typically a JSON string of the AI's response."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the AI request (e.g., 'pending', 'completed', 'failed')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the AI request was made.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "requestPayload",
+        "responseResult",
+        "status",
+        "createdAt"
+      ]
+    },
+    "OnlineResumePage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OnlineResumePage",
+      "type": "object",
+      "description": "Represents a publicly shareable online version of a user's resume, which can be based on either a master or a targeted resume.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the OnlineResumePage entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who owns this online resume page. (Relationship: User 1:N OnlineResumePage)"
+        },
+        "masterResumeId": {
+          "type": "string",
+          "description": "Reference to the MasterResume this online page is based on. Required if not based on a TargetedResume. (Relationship: MasterResume 1:N OnlineResumePage)"
+        },
+        "targetedResumeId": {
+          "type": "string",
+          "description": "Reference to a specific TargetedResume this online page is based on. Required if not based on a MasterResume. (Relationship: TargetedResume 1:N OnlineResumePage)"
+        },
+        "publicUrlPath": {
+          "type": "string",
+          "description": "A unique, user-friendly path for the public URL (e.g., 'john-doe-software-engineer'). This forms part of the shareable URL."
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Indicates whether the online resume page is currently publicly accessible."
+        },
+        "themeSettings": {
+          "type": "string",
+          "description": "JSON string storing UI customization settings for the online page (e.g., colors, fonts, layout choices)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the online resume page was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the online resume page was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "publicUrlPath",
+        "isPublic",
         "createdAt",
         "updatedAt"
       ]
     },
-    "OnlineResume": {
+    "LinkTreeBioPage": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "OnlineResume",
+      "title": "LinkTreeBioPage",
       "type": "object",
-      "description": "Represents a publicly shareable web page version of a user's resume.",
+      "description": "Represents a customizable 'link in bio' style page for a user to share multiple online profiles and links.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the OnlineResume entity."
+          "description": "Unique identifier for the LinkTreeBioPage entity."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the UserProfile who owns this online resume. (Relationship: UserProfile 1:N OnlineResume)"
+          "description": "Reference to the User who owns this LinkTree bio page. (Relationship: User 1:N LinkTreeBioPage)"
         },
-        "resumeId": {
+        "publicUrlPath": {
           "type": "string",
-          "description": "Reference to the specific Resume entity this online version is based on. (Relationship: Resume 1:1 OnlineResume)"
+          "description": "A unique, user-friendly path for the public URL (e.g., 'john-doe-links'). This forms part of the shareable URL."
         },
-        "publicUrlSlug": {
-          "type": "string",
-          "description": "A unique, user-friendly slug used to form the public URL for accessing this online resume."
-        },
-        "isPublished": {
+        "isPublic": {
           "type": "boolean",
-          "description": "Indicates whether the online resume is currently live and publicly accessible."
+          "description": "Indicates whether the LinkTree bio page is currently publicly accessible."
         },
-        "themeSettings": {
+        "title": {
           "type": "string",
-          "description": "JSON string representing customization options for the online resume's appearance (e.g., colors, fonts, layout)."
+          "description": "A title for the LinkTree bio page (e.g., 'My Professional Links')."
         },
-        "viewCount": {
-          "type": "number",
-          "description": "A counter for how many times the online resume has been viewed."
-        },
-        "publishedAt": {
+        "description": {
           "type": "string",
-          "description": "Timestamp when the online resume was first published.",
-          "format": "date-time"
-        },
-        "lastUpdatedAt": {
-          "type": "string",
-          "description": "Timestamp of the last update to the online resume's content or settings.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "resumeId",
-        "publicUrlSlug",
-        "isPublished",
-        "publishedAt",
-        "lastUpdatedAt"
-      ]
-    },
-    "LinkTree": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "LinkTree",
-      "type": "object",
-      "description": "Represents a user's customizable 'link in bio' style page, consolidating various online profiles and resources.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the LinkTree entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile who owns this LinkTree. (Relationship: UserProfile 1:N LinkTree)"
-        },
-        "publicUrlSlug": {
-          "type": "string",
-          "description": "A unique, user-friendly slug used to form the public URL for accessing this LinkTree."
-        },
-        "isPublished": {
-          "type": "boolean",
-          "description": "Indicates whether the LinkTree is currently live and publicly accessible."
-        },
-        "profileTitle": {
-          "type": "string",
-          "description": "The main title displayed on the LinkTree page (e.g., 'John Doe | My Professional Links')."
-        },
-        "bio": {
-          "type": "string",
-          "description": "A short descriptive text or personal statement for the LinkTree page."
+          "description": "A short introductory description for the page."
         },
         "profileImageUrl": {
           "type": "string",
-          "description": "URL to the user's profile picture displayed on the LinkTree.",
+          "description": "URL to the user's profile image displayed on the page.",
           "format": "uri"
-        },
-        "links": {
-          "type": "array",
-          "description": "An array of JSON strings, where each string represents a link object (e.g., '{\"title\": \"LinkedIn\", \"url\": \"https://linkedin.com/in/johndoe\", \"icon\": \"linkedin\"}').",
-          "items": {
-            "type": "string"
-          }
         },
         "themeSettings": {
           "type": "string",
-          "description": "JSON string representing customization options for the LinkTree's appearance (e.g., colors, fonts, layout)."
+          "description": "JSON string storing UI customization settings for the LinkTree page (e.g., colors, fonts, button styles)."
         },
-        "viewCount": {
-          "type": "number",
-          "description": "A counter for how many times the LinkTree page has been viewed."
-        },
-        "publishedAt": {
+        "createdAt": {
           "type": "string",
-          "description": "Timestamp when the LinkTree was first published.",
+          "description": "Timestamp when the LinkTree bio page was created.",
           "format": "date-time"
         },
-        "lastUpdatedAt": {
+        "updatedAt": {
           "type": "string",
-          "description": "Timestamp of the last update to the LinkTree's content or settings.",
+          "description": "Timestamp when the LinkTree bio page was last updated.",
           "format": "date-time"
         }
       },
       "required": [
         "id",
         "userId",
-        "publicUrlSlug",
-        "isPublished",
-        "profileTitle",
-        "links",
-        "publishedAt",
-        "lastUpdatedAt"
+        "publicUrlPath",
+        "isPublic",
+        "title",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "LinkTreeLink": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LinkTreeLink",
+      "type": "object",
+      "description": "Represents an individual link on a user's LinkTree bio page.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the LinkTreeLink entity."
+        },
+        "linkTreeBioPageId": {
+          "type": "string",
+          "description": "Reference to the LinkTreeBioPage this link belongs to. (Relationship: LinkTreeBioPage 1:N LinkTreeLink)"
+        },
+        "label": {
+          "type": "string",
+          "description": "The display text for the link (e.g., 'My Portfolio', 'LinkedIn Profile')."
+        },
+        "url": {
+          "type": "string",
+          "description": "The actual URL the link points to.",
+          "format": "uri"
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of this link on the page, lower numbers appear first."
+        }
+      },
+      "required": [
+        "id",
+        "linkTreeBioPageId",
+        "label",
+        "url",
+        "order"
       ]
     }
   },
@@ -639,266 +793,176 @@
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}",
+        "path": "users/{userId}",
         "definition": {
-          "entityName": "UserProfile",
+          "entityName": "User",
           "schema": {
-            "$ref": "#/backend/entities/UserProfile"
+            "$ref": "#/backend/entities/User"
           },
-          "description": "Stores profile information and subscription details for a user. This document is directly owned by the authenticated user, where '{userId}' matches 'request.auth.uid'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user, typically corresponding to Firebase Authentication's UID."
-            }
-          ]
+          "description": "Stores user profile information, subscription plan, and onboarding status. Auth: Only the user with matching userId can read/write their own document."
         }
       },
       {
-        "path": "/users/{userId}/resumes/{resumeId}",
+        "path": "users/{userId}/masterResumes/{masterResumeId}",
         "definition": {
-          "entityName": "Resume",
+          "entityName": "MasterResume",
           "schema": {
-            "$ref": "#/backend/entities/Resume"
+            "$ref": "#/backend/entities/MasterResume"
           },
-          "description": "Stores a user's resume document (master or targeted). Includes denormalized 'userId' for authorization independence, ensuring '{userId}' in the path matches 'resource.data.userId'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns this resume."
-            },
-            {
-              "name": "resumeId",
-              "description": "The unique identifier for the specific resume."
-            }
-          ]
+          "description": "Stores the user's foundational, comprehensive resume. Auth: Only the user specified by 'userId' in the path can read/write. Includes denormalized 'userId' in the path for authorization independence."
         }
       },
       {
-        "path": "/users/{userId}/resumes/{resumeId}/workExperiences/{workExperienceId}",
+        "path": "users/{userId}/masterResumes/{masterResumeId}/workExperiences/{workExperienceId}",
         "definition": {
           "entityName": "WorkExperience",
           "schema": {
             "$ref": "#/backend/entities/WorkExperience"
           },
-          "description": "Stores a single work experience entry belonging to a specific resume. Ownership is tied to the parent resume's 'userId', which can be derived from the path (i.e., '{userId}' must match 'request.auth.uid').",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns the parent resume."
-            },
-            {
-              "name": "resumeId",
-              "description": "The unique identifier of the parent resume."
-            },
-            {
-              "name": "workExperienceId",
-              "description": "The unique identifier for the work experience entry."
-            }
-          ]
+          "description": "Stores individual work experience entries for a master resume. Auth: Only the user specified by 'userId' in the parent path can read/write. Inherits 'userId' and 'masterResumeId' from the path for authorization independence."
         }
       },
       {
-        "path": "/users/{userId}/resumes/{resumeId}/educationEntries/{educationId}",
+        "path": "users/{userId}/masterResumes/{masterResumeId}/educations/{educationId}",
         "definition": {
           "entityName": "Education",
           "schema": {
             "$ref": "#/backend/entities/Education"
           },
-          "description": "Stores a single education entry belonging to a specific resume. Ownership is tied to the parent resume's 'userId', which can be derived from the path (i.e., '{userId}' must match 'request.auth.uid').",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns the parent resume."
-            },
-            {
-              "name": "resumeId",
-              "description": "The unique identifier of the parent resume."
-            },
-            {
-              "name": "educationId",
-              "description": "The unique identifier for the education entry."
-            }
-          ]
+          "description": "Stores individual education entries for a master resume. Auth: Only the user specified by 'userId' in the parent path can read/write. Inherits 'userId' and 'masterResumeId' from the path for authorization independence."
         }
       },
       {
-        "path": "/users/{userId}/resumes/{resumeId}/skills/{skillId}",
+        "path": "users/{userId}/masterResumes/{masterResumeId}/skills/{skillId}",
         "definition": {
           "entityName": "Skill",
           "schema": {
             "$ref": "#/backend/entities/Skill"
           },
-          "description": "Stores a single skill entry belonging to a specific resume. Ownership is tied to the parent resume's 'userId', which can be derived from the path (i.e., '{userId}' must match 'request.auth.uid').",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns the parent resume."
-            },
-            {
-              "name": "resumeId",
-              "description": "The unique identifier of the parent resume."
-            },
-            {
-              "name": "skillId",
-              "description": "The unique identifier for the skill entry."
-            }
-          ]
+          "description": "Stores individual skill entries for a master resume. Auth: Only the user specified by 'userId' in the parent path can read/write. Inherits 'userId' and 'masterResumeId' from the path for authorization independence."
         }
       },
       {
-        "path": "/users/{userId}/uploadedFiles/{fileId}",
+        "path": "users/{userId}/jobSpecs/{jobSpecId}",
         "definition": {
-          "entityName": "UploadedFile",
+          "entityName": "JobSpec",
           "schema": {
-            "$ref": "#/backend/entities/UploadedFile"
+            "$ref": "#/backend/entities/JobSpec"
           },
-          "description": "Stores metadata about files uploaded by users. Includes denormalized 'userId' for authorization independence, ensuring '{userId}' in the path matches 'resource.data.userId'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who uploaded the file."
-            },
-            {
-              "name": "fileId",
-              "description": "The unique identifier for the uploaded file."
-            }
-          ]
+          "description": "Stores job specifications uploaded by the user for resume targeting. Auth: Only the user specified by 'userId' in the path can read/write. Includes denormalized 'userId' in the path for authorization independence."
         }
       },
       {
-        "path": "/users/{userId}/jobSpecifications/{jobSpecId}",
+        "path": "users/{userId}/targetedResumes/{targetedResumeId}",
         "definition": {
-          "entityName": "JobSpecification",
+          "entityName": "TargetedResume",
           "schema": {
-            "$ref": "#/backend/entities/JobSpecification"
+            "$ref": "#/backend/entities/TargetedResume"
           },
-          "description": "Stores details of a job specification provided by the user. Includes denormalized 'userId' for authorization independence, ensuring '{userId}' in the path matches 'resource.data.userId'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who provided the job specification."
-            },
-            {
-              "name": "jobSpecId",
-              "description": "The unique identifier for the job specification."
-            }
-          ]
+          "description": "Stores resumes tailored for specific job specifications. Auth: Only the user specified by 'userId' in the path can read/write. Includes denormalized 'userId' in the path for authorization independence."
         }
       },
       {
-        "path": "/users/{userId}/aiRequests/{requestId}",
+        "path": "users/{userId}/targetedResumes/{targetedResumeId}/targetedWorkExperiences/{targetedWorkExperienceId}",
         "definition": {
-          "entityName": "AIRequest",
+          "entityName": "TargetedWorkExperience",
           "schema": {
-            "$ref": "#/backend/entities/AIRequest"
+            "$ref": "#/backend/entities/TargetedWorkExperience"
           },
-          "description": "Logs details of AI-powered processing requests made by users. Includes denormalized 'userId' for authorization independence, ensuring '{userId}' in the path matches 'resource.data.userId'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who initiated the AI request."
-            },
-            {
-              "name": "requestId",
-              "description": "The unique identifier for the AI request."
-            }
-          ]
+          "description": "Stores tailored work experience entries for a targeted resume. Auth: Only the user specified by 'userId' in the parent path can read/write. Inherits 'userId' and 'targetedResumeId' from the path for authorization independence."
         }
       },
       {
-        "path": "/users/{userId}/payments/{paymentId}",
+        "path": "users/{userId}/targetedResumes/{targetedResumeId}/targetedEducations/{targetedEducationId}",
+        "definition": {
+          "entityName": "TargetedEducation",
+          "schema": {
+            "$ref": "#/backend/entities/TargetedEducation"
+          },
+          "description": "Stores tailored education entries for a targeted resume. Auth: Only the user specified by 'userId' in the parent path can read/write. Inherits 'userId' and 'targetedResumeId' from the path for authorization independence."
+        }
+      },
+      {
+        "path": "users/{userId}/targetedResumes/{targetedResumeId}/targetedSkills/{targetedSkillId}",
+        "definition": {
+          "entityName": "TargetedSkill",
+          "schema": {
+            "$ref": "#/backend/entities/TargetedSkill"
+          },
+          "description": "Stores tailored skill entries for a targeted resume. Auth: Only the user specified by 'userId' in the parent path can read/write. Inherits 'userId' and 'targetedResumeId' from the path for authorization independence."
+        }
+      },
+      {
+        "path": "users/{userId}/payments/{paymentId}",
         "definition": {
           "entityName": "Payment",
           "schema": {
             "$ref": "#/backend/entities/Payment"
           },
-          "description": "Records payment transactions made by users. Includes denormalized 'userId' for authorization independence, ensuring '{userId}' in the path matches 'resource.data.userId'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who made the payment."
-            },
-            {
-              "name": "paymentId",
-              "description": "The unique identifier for the payment transaction."
-            }
-          ]
+          "description": "Records payment transactions made by users. Auth: Only the user specified by 'userId' in the path can read/write. Includes denormalized 'userId' in the path for authorization independence."
         }
       },
       {
-        "path": "/users/{userId}/onlineResumes/{onlineResumeId}",
+        "path": "users/{userId}/aiRequests/{aiRequestId}",
         "definition": {
-          "entityName": "OnlineResume",
+          "entityName": "AIRequest",
           "schema": {
-            "$ref": "#/backend/entities/OnlineResume"
+            "$ref": "#/backend/entities/AIRequest"
           },
-          "description": "Stores a user's private settings and metadata for an online resume. This is the user-editable version. Includes denormalized 'userId' for authorization independence, ensuring '{userId}' in the path matches 'resource.data.userId'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns this online resume."
-            },
-            {
-              "name": "onlineResumeId",
-              "description": "The unique identifier for the online resume."
-            }
-          ]
+          "description": "Logs all AI-powered requests and their outcomes. Auth: Only the user specified by 'userId' in the path can read/write. Includes denormalized 'userId' in the path for authorization independence."
         }
       },
       {
-        "path": "/onlineResumesPublic/{onlineResumePublicSlug}",
+        "path": "users/{userId}/onlineResumePages/{onlineResumePageId}",
         "definition": {
-          "entityName": "OnlineResume",
+          "entityName": "OnlineResumePage",
           "schema": {
-            "$ref": "#/backend/entities/OnlineResume"
+            "$ref": "#/backend/entities/OnlineResumePage"
           },
-          "description": "Stores publicly accessible online resume data, denormalized from the user's private online resume when 'isPublished' is true. Access is public read if 'resource.data.isPublished' is true, and owner-only write. Includes denormalized 'userId' and 'isPublished' for authorization and QAPs.",
-          "params": [
-            {
-              "name": "onlineResumePublicSlug",
-              "description": "A unique, user-friendly slug used to form the public URL for accessing this online resume."
-            }
-          ]
+          "description": "Private collection for users to manage their online resume pages. Auth: Only the user specified by 'userId' in the path can read/write. Includes denormalized 'userId' in the path for authorization independence. This data is mirrored to the public collection."
         }
       },
       {
-        "path": "/users/{userId}/linkTrees/{linkTreeId}",
+        "path": "onlineResumePagesPublic/{publicUrlPath}",
         "definition": {
-          "entityName": "LinkTree",
+          "entityName": "OnlineResumePage",
           "schema": {
-            "$ref": "#/backend/entities/LinkTree"
+            "$ref": "#/backend/entities/OnlineResumePage"
           },
-          "description": "Stores a user's private settings and metadata for a LinkTree. This is the user-editable version. Includes denormalized 'userId' for authorization independence, ensuring '{userId}' in the path matches 'resource.data.userId'.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns this LinkTree."
-            },
-            {
-              "name": "linkTreeId",
-              "description": "The unique identifier for the LinkTree."
-            }
-          ]
+          "description": "Publicly accessible collection for online resume pages. Document ID is 'publicUrlPath'. Auth: Read-only for all users (authenticated or unauthenticated) if 'isPublic' is true. Write access only for the 'userId' stored within the document, ensuring authorization independence for public reads and owner writes. Includes denormalized 'userId' and 'isPublic' for authorization independence."
         }
       },
       {
-        "path": "/linkTreesPublic/{linkTreePublicSlug}",
+        "path": "users/{userId}/linkTreeBioPages/{linkTreeBioPageId}",
         "definition": {
-          "entityName": "LinkTree",
+          "entityName": "LinkTreeBioPage",
           "schema": {
-            "$ref": "#/backend/entities/LinkTree"
+            "$ref": "#/backend/entities/LinkTreeBioPage"
           },
-          "description": "Stores publicly accessible LinkTree data, denormalized from the user's private LinkTree when 'isPublished' is true. Access is public read if 'resource.data.isPublished' is true, and owner-only write. Includes denormalized 'userId' and 'isPublished' for authorization and QAPs.",
-          "params": [
-            {
-              "name": "linkTreePublicSlug",
-              "description": "A unique, user-friendly slug used to form the public URL for accessing this LinkTree."
-            }
-          ]
+          "description": "Private collection for users to manage their LinkTree bio pages. Auth: Only the user specified by 'userId' in the path can read/write. Includes denormalized 'userId' in the path for authorization independence. This data is mirrored to the public collection."
+        }
+      },
+      {
+        "path": "users/{userId}/linkTreeBioPages/{linkTreeBioPageId}/linkTreeLinks/{linkTreeLinkId}",
+        "definition": {
+          "entityName": "LinkTreeLink",
+          "schema": {
+            "$ref": "#/backend/entities/LinkTreeLink"
+          },
+          "description": "Stores individual links for a user's LinkTree bio page. Auth: Only the user specified by 'userId' in the parent path can read/write. Inherits 'userId' and 'linkTreeBioPageId' from the path for authorization independence."
+        }
+      },
+      {
+        "path": "linkTreeBioPagesPublic/{publicUrlPath}",
+        "definition": {
+          "entityName": "LinkTreeBioPage",
+          "schema": {
+            "$ref": "#/backend/entities/LinkTreeBioPage"
+          },
+          "description": "Publicly accessible collection for LinkTree bio pages. Document ID is 'publicUrlPath'. Auth: Read-only for all users (authenticated or unauthenticated) if 'isPublic' is true. Write access only for the 'userId' stored within the document, ensuring authorization independence for public reads and owner writes. Includes denormalized 'userId' and 'isPublic' for authorization independence."
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed following the core principles of Authorization Independence, Structural Segregation, and consistent Access Modeling. Each user's data is primarily stored within a dedicated subcollection under their unique user ID, like `/users/{userId}/...`. This ensures strong data isolation and simplifies security rules, adhering to the path-based ownership model.\n\n**Authorization Independence (CRITICAL):**\nFor every document that belongs to a user (e.g., Resume, UploadedFile, JobSpecification, AIRequest, Payment, private OnlineResume, private LinkTree), the `userId` is explicitly included in the document's data. This allows security rules to directly evaluate `request.auth.uid == resource.data.userId` without needing to perform `get()` operations on parent documents or parse complex path segments. This is crucial for enabling atomic operations (transactions, batches) and making rules simple to debug. Even for deeply nested entities like WorkExperience, Education, and Skill, while their `userId` can be inferred from the path `/users/{userId}/resumes/{resumeId}/...`, including `userId` directly in the document further enhances this independence and simplifies rules.\n\n**Structural Segregation for QAPs (Rules are not Filters):**\nTo address the requirement for public sharing and easy querying (QAPs), entities like `OnlineResume` and `LinkTree` are segregated into two distinct collection structures:\n1.  **Private/Owned Data:** Stored under `/users/{userId}/onlineResumes/{onlineResumeId}` and `/users/{userId}/linkTrees/{linkTreeId}`. These paths grant the owner full CRUD access.\n2.  **Public Data:** Stored under `/onlineResumesPublic/{onlineResumePublicSlug}` and `/linkTreesPublic/{linkTreePublicSlug}`. These collections contain denormalized, publicly relevant subsets of the data. Each document in these public collections explicitly includes the `userId` of the owner and an `isPublished` flag. This allows for straightforward security rules such as `allow read: if resource.data.isPublished == true;` and `allow write: if request.auth.uid == resource.data.userId;`. This segregation ensures that `list` operations on the public collections only return genuinely public items, eliminating the need for client-side filtering and making rules robust.\n\n**Company Multitenancy, User Roles, and Plan-based Views:**\n*   **Multitenancy:** Achieved implicitly through `userId` ownership. Each user acts as a 'tenant' of their own data, which is securely isolated by the `/users/{userId}` path.\n*   **User Roles (DBAC):** While explicit 'roles' collections (e.g., `/roles_admin/{uid}`) are not present in the provided schema, any such roles would be stored in a dedicated top-level collection, with authorization based on `request.auth.uid`'s existence within that role collection. For the current setup, user ownership is the primary 'role'.\n*   **Plan-based Control:** The `UserProfile` entity contains a `plan` field. For security rules that depend on a user's plan (e.g., feature limits, access to premium content), the `plan` would ideally be denormalized into the specific documents whose access is conditional on it, or plan enforcement would occur via Cloud Functions (which is generally more robust for write operations/limits). For read access, a `get()` call to the user's profile to check their plan might be used if denormalization is not feasible, but it impacts atomic operations. The structure allows for rules to check `request.auth.uid` against the document's `userId` first, and then potentially `resource.data.plan` if denormalized, or use a `get()` call to `/users/$(request.auth.uid)` within the rules if absolutely necessary, but this is a less preferred approach for authorization independence."
+    "reasoning": "The Firestore structure is designed with a strong emphasis on Authorization Independence, Structural Segregation, and Hierarchical Path-Based ownership, aligning with the core design principles and strategy mandates. All user-specific and private data is nested under `/users/{userId}/` to ensure that security rules can easily and efficiently verify ownership using `request.auth.uid == userId` without relying on `get()` operations. This makes rule evaluation atomic, debuggable, and performant.\n\nTo address **Authorization Independence**, for subcollections like `WorkExperience` under `MasterResume`, `userId` is implicitly available in the path (`/users/{userId}/masterResumes/{masterResumeId}/workExperiences/{workExperienceId}`). The `masterResumeId` also serves as a direct reference, making ownership clear within the nested structure. This pattern is consistently applied across all nested user-owned data.\n\nFor **public-facing data** such as `OnlineResumePage` and `LinkTreeBioPage`, a critical segregation strategy is employed. Each public entity will have two representations:\n1.  A **private representation** under `/users/{userId}/onlineResumePages/{onlineResumePageId}` (and similar for `LinkTreeBioPage`), where the user can manage and edit their content. These documents explicitly contain `userId` as an attribute.\n2.  A **public, read-only representation** under top-level collections like `/onlineResumePagesPublic/{publicUrlPath}` and `/linkTreeBioPagesPublic/{publicUrlPath}`. These public documents will use the `publicUrlPath` as their document ID for direct URL access. CRITICALLY, these public documents will denormalize essential authorization fields (`userId` and `isPublic`) directly into their content. This allows public read rules to simply check `request.auth != null || resource.data.isPublic == true` and owner write rules to check `request.auth.uid == resource.data.userId` without needing to perform a `get()` operation on the private document. Any updates to the private representation will trigger a Cloud Function to update its corresponding public mirror, ensuring data consistency while maintaining authorization independence in rules.\n\n**Querying and Authorization Posture (QAPs)** are directly supported by this design:\n*   **Private Data:** `list` operations on collections like `/users/{userId}/masterResumes` or `/users/{userId}/jobSpecs` are inherently secure. Rules will enforce that `userId` in the path matches `request.auth.uid`, ensuring users only retrieve their own data. This eliminates the need for rules to act as filters.\n*   **Public Data:** `list` operations on `/onlineResumePagesPublic` or `/linkTreeBioPagesPublic` can be performed by anyone, and rules can allow reads for documents where `isPublic` is true. `request.auth.uid` would only be required for modifications by the owner. By using `publicUrlPath` as the document ID, direct lookups for a specific public page are efficient and secure for unauthenticated users.\n\nDBAC is handled by storing the user's `plan` directly in the `/users/{userId}` document. Rules can directly reference `get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan` for feature gating, a standard and acceptable pattern for global user attributes."
   }
 }
