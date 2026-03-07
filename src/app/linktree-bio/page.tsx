@@ -14,6 +14,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { fileToDataURI } from '@/lib/file-utils';
 import { Spinner } from '@/components/ui/spinner';
+import placeholders from '@/app/lib/placeholder-images.json';
 
 const LOCAL_STORAGE_KEYS = {
   MASTER_RESUME_TEXT: 'recruitedAI_masterResumeText',
@@ -22,12 +23,11 @@ const LOCAL_STORAGE_KEYS = {
   MASTER_RESUME_AVATAR_URI: 'recruitedAI_masterResumeAvatarUri',
 };
 
-// Default data for when no master resume is found
 const defaultBioData = {
   name: "Your Name",
   title: "Your Title",
-  avatarUrl: "https://placehold.co/150x150.png",
-  coverUrl: "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22600%22%20height%3D%22250%22%20viewBox%3D%220%200%20600%20250%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22grad%22%20x1%3D%220%25%22%20y1%3D%220%25%22%20x2%3D%22100%25%22%20y2%3D%22100%25%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23374151%22%20%2F%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%231e40af%22%20%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20width%3D%22600%22%20height%3D%22250%22%20fill%3D%22url(%23grad)%22%20%2F%3E%3C%2Fsvg%3E",
+  avatarUrl: placeholders.candidate.url,
+  coverUrl: placeholders.bioCover.url,
   avatarFallback: "YN",
   bio: "Create a Master Resume to automatically populate your bio, or edit it directly here.",
   links: [
@@ -55,16 +55,13 @@ export default function LinkTreeBioPage() {
 
     let summary = defaultBioData.bio;
     if (masterResumeText) {
-      // Logic to extract summary: take the first two sentences of the first non-empty paragraph.
       const paragraphs = masterResumeText.split('\n\n').map(p => p.trim()).filter(p => p);
       if (paragraphs.length > 0) {
         const firstParagraph = paragraphs[0];
-        // Split into sentences, then take the first two.
         const sentences = firstParagraph.match(/[^.!?]+[.!?]+/g) || [];
         if (sentences.length > 0) {
           summary = sentences.slice(0, 2).join(' ').trim();
         } else {
-          // Fallback if no sentences are detected (e.g., paragraph without punctuation)
           summary = firstParagraph;
         }
       }
@@ -104,8 +101,6 @@ export default function LinkTreeBioPage() {
             const dataUri = await fileToDataURI(file);
             setBioData(prev => ({ ...prev, [field]: dataUri }));
             
-            // If the user uploads a new profile photo here, update it in local storage
-            // so it becomes the new default across the app for this session.
             if (field === 'avatarUrl') {
               localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI, dataUri);
             }
@@ -132,7 +127,6 @@ export default function LinkTreeBioPage() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-12 items-start">
-        {/* Editor Side */}
         <Card className="w-full">
           <CardHeader>
             <CardTitle>Edit Your Details</CardTitle>
@@ -157,7 +151,7 @@ export default function LinkTreeBioPage() {
             <div className="flex items-center gap-6">
                 <div className="relative">
                     <Avatar className="w-24 h-24 border">
-                        <AvatarImage src={bioData.avatarUrl} alt="Profile preview" data-ai-hint="profile picture"/>
+                        <AvatarImage src={bioData.avatarUrl} alt="Profile preview" data-ai-hint={placeholders.candidate.hint}/>
                         <AvatarFallback>{bioData.avatarFallback}</AvatarFallback>
                     </Avatar>
                     <Button
@@ -241,24 +235,22 @@ export default function LinkTreeBioPage() {
            </CardFooter>
         </Card>
 
-        {/* Preview Side */}
         <div className="sticky top-24">
            <h2 className="text-2xl font-bold text-center mb-4 font-headline">Live Preview</h2>
-           {/* This is the same display component from the original file */}
            <div className="flex flex-col items-center justify-center p-4 scale-90 -mt-8">
               <Card className="w-full max-w-md shadow-xl overflow-hidden rounded-2xl border-2 border-primary">
                 <div className="relative h-48 bg-muted">
                    <Image 
                     src={bioData.coverUrl}
-                    data-ai-hint="abstract background"
+                    data-ai-hint={placeholders.bioCover.hint}
                     alt="Header background" 
-                    fill={true}
-                    style={{objectFit: 'cover'}}
-                    className="opacity-70"
+                    width={placeholders.bioCover.width}
+                    height={placeholders.bioCover.height}
+                    className="opacity-70 object-cover w-full h-full"
                   />
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-black/30">
                     <Avatar className="w-28 h-28 border-4 border-card shadow-lg mb-3">
-                      <AvatarImage src={bioData.avatarUrl} alt={bioData.name} data-ai-hint="profile picture"/>
+                      <AvatarImage src={bioData.avatarUrl} alt={bioData.name} data-ai-hint={placeholders.candidate.hint}/>
                       <AvatarFallback className="text-4xl">{bioData.avatarFallback}</AvatarFallback>
                     </Avatar>
                     <h1 className="text-3xl font-bold text-card-foreground font-headline text-white">{bioData.name}</h1>

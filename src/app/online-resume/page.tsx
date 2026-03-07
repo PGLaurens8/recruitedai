@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import placeholders from '@/app/lib/placeholder-images.json';
 
 const LOCAL_STORAGE_KEYS = {
   MASTER_RESUME_TEXT: 'recruitedAI_masterResumeText',
@@ -35,7 +36,7 @@ interface ContactInfo {
 const sampleResumeData = { 
   name: "Your Name", 
   title: "Your Professional Title",
-  avatarUrl: "https://placehold.co/128x128.png",
+  avatarUrl: placeholders.candidate.url,
   avatarFallback: "YN", 
   contactInfo: {
     location: "City, State",
@@ -53,7 +54,7 @@ const sampleResumeData = {
       responsibilities: [
         "Sample responsibility point.",
       ],
-      logo: "https://placehold.co/40x40.png?text=SC",
+      logo: placeholders.companyLogo.url,
     },
   ],
   education: [ 
@@ -62,7 +63,7 @@ const sampleResumeData = {
       institution: "Sample Institution",
       period: "Date - Date",
       location: "Sample Location",
-      logo: "https://placehold.co/40x40.png?text=SI",
+      logo: placeholders.universityLogo.url,
     },
   ],
   skills: ["Skill 1", "Skill 2", "Skill 3"],
@@ -138,7 +139,7 @@ export default function OnlineResumePage() {
       <header className="flex flex-col sm:flex-row items-center justify-between mb-10 pb-6 border-b">
         <div className="flex items-center mb-4 sm:mb-0">
           <Avatar className="h-24 w-24 mr-6 border-2 border-primary">
-            <AvatarImage src={avatarUri || sampleResumeData.avatarUrl} alt={displayName || "User Avatar"} data-ai-hint="professional portrait"/>
+            <AvatarImage src={avatarUri || sampleResumeData.avatarUrl} alt={displayName || "User Avatar"} data-ai-hint={placeholders.candidate.hint}/>
             <AvatarFallback className="text-3xl">{avatarFallbackText}</AvatarFallback>
           </Avatar>
           <div>
@@ -219,11 +220,6 @@ export default function OnlineResumePage() {
               ))}
             </CardContent>
           </Card>
-           {loadedResumeText && (
-             <p className="text-xs text-muted-foreground">
-               {loadedContactInfo || (loadedSkills && loadedSkills.length > 0) ? "The main resume text is from your uploaded Master Resume. Sidebar contact/skills are dynamic. Other links may be illustrative." : "My Links details are illustrative. Contact and Skills will populate if extracted."}
-            </p>
-           )}
         </aside>
 
         <main className="md:col-span-2 space-y-10">
@@ -256,7 +252,7 @@ export default function OnlineResumePage() {
                     <div key={index} className="pl-4 border-l-2 border-primary/30 relative">
                        <div className="absolute -left-[11px] top-1.5 w-5 h-5 bg-primary rounded-full border-4 border-card"></div>
                        <div className="flex items-start mb-1">
-                        {exp.logo && <Image src={exp.logo} alt={`${exp.company} logo`} data-ai-hint="company logo" width={24} height={24} className="mr-3 mt-1 rounded-sm"/>}
+                        {exp.logo && <Image src={exp.logo} alt={`${exp.company} logo`} data-ai-hint={placeholders.companyLogo.hint} width={placeholders.companyLogo.width} height={placeholders.companyLogo.height} className="mr-3 mt-1 rounded-sm"/>}
                         <div>
                             <h3 className="text-lg font-semibold">{exp.role}</h3>
                             <p className="text-md text-primary font-medium">{exp.company}</p>
@@ -282,7 +278,7 @@ export default function OnlineResumePage() {
                      <div key={index} className="pl-4 border-l-2 border-primary/30 relative">
                         <div className="absolute -left-[11px] top-1.5 w-5 h-5 bg-primary rounded-full border-4 border-card"></div>
                         <div className="flex items-start mb-1">
-                          {edu.logo && <Image src={edu.logo} alt={`${edu.institution} logo`} data-ai-hint="university logo" width={24} height={24} className="mr-3 mt-1 rounded-sm"/>}
+                          {edu.logo && <Image src={edu.logo} alt={`${edu.institution} logo`} data-ai-hint={placeholders.universityLogo.hint} width={placeholders.universityLogo.width} height={placeholders.universityLogo.height} className="mr-3 mt-1 rounded-sm"/>}
                           <div>
                             <h3 className="text-lg font-semibold">{edu.degree}</h3>
                             <p className="text-md text-primary font-medium">{edu.institution}</p>
@@ -298,12 +294,7 @@ export default function OnlineResumePage() {
         </main>
       </div>
        <footer className="mt-12 pt-6 border-t text-center text-xs text-muted-foreground">
-        Powered by RecruitedAI. 
-        {loadedResumeText ? (
-          loadedContactInfo || (loadedSkills && loadedSkills.length > 0) ? 
-          " Main resume text from your upload. Sidebar contact/skills are dynamic. Other links may be illustrative." 
-          : " Main resume text from your upload. Sidebar details (contact, skills, links) are illustrative placeholders if not extracted."
-        ) : " All resume data shown is illustrative."}
+        Powered by RecruitedAI.
       </footer>
     </div>
   );
