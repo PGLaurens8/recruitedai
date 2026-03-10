@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -67,13 +66,16 @@ export default function InterviewPrepPage() {
     };
     
     recognition.onerror = (event: any) => {
-      console.error("Speech recognition error", event.error);
-      setError(`Speech recognition error: ${event.error}. Please ensure microphone permissions are enabled.`);
+      toast({
+        variant: "destructive",
+        title: "Speech Recognition Error",
+        description: `An error occurred: ${event.error}. Please ensure microphone permissions are enabled.`,
+      });
       setIsListening(false);
     }
 
     recognitionRef.current = recognition;
-  }, []);
+  }, [toast]);
 
   const handleStartInterview = async () => {
     if (!selectedJobId) {

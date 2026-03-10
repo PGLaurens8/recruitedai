@@ -126,13 +126,17 @@ export default function InterviewAnalysisPage() {
       };
 
       recognition.onerror = (err: any) => {
-        console.error("Speech error", err);
         setIsListening(false);
+        toast({
+          variant: "destructive",
+          title: "Speech Recognition Error",
+          description: `An error occurred: ${err.error || 'Unknown error'}. Please check microphone permissions.`,
+        });
       };
 
       recognitionRef.current = recognition;
     }
-  }, []);
+  }, [toast]);
 
   const handleToggleListening = () => {
     if (isListening) {
