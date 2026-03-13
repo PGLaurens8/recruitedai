@@ -2,16 +2,16 @@ import { requireUserAndCompany } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function GET(request: Request, { params }: RouteContext) {
   const requestId = getRequestId(request);
 
   try {
-    const candidateId = params.id;
+    const { id: candidateId } = await params;
     if (!candidateId) {
       throw new ApiRouteError(400, 'CANDIDATE_ID_REQUIRED', 'Candidate ID is required.');
     }
@@ -41,7 +41,7 @@ export async function DELETE(request: Request, { params }: RouteContext) {
   const requestId = getRequestId(request);
 
   try {
-    const candidateId = params.id;
+    const { id: candidateId } = await params;
     if (!candidateId) {
       throw new ApiRouteError(400, 'CANDIDATE_ID_REQUIRED', 'Candidate ID is required.');
     }

@@ -254,17 +254,7 @@ export function useCompany(companyId: string | undefined, refreshKey = 0) {
     }
 
     if (isSupabaseMode()) {
-      const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('id', companyId)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
+      const data = await requestApi<any>('/api/company');
       return toCompanyRecord(data);
     }
 
@@ -279,19 +269,16 @@ export async function saveCompany(company: CompanyRecord) {
   }
 
   if (isSupabaseMode()) {
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.from('companies').update({
-      name: company.name,
-      logo: company.logo || null,
-      website: company.website || null,
-      email: company.email || null,
-      address: company.address || null,
-      updated_at: new Date().toISOString(),
-    }).eq('id', company.id);
-
-    if (error) {
-      throw error;
-    }
+    await requestApi('/api/company', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: company.name,
+        logo: company.logo || '',
+        website: company.website || '',
+        email: company.email || '',
+        address: company.address || '',
+      }),
+    });
   }
 }
 
@@ -434,19 +421,7 @@ export function useMasterResume(userId: string | undefined, refreshKey = 0) {
     }
 
     if (isSupabaseMode()) {
-      const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase
-        .from('master_resumes')
-        .select('*')
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        throw error;
-      }
-
+      const data = await requestApi<any | null>('/api/master-resume');
       return data ? toMasterResumeRecord(data) : null;
     }
 
@@ -468,39 +443,22 @@ export async function saveMasterResume(
   }
 
   if (isSupabaseMode()) {
-    const supabase = createSupabaseBrowserClient();
-    const existing = await supabase
-      .from('master_resumes')
-      .select('id')
-      .eq('user_id', userId)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (existing.error) {
-      throw existing.error;
-    }
-
-    const payload = {
-      id: existing.data?.id || updates.id,
-      user_id: userId,
-      user_title: updates.userTitle,
-      reformatted_text: updates.reformattedText,
-      full_name: updates.fullName || null,
-      current_job_title: updates.currentJobTitle || null,
-      contact_info: updates.contactInfo || {},
-      skills: updates.skills || [],
-      avatar_uri: updates.avatarUri || null,
-      missing_information: updates.missingInformation || [],
-      questions: updates.questions || [],
-      processed_at: updates.processedAt || null,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { error } = await supabase.from('master_resumes').upsert(payload);
-    if (error) {
-      throw error;
-    }
+    await requestApi('/api/master-resume', {
+      method: 'PUT',
+      body: JSON.stringify({
+        id: updates.id,
+        userTitle: updates.userTitle,
+        reformattedText: updates.reformattedText,
+        fullName: updates.fullName || '',
+        currentJobTitle: updates.currentJobTitle || '',
+        contactInfo: updates.contactInfo || {},
+        skills: updates.skills || [],
+        avatarUri: updates.avatarUri || '',
+        missingInformation: updates.missingInformation || [],
+        questions: updates.questions || [],
+        processedAt: updates.processedAt || '',
+      }),
+    });
   }
 }
 
@@ -558,20 +516,12 @@ export async function saveCandidateInterviewAnalysis(
   }
 
   if (isSupabaseMode()) {
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase
-      .from('candidates')
-      .update({
-        interview_analysis: analysis,
-        last_interview_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('company_id', companyId)
-      .eq('id', candidateId);
-
-    if (error) {
-      throw error;
-    }
+    await requestApi(`/api/candidates/${candidateId}/analysis`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        analysis,
+      }),
+    });
   }
 }
 
@@ -614,63 +564,11 @@ export async function seedDemoData(user: AppUser) {
   }
 
   if (isSupabaseMode()) {
-    const supabase = createSupabaseBrowserClient();
-
-    const { error: companyError } = await supabase.from('companies').upsert({
-      id: companyId,
-      name: 'TalentSource Pro Agency',
-      website: 'www.talentsource-pro.ai',
-      owner_id: user.id,
-      updated_at: new Date().toISOString(),
+    const result = await requestApi<{ companyId: string }>('/api/seed/demo', {
+      method: 'POST',
+      body: JSON.stringify({}),
     });
-    if (companyError) {
-      throw companyError;
-    }
-
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ company_id: companyId, updated_at: new Date().toISOString() })
-      .eq('id', user.id);
-    if (profileError) {
-      throw profileError;
-    }
-
-    const candidates = [
-      { id: 'cand-0', name: 'Elena Rodriguez', email: 'elena.r@example.com', status: 'Sourced', ai_score: 92, current_job: 'Senior UX Designer', current_company: 'Innovate Inc.' },
-      { id: 'cand-1', name: 'Marcus Chen', email: 'marcus.c@example.com', status: 'Applied', ai_score: 88, current_job: 'Data Scientist', current_company: 'DataDriven Co.' },
-      { id: 'cand-2', name: 'Aisha Khan', email: 'aisha.k@example.com', status: 'Interviewing', ai_score: 95, current_job: 'Backend Engineer', current_company: 'CloudNet' },
-    ];
-    const jobs = [
-      { id: 'job-0', title: 'Senior Frontend Developer', salary: '$120k - $150k', location: 'San Francisco, CA', status: 'active', approval: 'approved', description: 'Modern React expert needed.' },
-      { id: 'job-1', title: 'Data Scientist', salary: '$100k - $130k', location: 'Remote', status: 'pending', approval: 'pending', description: 'ML models focus.' },
-    ];
-    const clients = [
-      { id: 'client-0', name: 'TechCorp', contact_name: 'John Doe', contact_email: 'john.doe@techcorp.com', status: 'active' },
-      { id: 'client-1', name: 'Innovate LLC', contact_name: 'Jane Smith', contact_email: 'jane.s@innovatellc.com', status: 'active' },
-    ];
-
-    const { error: candError } = await supabase.from('candidates').upsert(
-      candidates.map((item) => ({ ...item, company_id: companyId }))
-    );
-    if (candError) {
-      throw candError;
-    }
-
-    const { error: jobError } = await supabase.from('jobs').upsert(
-      jobs.map((item) => ({ ...item, company_id: companyId }))
-    );
-    if (jobError) {
-      throw jobError;
-    }
-
-    const { error: clientError } = await supabase.from('clients').upsert(
-      clients.map((item) => ({ ...item, company_id: companyId }))
-    );
-    if (clientError) {
-      throw clientError;
-    }
-
-    return companyId;
+    return result.companyId;
   }
 
   return companyId;

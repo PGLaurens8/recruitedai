@@ -9,10 +9,8 @@ interface RouteContext {
   }>;
 }
 
-const updateInterviewSchema = z.object({
-  interviewNotes: z.record(z.string(), z.string()).optional(),
-  interviewScores: z.record(z.string(), z.number().int().nullable()).optional(),
-  aiSummary: z.string().optional(),
+const updateAnalysisSchema = z.object({
+  analysis: z.unknown(),
 });
 
 export async function PATCH(request: Request, { params }: RouteContext) {
@@ -24,15 +22,14 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       throw new ApiRouteError(400, 'CANDIDATE_ID_REQUIRED', 'Candidate ID is required.');
     }
 
-    const updates = updateInterviewSchema.parse(await request.json());
+    const payload = updateAnalysisSchema.parse(await request.json());
     const { supabase, companyId } = await requireUserAndCompany();
 
     const { data, error } = await supabase
       .from('candidates')
       .update({
-        interview_notes: updates.interviewNotes || {},
-        interview_scores: updates.interviewScores || {},
-        ai_summary: updates.aiSummary || null,
+        interview_analysis: payload.analysis,
+        last_interview_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq('company_id', companyId)
@@ -41,7 +38,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       .maybeSingle();
 
     if (error) {
-      throw new ApiRouteError(500, 'CANDIDATE_UPDATE_FAILED', 'Could not update candidate interview.', error);
+      throw new ApiRouteError(500, 'CANDIDATE_ANALYSIS_UPDATE_FAILED', 'Could not save analysis.', error);
     }
     if (!data) {
       throw new ApiRouteError(404, 'CANDIDATE_NOT_FOUND', 'Candidate not found.');

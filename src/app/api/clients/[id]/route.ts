@@ -2,16 +2,16 @@ import { requireUserAndCompany } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function DELETE(request: Request, { params }: RouteContext) {
   const requestId = getRequestId(request);
 
   try {
-    const clientId = params.id;
+    const { id: clientId } = await params;
     if (!clientId) {
       throw new ApiRouteError(400, 'CLIENT_ID_REQUIRED', 'Client ID is required.');
     }

@@ -2,16 +2,16 @@ import { requireUserAndCompany } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function DELETE(request: Request, { params }: RouteContext) {
   const requestId = getRequestId(request);
 
   try {
-    const jobId = params.id;
+    const { id: jobId } = await params;
     if (!jobId) {
       throw new ApiRouteError(400, 'JOB_ID_REQUIRED', 'Job ID is required.');
     }
