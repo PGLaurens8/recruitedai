@@ -10,22 +10,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Building, Eye, FilePenLine, MoreHorizontal, Plus, Search, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
-import { collection, doc } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, deleteDocumentNonBlocking } from '@/firebase';
 import { Spinner } from '@/components/ui/spinner';
+import { useAuth } from '@/context/auth-context';
+import { removeClient, useClients, useCurrentProfile } from '@/lib/data/hooks';
+import type { ClientRecord } from '@/lib/data/types';
 
-interface Client {
-  id: string;
-  name: string;
-  logo?: string;
-  contactName?: string;
-  contactEmail?: string;
-  status: string;
-  openJobs?: number;
-  companyId: string;
-}
-
-type ClientKey = keyof Client;
+type ClientKey = keyof ClientRecord;
 
 const getStatusBadgeVariant = (status: string) => {
   switch (status?.toLowerCase()) {
@@ -43,17 +33,13 @@ const getStatusBadgeVariant = (status: string) => {
 };
 
 export default function ClientsPage() {
-  const firestore = useFirestore();
-  const { user: fbUser } = useUser();
+  const { user } = useAuth();
+  const [refreshKey, setRefreshKey] = useState(0);
   const [sortConfig, setSortConfig] = useState<{ key: ClientKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
-  // Multitenancy logic
-  const profileRef = useMemoFirebase(() => fbUser ? doc(firestore, 'users', fbUser.uid) : null, [firestore, fbUser]);
-  const { data: profile } = useDoc(profileRef);
+  const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
-
-  const clientsRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'clients') : null, [firestore, companyId]);
-  const { data: clients, isLoading } = useCollection<Client>(clientsRef);
+  const { data: clients, isLoading } = useClients(companyId, refreshKey);
 
   const sortedClients = useMemo(() => {
     if (!clients) return [];
@@ -95,7 +81,9 @@ export default function ClientsPage() {
 
   const handleDelete = (clientId: string) => {
     if (!companyId || !confirm("Are you sure you want to delete this client?")) return;
-    deleteDocumentNonBlocking(doc(firestore, 'companies', companyId, 'clients', clientId));
+    void removeClient(companyId, clientId).then(() => {
+      setRefreshKey((current) => current + 1);
+    });
   };
 
   if (isLoading) {

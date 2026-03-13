@@ -19,25 +19,17 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
-import { useFirestore, useUser, useDoc, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { useAuth } from '@/context/auth-context';
+import {
+  createCandidateFromResume,
+  saveMasterResume,
+  useCurrentProfile,
+  useMasterResume,
+} from '@/lib/data/hooks';
 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
-
-const LOCAL_STORAGE_KEYS = {
-  MASTER_RESUME_TEXT: 'recruitedAI_masterResumeText',
-  MASTER_RESUME_USER_TITLE: 'recruitedAI_masterResumeUserTitle', 
-  MASTER_RESUME_EXTRACTED_NAME: 'recruitedAI_masterResumeExtractedName',
-  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'recruitedAI_masterResumeExtractedJobTitle',
-  MASTER_RESUME_CONTACT_INFO: 'recruitedAI_masterResumeContactInfo',
-  MASTER_RESUME_SKILLS: 'recruitedAI_masterResumeSkills',
-  MASTER_RESUME_TIMESTAMP: 'recruitedAI_masterResumeTimestamp',
-  MASTER_RESUME_AVATAR_URI: 'recruitedAI_masterResumeAvatarUri',
-};
 
 export default function MasterResumePage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -48,45 +40,31 @@ export default function MasterResumePage() {
   const [processedTimestamp, setProcessedTimestamp] = useState<string | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Firebase Hooks
   const { user } = useAuth();
-  const { user: fbUser } = useUser();
-  const firestore = useFirestore();
-  const profileRef = useMemoFirebase(() => fbUser ? doc(firestore, 'users', fbUser.uid) : null, [firestore, fbUser]);
-  const { data: profile } = useDoc(profileRef);
+  const { data: profile } = useCurrentProfile(user);
+  const { data: storedResume } = useMasterResume(user?.id, refreshKey);
   const companyId = profile?.companyId;
   const isAgencyRole = user?.role === 'Recruiter' || user?.role === 'Admin' || user?.role === 'Developer';
 
   useEffect(() => {
-    const storedUserTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE);
-    const storedTimestamp = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP);
-    const storedText = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
-    const storedExtractedName = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME);
-    const storedExtractedJobTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
-    const storedContactInfo = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO);
-    const storedSkills = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS);
-    const storedAvatar = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI);
-    
-    if (storedUserTitle) {
-      setResumeUserTitle(storedUserTitle);
+    if (!storedResume) return;
+    setResumeUserTitle(storedResume.userTitle || "My Master Resume");
+    setAvatarUri(storedResume.avatarUri || null);
+    if (storedResume.reformattedText) {
+      setAiOutput({
+        reformattedResume: storedResume.reformattedText,
+        fullName: storedResume.fullName || undefined,
+        currentJobTitle: storedResume.currentJobTitle || undefined,
+        contactInfo: storedResume.contactInfo || undefined,
+        skills: storedResume.skills || [],
+        missingInformation: storedResume.missingInformation || [],
+        questions: storedResume.questions || [],
+      });
+      setProcessedTimestamp(storedResume.processedAt || null);
     }
-    if (storedAvatar) {
-      setAvatarUri(storedAvatar);
-    }
-    if (storedTimestamp && storedText) {
-        setAiOutput({ 
-          reformattedResume: storedText, 
-          fullName: storedExtractedName || undefined,
-          currentJobTitle: storedExtractedJobTitle || undefined,
-          contactInfo: storedContactInfo ? JSON.parse(storedContactInfo) : undefined,
-          skills: storedSkills ? JSON.parse(storedSkills) : [],
-          missingInformation: [], 
-          questions: [] 
-        });
-        setProcessedTimestamp(storedTimestamp);
-    }
-  }, []);
+  }, [storedResume]);
 
 
   const handleFileUpload = async (file: File) => {
@@ -101,30 +79,21 @@ export default function MasterResumePage() {
       const result = await reformatResume({ resumeDataUri });
       setAiOutput(result);
       setProcessedTimestamp(currentTimestamp); 
-      
-      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT, result.reformattedResume);
-      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE, resumeUserTitle);
-      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP, currentTimestamp);
 
-      if (result.fullName) {
-        localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME, result.fullName);
-      } else {
-        localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME);
-      }
-      if (result.currentJobTitle) {
-        localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE, result.currentJobTitle);
-      } else {
-        localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
-      }
-      if (result.contactInfo) {
-        localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO, JSON.stringify(result.contactInfo));
-      } else {
-        localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO);
-      }
-      if (result.skills && result.skills.length > 0) {
-        localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS, JSON.stringify(result.skills));
-      } else {
-        localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS);
+      if (user?.id) {
+        await saveMasterResume(user.id, {
+          userTitle: resumeUserTitle,
+          reformattedText: result.reformattedResume || '',
+          fullName: result.fullName || '',
+          currentJobTitle: result.currentJobTitle || '',
+          contactInfo: result.contactInfo || {},
+          skills: result.skills || [],
+          missingInformation: result.missingInformation || [],
+          questions: result.questions || [],
+          avatarUri: avatarUri || '',
+          processedAt: currentTimestamp,
+        });
+        setRefreshKey((current) => current + 1);
       }
 
       toast({
@@ -151,7 +120,22 @@ export default function MasterResumePage() {
             const file = e.target.files[0];
             const dataUri = await fileToDataURI(file);
             setAvatarUri(dataUri);
-            localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI, dataUri);
+            if (user?.id) {
+              await saveMasterResume(user.id, {
+                id: storedResume?.id,
+                userTitle: resumeUserTitle,
+                reformattedText: aiOutput?.reformattedResume || storedResume?.reformattedText || '',
+                fullName: aiOutput?.fullName || storedResume?.fullName || '',
+                currentJobTitle: aiOutput?.currentJobTitle || storedResume?.currentJobTitle || '',
+                contactInfo: aiOutput?.contactInfo || storedResume?.contactInfo || {},
+                skills: aiOutput?.skills || storedResume?.skills || [],
+                missingInformation: aiOutput?.missingInformation || storedResume?.missingInformation || [],
+                questions: aiOutput?.questions || storedResume?.questions || [],
+                avatarUri: dataUri,
+                processedAt: processedTimestamp || storedResume?.processedAt,
+              });
+              setRefreshKey((current) => current + 1);
+            }
             toast({
                 title: "Profile Photo Updated!",
                 description: "Your new photo is now set for this session.",
@@ -167,15 +151,28 @@ export default function MasterResumePage() {
     }
   };
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTitleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setResumeUserTitle(newTitle);
-    if (localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT)) {
-      localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE, newTitle);
+    if (user?.id && aiOutput?.reformattedResume) {
+      await saveMasterResume(user.id, {
+        id: storedResume?.id,
+        userTitle: newTitle,
+        reformattedText: aiOutput.reformattedResume,
+        fullName: aiOutput.fullName || storedResume?.fullName || '',
+        currentJobTitle: aiOutput.currentJobTitle || storedResume?.currentJobTitle || '',
+        contactInfo: aiOutput.contactInfo || storedResume?.contactInfo || {},
+        skills: aiOutput.skills || storedResume?.skills || [],
+        missingInformation: aiOutput.missingInformation || storedResume?.missingInformation || [],
+        questions: aiOutput.questions || storedResume?.questions || [],
+        avatarUri: avatarUri || storedResume?.avatarUri || '',
+        processedAt: processedTimestamp || storedResume?.processedAt,
+      });
+      setRefreshKey((current) => current + 1);
     }
   };
 
-  const handleSaveAsCandidate = () => {
+  const handleSaveAsCandidate = async () => {
     if (!aiOutput || !companyId) {
       toast({
         variant: "destructive",
@@ -185,26 +182,27 @@ export default function MasterResumePage() {
       return;
     }
 
-    const candidatesRef = collection(firestore, 'companies', companyId, 'candidates');
-    addDocumentNonBlocking(candidatesRef, {
-      name: aiOutput.fullName || "Unknown",
-      email: aiOutput.contactInfo?.email || "",
-      currentJob: aiOutput.currentJobTitle || "",
-      currentCompany: "", 
-      status: "Sourced",
-      aiScore: 0,
-      fullResumeText: aiOutput.reformattedResume,
-      skills: aiOutput.skills || [],
-      contactInfo: aiOutput.contactInfo || {},
-      avatar: avatarUri || "",
-      createdAt: serverTimestamp(),
-      companyId: companyId,
-    });
+    try {
+      await createCandidateFromResume(companyId, {
+        fullName: aiOutput.fullName || 'Unknown',
+        currentJobTitle: aiOutput.currentJobTitle || '',
+        reformattedText: aiOutput.reformattedResume || '',
+        skills: aiOutput.skills || [],
+        contactInfo: aiOutput.contactInfo || {},
+        avatarUri: avatarUri || '',
+      });
 
-    toast({
-      title: "Candidate Added to Agency",
-      description: `${aiOutput.fullName || 'Candidate'} has been successfully added to your database.`,
-    });
+      toast({
+        title: "Candidate Added to Agency",
+        description: `${aiOutput.fullName || 'Candidate'} has been successfully added to your database.`,
+      });
+    } catch (e: any) {
+      toast({
+        variant: "destructive",
+        title: "Save Failed",
+        description: e.message || "Could not save candidate profile.",
+      });
+    }
   };
 
   const downloadTextFile = (filename: string, text: string) => {

@@ -14,17 +14,8 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import placeholders from '@/app/lib/placeholder-images.json';
-
-const LOCAL_STORAGE_KEYS = {
-  MASTER_RESUME_TEXT: 'recruitedAI_masterResumeText',
-  MASTER_RESUME_USER_TITLE: 'recruitedAI_masterResumeUserTitle',
-  MASTER_RESUME_EXTRACTED_NAME: 'recruitedAI_masterResumeExtractedName',
-  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'recruitedAI_masterResumeExtractedJobTitle',
-  MASTER_RESUME_CONTACT_INFO: 'recruitedAI_masterResumeContactInfo',
-  MASTER_RESUME_SKILLS: 'recruitedAI_masterResumeSkills',
-  MASTER_RESUME_TIMESTAMP: 'recruitedAI_masterResumeTimestamp',
-  MASTER_RESUME_AVATAR_URI: 'recruitedAI_masterResumeAvatarUri',
-};
+import { useAuth } from '@/context/auth-context';
+import { useMasterResume } from '@/lib/data/hooks';
 
 interface ContactInfo {
   email?: string;
@@ -76,6 +67,7 @@ const sampleResumeData = {
 
 export default function OnlineResumePage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loadedResumeText, setLoadedResumeText] = useState<string | null>(null);
   const [loadedExtractedName, setLoadedExtractedName] = useState<string | null>(null);
   const [loadedExtractedJobTitle, setLoadedExtractedJobTitle] = useState<string | null>(null);
@@ -83,24 +75,19 @@ export default function OnlineResumePage() {
   const [loadedSkills, setLoadedSkills] = useState<string[] | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { data: storedResume } = useMasterResume(user?.id);
 
   useEffect(() => {
-    const text = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
-    const extractedName = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME);
-    const extractedJobTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
-    const contactInfoStr = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO);
-    const skillsStr = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS);
-    const storedAvatar = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI);
-    
-    if (text) setLoadedResumeText(text);
-    if (extractedName) setLoadedExtractedName(extractedName);
-    if (extractedJobTitle) setLoadedExtractedJobTitle(extractedJobTitle);
-    if (contactInfoStr) setLoadedContactInfo(JSON.parse(contactInfoStr));
-    if (skillsStr) setLoadedSkills(JSON.parse(skillsStr));
-    if (storedAvatar) setAvatarUri(storedAvatar);
-    
+    if (storedResume) {
+      setLoadedResumeText(storedResume.reformattedText || null);
+      setLoadedExtractedName(storedResume.fullName || null);
+      setLoadedExtractedJobTitle(storedResume.currentJobTitle || null);
+      setLoadedContactInfo(storedResume.contactInfo || null);
+      setLoadedSkills(storedResume.skills || null);
+      setAvatarUri(storedResume.avatarUri || null);
+    }
     setIsLoading(false);
-  }, []);
+  }, [storedResume]);
 
   const handleCopyLink = () => {
     if (typeof window !== "undefined") {
@@ -157,7 +144,7 @@ export default function OnlineResumePage() {
         <Alert variant="default" className="mb-8 bg-yellow-50 border-yellow-300 text-yellow-700">
           <AlertCircle className="h-5 w-5 !text-yellow-600" />
           <AlertDescription>
-            No Master Resume found in your browser's storage. The content below is sample data. 
+            No Master Resume found for your account. The content below is sample data. 
             Please <Link href="/master-resume" className="font-semibold underline hover:text-yellow-800">create or upload a Master Resume</Link> to see it here.
           </AlertDescription>
         </Alert>

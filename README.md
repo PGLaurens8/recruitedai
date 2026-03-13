@@ -1,6 +1,6 @@
 # CareerCraft AI (RecruitedAI)
 
-AI-Powered Recruiting & Career Tools platform built with Next.js, Firebase, and Genkit.
+AI-Powered Recruiting & Career Tools platform built with Next.js, Genkit, and environment-selectable backend modes.
 
 ## 🚀 Overview
 CareerCraft AI is a dual-purpose platform designed to serve both job seekers (Candidates) and recruitment professionals (Recruiters/Agencies). It leverages Gemini 1.5 Pro to automate the recruitment cycle.
@@ -23,8 +23,35 @@ CareerCraft AI is a dual-purpose platform designed to serve both job seekers (Ca
 ## 🛠 Technical Stack
 - **Frontend:** Next.js 15, React, Tailwind CSS, ShadCN UI.
 - **AI Engine:** Genkit v1.x with `@genkit-ai/google-genai` (Gemini 1.5 Pro).
-- **Backend:** Firebase Authentication & Firestore (Multi-tenant architecture).
+- **Backend modes:** `supabase` (primary), `mock` (lightweight local/demo auth).
 - **Automation:** 12+ specialized AI Flows for text extraction, sourcing, and analysis.
+
+## Runtime Modes
+
+Set `NEXT_PUBLIC_RUNTIME_MODE` to one of:
+
+- `supabase`: uses Supabase Auth and Postgres-backed app data.
+- `mock`: uses local browser storage for demo auth and demo data.
+
+### Supabase env vars
+
+When `NEXT_PUBLIC_RUNTIME_MODE=supabase`, define:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+## Vercel Setup
+
+Recommended: create two Vercel projects from the same repo.
+
+- Demo project:
+  - `NEXT_PUBLIC_RUNTIME_MODE=mock`
+- Supabase project:
+  - `NEXT_PUBLIC_RUNTIME_MODE=supabase`
+  - `NEXT_PUBLIC_SUPABASE_URL=...`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY=...`
+
+The active app runtime no longer depends on Firebase. Legacy Firebase files may still exist in the repo during cleanup, but the supported deployment modes are `mock` and `supabase`.
 
 ## 🔐 User Roles
 - **Candidate:** Personal career management.

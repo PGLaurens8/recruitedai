@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import { type Role } from '@/context/auth-context';
+import { type Role } from '@/lib/roles';
 import { 
   Briefcase, 
   LayoutDashboard, 
@@ -44,6 +44,8 @@ const navGroups: NavGroup[] = [
     roles: ['Admin', 'Recruiter', 'Sales', 'Developer', 'Candidate'],
     links: [
       { href: '/dashboard/admin', label: 'Agency Overview', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
+      { href: '/dashboard/recruiter', label: 'Recruiter Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Recruiter'] },
+      { href: '/dashboard/sales', label: 'Sales Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Sales'] },
       { href: '/dashboard', label: 'Candidate Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Candidate'] },
     ]
   },
@@ -101,4 +103,12 @@ export function getNavLinksForRole(role: Role) {
       links: group.links.filter(link => link.roles.includes(role))
     }))
     .filter(group => group.links.length > 0 && group.roles.includes(role));
+}
+
+export function isNavLinkActive(pathname: string, href: string) {
+  if (href === '/') {
+    return pathname === '/';
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
 }

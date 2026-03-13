@@ -10,25 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, Eye, Plus, Search, Star, X, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
-import { collection, doc } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { Spinner } from '@/components/ui/spinner';
+import { useAuth } from '@/context/auth-context';
+import { useCurrentProfile, useJobs } from '@/lib/data/hooks';
+import type { JobRecord } from '@/lib/data/types';
 
-interface Job {
-  id: string;
-  title: string;
-  salary?: string;
-  company?: string;
-  location?: string;
-  status: string;
-  approval: string;
-  description?: string;
-  candidates?: number;
-  aiMatches?: number;
-  createdAt?: any;
-}
-
-type JobKey = keyof Job;
+type JobKey = keyof JobRecord;
 
 const getStatusBadgeClass = (status: string) => {
     switch(status?.toLowerCase()) {
@@ -49,17 +36,12 @@ const getApprovalBadgeClass = (approval: string) => {
 }
 
 export default function JobsPage() {
-  const firestore = useFirestore();
-  const { user: fbUser } = useUser();
+  const { user } = useAuth();
   const [sortConfig, setSortConfig] = useState<{ key: JobKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
-  // Multitenancy logic
-  const profileRef = useMemoFirebase(() => fbUser ? doc(firestore, 'users', fbUser.uid) : null, [firestore, fbUser]);
-  const { data: profile } = useDoc(profileRef);
+  const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
-
-  const jobsRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'jobs') : null, [firestore, companyId]);
-  const { data: jobs, isLoading } = useCollection<Job>(jobsRef);
+  const { data: jobs, isLoading } = useJobs(companyId);
 
   const sortedJobs = useMemo(() => {
     if (!jobs) return [];

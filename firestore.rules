@@ -17,6 +17,18 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function hasUnchangedProtectedProfileFields() {
+      return request.resource.data.role == resource.data.role
+        && request.resource.data.companyId == resource.data.companyId
+        && request.resource.data.plan == resource.data.plan
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.id == resource.data.id;
+    }
+
+    function isAllowedSelfSignupRole() {
+      return request.resource.data.role == 'Recruiter' || request.resource.data.role == 'Candidate';
+    }
+
     /** @description Checks if the user is a Developer. */
     function isDeveloper() {
       return isSignedIn() && getUserData().role == 'Developer';
@@ -38,8 +50,11 @@ service cloud.firestore {
     /** Root User profile document */
     match /users/{userId} {
       allow get, list: if isOwner(userId) || isDeveloper();
-      allow create: if isSignedIn();
-      allow update: if isOwner(userId) || isDeveloper();
+      allow create: if isOwner(userId)
+        && request.resource.data.id == request.auth.uid
+        && request.resource.data.companyId == request.auth.uid
+        && isAllowedSelfSignupRole();
+      allow update: if (isOwner(userId) && hasUnchangedProtectedProfileFields()) || isDeveloper();
       allow delete: if isDeveloper();
     }
 

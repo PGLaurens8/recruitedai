@@ -5,26 +5,34 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/auth-context";
 import { generateInterviewQuestions } from "@/ai/flows/generate-interview-questions";
 import { analyzeInterviewResponse, type AnalyzeInterviewResponseOutput } from "@/ai/flows/analyze-interview-response";
-import { jobPostings } from "@/app/jobs/page"; // Using mock data
 import { ClipboardCheck, Mic, MicOff, AlertTriangle, Copy, Rocket, Lightbulb, BarChart, ChevronRight } from "lucide-react";
+import { useCurrentProfile, useJobs } from "@/lib/data/hooks";
+
+type InterviewJob = {
+  id: string;
+  title: string;
+  company?: string;
+  location?: string;
+  salary?: string;
+  status: string;
+};
 
 type InterviewState = "setup" | "generating_questions" | "in_progress" | "analyzing" | "feedback" | "finished";
 type Feedback = AnalyzeInterviewResponseOutput & { question: string };
 
-// Check for SpeechRecognition API
-const SpeechRecognition =
-  (typeof window !== "undefined" && window.SpeechRecognition) ||
-  (typeof window !== "undefined" && (window as any).webkitSpeechRecognition);
-
 export default function InterviewPrepPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { data: profile } = useCurrentProfile(user);
+  const { data: fetchedJobs } = useJobs(profile?.companyId);
+  const jobPostings = fetchedJobs || [];
 
   const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [interviewState, setInterviewState] = useState<InterviewState>("setup");
@@ -38,12 +46,18 @@ export default function InterviewPrepPage() {
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!SpeechRecognition) {
+    const SpeechRecognitionCtor =
+      (typeof window !== "undefined" &&
+        ((window as Window & { webkitSpeechRecognition?: any }).webkitSpeechRecognition ||
+          (window as Window & { SpeechRecognition?: any }).SpeechRecognition)) ||
+      null;
+
+    if (!SpeechRecognitionCtor) {
       setError("Speech recognition is not supported in your browser. Please try Chrome or Edge.");
       return;
     }
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionCtor();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
@@ -87,7 +101,7 @@ export default function InterviewPrepPage() {
     setError(null);
     setFeedbackLog([]);
 
-    const selectedJob = jobPostings.find(job => job.id === selectedJobId);
+    const selectedJob = jobPostings.find((job: InterviewJob) => job.id === selectedJobId);
     if (!selectedJob) {
         setError("Could not find selected job details.");
         setInterviewState("setup");
@@ -173,7 +187,7 @@ export default function InterviewPrepPage() {
                 <SelectValue placeholder="Select a job posting..." />
               </SelectTrigger>
               <SelectContent>
-                {jobPostings.filter(j => j.status === 'active').map(job => (
+                {jobPostings.filter((j: InterviewJob) => j.status === 'active').map((job: InterviewJob) => (
                   <SelectItem key={job.id} value={job.id}>{job.title} at {job.company}</SelectItem>
                 ))}
               </SelectContent>

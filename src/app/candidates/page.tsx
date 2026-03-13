@@ -13,24 +13,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowDown, ArrowUp, ArrowUpDown, Eye, FilePenLine, Plus, Search, Star, Trash2, Upload } from "lucide-react";
-import { collection, doc } from "firebase/firestore";
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, deleteDocumentNonBlocking } from "@/firebase";
 import { Spinner } from "@/components/ui/spinner";
+import { useAuth } from "@/context/auth-context";
+import { removeCandidate, useCandidates, useCurrentProfile } from "@/lib/data/hooks";
+import type { CandidateRecord } from "@/lib/data/types";
 
-interface Candidate {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  status: string;
-  aiScore?: number;
-  currentJob?: string;
-  currentCompany?: string;
-  appliedFor?: string;
-  companyId: string;
-}
-
-type CandidateKey = keyof Candidate;
+type CandidateKey = keyof CandidateRecord;
 
 const getStatusBadgeVariant = (status: string) => {
   switch (status?.toLowerCase()) {
@@ -51,18 +39,13 @@ const getStatusBadgeVariant = (status: string) => {
 
 function CandidatesPageContent() {
   const searchParams = useSearchParams();
-  const firestore = useFirestore();
-  const { user: fbUser } = useUser();
+  const { user } = useAuth();
+  const [refreshKey, setRefreshKey] = useState(0);
   const [sortConfig, setSortConfig] = useState<{ key: CandidateKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
-  // Get User Profile to get Company ID
-  const profileRef = useMemoFirebase(() => fbUser ? doc(firestore, 'users', fbUser.uid) : null, [firestore, fbUser]);
-  const { data: profile } = useDoc(profileRef);
+  const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
-
-  // Get Candidates for the Company
-  const candidatesRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'candidates') : null, [firestore, companyId]);
-  const { data: candidates, isLoading } = useCollection<Candidate>(candidatesRef);
+  const { data: candidates, isLoading } = useCandidates(companyId, refreshKey);
 
   const sortedCandidates = useMemo(() => {
     if (!candidates) return [];
@@ -108,8 +91,9 @@ function CandidatesPageContent() {
 
   const handleDelete = (candidateId: string) => {
     if (!companyId || !confirm("Are you sure you want to delete this candidate?")) return;
-    const ref = doc(firestore, 'companies', companyId, 'candidates', candidateId);
-    deleteDocumentNonBlocking(ref);
+    void removeCandidate(companyId, candidateId).then(() => {
+      setRefreshKey((current) => current + 1);
+    });
   };
 
   if (isLoading) {

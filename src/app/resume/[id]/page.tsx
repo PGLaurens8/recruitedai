@@ -50,7 +50,7 @@ export default function ResumeEditorPage() {
           <Input defaultValue={resumeId !== 'new' ? `My Awesome Resume ${resumeId}` : ""} placeholder="e.g., Senior Software Engineer Resume" />
         </CardHeader>
         <CardContent>
-          <Accordion type="multiple" collapsible className="w-full space-y-4" defaultValue={['summary', 'work-experience']}>
+          <Accordion type="multiple" className="w-full space-y-4" defaultValue={['summary', 'work-experience']}>
             <ResumeSectionEditor title="Summary">
               <Textarea placeholder="Write a compelling professional summary..." className="min-h-[150px]" />
             </ResumeSectionEditor>

@@ -43,23 +43,20 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { useFirestore, useUser, useCollection, useDoc, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
-import { collection, doc, query, where } from "firebase/firestore";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { useAuth } from "@/context/auth-context";
+import {
+  saveCandidateInterviewAnalysis,
+  useCandidates,
+  useCompany,
+  useCurrentProfile,
+} from "@/lib/data/hooks";
 
 // Speech Recognition Setup
 const SpeechRecognition =
   (typeof window !== "undefined" && (window as any).SpeechRecognition) ||
   (typeof window !== "undefined" && (window as any).webkitSpeechRecognition);
-
-const COMPANY_STORAGE_KEYS = {
-  NAME: 'recruitedAI_companyName',
-  LOGO: 'recruitedAI_companyLogo',
-  WEBSITE: 'recruitedAI_companyWebsite',
-  EMAIL: 'recruitedAI_companyEmail',
-  ADDRESS: 'recruitedAI_companyAddress',
-};
 
 const defaultQuestions = [
   "Brief professional background summary?",
@@ -89,27 +86,27 @@ export default function InterviewAnalysisPage() {
   const recognitionRef = useRef<any>(null);
   
   const { toast } = useToast();
-  const firestore = useFirestore();
-  const { user: fbUser } = useUser();
+  const { user } = useAuth();
 
-  // Get Candidates for linking
-  const profileRef = useMemoFirebase(() => fbUser ? doc(firestore, 'users', fbUser.uid) : null, [firestore, fbUser]);
-  const { data: profile } = useDoc(profileRef);
+  const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
-
-  const candidatesRef = useMemoFirebase(() => companyId ? collection(firestore, 'companies', companyId, 'candidates') : null, [firestore, companyId]);
-  const { data: candidates } = useCollection(candidatesRef);
+  const { data: companyDoc } = useCompany(companyId);
+  const { data: candidates } = useCandidates(companyId);
   
   const selectedCandidate = candidates?.find(c => c.id === selectedCandidateId);
 
   useEffect(() => {
-    // Load Branding
-    const name = localStorage.getItem(COMPANY_STORAGE_KEYS.NAME);
-    const logo = localStorage.getItem(COMPANY_STORAGE_KEYS.LOGO);
-    const website = localStorage.getItem(COMPANY_STORAGE_KEYS.WEBSITE);
-    const address = localStorage.getItem(COMPANY_STORAGE_KEYS.ADDRESS);
-    if (name) setCompanyInfo({ name, logo, website, address });
+    if (companyDoc?.name) {
+      setCompanyInfo({
+        name: companyDoc.name,
+        logo: companyDoc.logo || '',
+        website: companyDoc.website || '',
+        address: companyDoc.address || '',
+      });
+    }
+  }, [companyDoc]);
 
+  useEffect(() => {
     // Initialize Speech Recognition
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
@@ -169,15 +166,10 @@ export default function InterviewAnalysisPage() {
     }
   };
 
-  const handleSaveToCandidate = () => {
-    if (!selectedCandidateId || !analysis) return;
-    
-    const candRef = doc(firestore, 'companies', companyId!, 'candidates', selectedCandidateId);
-    updateDocumentNonBlocking(candRef, {
-      interviewAnalysis: analysis,
-      lastInterviewAt: new Date().toISOString(),
-    });
+  const handleSaveToCandidate = async () => {
+    if (!selectedCandidateId || !analysis || !companyId) return;
 
+    await saveCandidateInterviewAnalysis(companyId, selectedCandidateId, analysis);
     toast({ title: "Profile Updated", description: "Interview data linked to candidate." });
   };
 
@@ -541,7 +533,7 @@ export default function InterviewAnalysisPage() {
                     <footer className="mt-auto pt-16 border-t border-gray-100 flex justify-between items-end">
                       <div>
                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Prepared By</p>
-                        <p className="text-sm font-bold text-primary">{fbUser?.displayName || 'RecruitedAI Consultant'}</p>
+                        <p className="text-sm font-bold text-primary">{user?.name || 'RecruitedAI Consultant'}</p>
                       </div>
                       <p className="text-[8px] text-gray-300 w-64 text-right italic leading-tight">
                         This evaluation pack is confidential and proprietary to {companyInfo?.name || 'the agency'}. Distribution without consent is prohibited.

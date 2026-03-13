@@ -40,7 +40,7 @@ export default function AboutPage() {
           </CardHeader>
           <CardContent className="text-sm leading-relaxed space-y-4">
             <p>
-              Data integrity is our priority. Our architecture uses path-based isolation at the Firestore level, ensuring that Candidates, Clients, and Jobs are strictly partitioned by Company ID.
+              Data integrity is our priority. Our architecture uses company-scoped isolation in the data layer, ensuring that Candidates, Clients, and Jobs are strictly partitioned by Company ID.
             </p>
             <p>
               Role-Based Access Control (RBAC) ensures that Sales, Recruiters, and Admin users only see the tools relevant to their KPIs.

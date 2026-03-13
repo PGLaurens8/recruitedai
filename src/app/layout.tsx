@@ -3,22 +3,32 @@
 
 import './globals.css';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { type ReactNode } from 'react';
 
-import { AuthProvider, useAuth } from '@/context/auth-context';
-import { FirebaseClientProvider } from '@/firebase';
+import { useAuth } from '@/context/auth-context';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Toaster } from "@/components/ui/toaster";
 import { Spinner } from '@/components/ui/spinner';
 import { Header } from '@/components/layout/header';
+import { AppProviders } from '@/components/providers/app-providers';
+import { getDefaultRouteForRole, isPublicPath, isRoleAllowedForPath } from '@/lib/rbac';
 
 
 function RootLayoutContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
-  const isAuthUIPage = pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/signup');
+  const isAuthUIPage = isPublicPath(pathname);
+  const isAuthorizedForRoute = !!user && isRoleAllowedForPath(user.role, pathname);
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user && !isAuthUIPage && !isAuthorizedForRoute) {
+      router.replace(getDefaultRouteForRole(user.role));
+    }
+  }, [isLoading, isAuthenticated, user, isAuthUIPage, isAuthorizedForRoute, router]);
 
   if (isLoading) {
     return (
@@ -29,6 +39,14 @@ function RootLayoutContent({ children }: { children: ReactNode }) {
   }
 
   if (isAuthenticated && !isAuthUIPage) {
+    if (!user || !isAuthorizedForRoute) {
+      return (
+        <div className="flex items-center justify-center h-screen bg-background">
+          <Spinner size={48} />
+        </div>
+      );
+    }
+
     return (
       <div className="flex min-h-screen w-full">
         <Sidebar />
@@ -64,12 +82,10 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet" />
       </head>
       <body suppressHydrationWarning>
-        <AuthProvider>
-          <FirebaseClientProvider>
-            <RootLayoutContent>{children}</RootLayoutContent>
-            <Toaster />
-          </FirebaseClientProvider>
-        </AuthProvider>
+        <AppProviders>
+          <RootLayoutContent>{children}</RootLayoutContent>
+          <Toaster />
+        </AppProviders>
       </body>
     </html>
   );

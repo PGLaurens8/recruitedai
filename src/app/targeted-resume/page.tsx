@@ -26,20 +26,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
-
+import { useAuth } from '@/context/auth-context';
+import { saveMasterResume, useMasterResume } from '@/lib/data/hooks';
 
 type JobSpecInputType = "file" | "text" | "url";
-
-const LOCAL_STORAGE_KEYS = {
-  MASTER_RESUME_TEXT: 'recruitedAI_masterResumeText',
-  MASTER_RESUME_USER_TITLE: 'recruitedAI_masterResumeUserTitle',
-  MASTER_RESUME_TIMESTAMP: 'recruitedAI_masterResumeTimestamp',
-  MASTER_RESUME_EXTRACTED_NAME: 'recruitedAI_masterResumeExtractedName',
-  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'recruitedAI_masterResumeExtractedJobTitle',
-  MASTER_RESUME_CONTACT_INFO: 'recruitedAI_masterResumeContactInfo',
-  MASTER_RESUME_SKILLS: 'recruitedAI_masterResumeSkills',
-  MASTER_RESUME_AVATAR_URI: 'recruitedAI_masterResumeAvatarUri',
-};
 
 interface ContactInfo {
   email?: string;
@@ -49,6 +39,7 @@ interface ContactInfo {
 }
 
 export default function JobMatchingPage() {
+  const { user } = useAuth();
   const [masterResumeText, setMasterResumeText] = useState('');
   const [masterResumeUserTitle, setMasterResumeUserTitle] = useState('');
   const [masterResumeTimestamp, setMasterResumeTimestamp] = useState('');
@@ -78,46 +69,44 @@ export default function JobMatchingPage() {
   
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { data: storedResume } = useMasterResume(user?.id, refreshKey);
 
   useEffect(() => {
-    const storedText = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
-    const storedUserTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE);
-    const storedTimestamp = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP);
-    const storedName = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME);
-    const storedJobTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
-    const storedContact = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO);
-    const storedSkills = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS);
-    const storedAvatar = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI);
-
-
-    if (storedText && storedUserTitle && storedTimestamp) {
-      setMasterResumeText(storedText);
-      setMasterResumeUserTitle(storedUserTitle);
-      setMasterResumeTimestamp(storedTimestamp);
+    if (storedResume?.reformattedText) {
+      setMasterResumeText(storedResume.reformattedText);
+      setMasterResumeUserTitle(storedResume.userTitle || 'My Master Resume');
+      setMasterResumeTimestamp(storedResume.processedAt || '');
       setIsMasterResumeFromStorage(true);
     } else {
       setIsMasterResumeFromStorage(false);
     }
     
-    if (storedName) setLoadedExtractedName(storedName);
-    if (storedJobTitle) setLoadedExtractedJobTitle(storedJobTitle);
-    if (storedContact) setLoadedContactInfo(JSON.parse(storedContact));
-    if (storedSkills) setLoadedSkills(JSON.parse(storedSkills));
-    if (storedAvatar) setAvatarUri(storedAvatar);
+    setLoadedExtractedName(storedResume?.fullName || null);
+    setLoadedExtractedJobTitle(storedResume?.currentJobTitle || null);
+    setLoadedContactInfo(storedResume?.contactInfo || null);
+    setLoadedSkills(storedResume?.skills || null);
+    setAvatarUri(storedResume?.avatarUri || null);
 
-  }, []);
+  }, [storedResume]);
 
-  const handleClearStoredMasterResume = () => {
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_USER_TITLE);
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TIMESTAMP);
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME); 
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_CONTACT_INFO);
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_SKILLS);
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI);
-
-
+  const handleClearStoredMasterResume = async () => {
+    if (user?.id) {
+      await saveMasterResume(user.id, {
+        id: storedResume?.id,
+        reformattedText: '',
+        userTitle: '',
+        processedAt: '',
+        fullName: '',
+        currentJobTitle: '',
+        contactInfo: {},
+        skills: [],
+        avatarUri: '',
+        missingInformation: storedResume?.missingInformation || [],
+        questions: storedResume?.questions || [],
+      });
+      setRefreshKey((current) => current + 1);
+    }
     setMasterResumeText('');
     setMasterResumeUserTitle('');
     setMasterResumeTimestamp('');
@@ -242,7 +231,22 @@ export default function JobMatchingPage() {
             const file = e.target.files[0];
             const dataUri = await fileToDataURI(file);
             setAvatarUri(dataUri);
-            localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI, dataUri);
+            if (user?.id) {
+              await saveMasterResume(user.id, {
+                id: storedResume?.id,
+                userTitle: storedResume?.userTitle || masterResumeUserTitle || 'My Master Resume',
+                reformattedText: storedResume?.reformattedText || masterResumeText || '',
+                fullName: storedResume?.fullName || loadedExtractedName || '',
+                currentJobTitle: storedResume?.currentJobTitle || loadedExtractedJobTitle || '',
+                contactInfo: storedResume?.contactInfo || (loadedContactInfo as Record<string, string | undefined> | null) || {},
+                skills: storedResume?.skills || loadedSkills || [],
+                missingInformation: storedResume?.missingInformation || [],
+                questions: storedResume?.questions || [],
+                avatarUri: dataUri,
+                processedAt: storedResume?.processedAt || masterResumeTimestamp || '',
+              });
+              setRefreshKey((current) => current + 1);
+            }
             toast({
                 title: "Profile Photo Updated!",
                 description: "Your new photo is now set for this session.",

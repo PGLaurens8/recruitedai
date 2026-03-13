@@ -23,10 +23,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
-import { Users, Briefcase, DollarSign, Target, TrendingUp, Calendar, UserCheck, Percent, Download, Calendar as CalendarIcon } from "lucide-react"
+import { Users, Briefcase, DollarSign, Target, TrendingUp, UserCheck, Percent, Download, Calendar as CalendarIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import jsPDF from 'jspdf';
@@ -131,7 +132,6 @@ export default function ReportsPage() {
   const FilterBar = ({
     date,
     setDate,
-    onDownload,
     selectOptions,
     selectPlaceholder,
     reportId,
@@ -139,7 +139,6 @@ export default function ReportsPage() {
   }: {
     date: DateRange | undefined;
     setDate: (date: DateRange | undefined) => void;
-    onDownload: () => void;
     selectOptions?: { value: string; label: string }[];
     selectPlaceholder?: string;
     reportId: string;
@@ -227,7 +226,6 @@ export default function ReportsPage() {
           <FilterBar
             date={recruiterDate}
             setDate={setRecruiterDate}
-            onDownload={() => downloadReport('recruiter-report', 'recruiter_performance')}
             selectOptions={recruiterStats.map(r => ({ value: r.name.toLowerCase().replace(' ', '-'), label: r.name }))}
             selectPlaceholder="Filter by Recruiter"
             reportId="recruiter-report"
@@ -345,7 +343,6 @@ export default function ReportsPage() {
             <FilterBar
                 date={salesDate}
                 setDate={setSalesDate}
-                onDownload={() => downloadReport('sales-report', 'sales_pipeline')}
                 selectOptions={[{ value: 'rep1', label: 'Sales Rep 1'}, { value: 'rep2', label: 'Sales Rep 2'}]}
                 selectPlaceholder="Filter by Sales Rep"
                 reportId="sales-report"
@@ -433,7 +430,6 @@ export default function ReportsPage() {
             <FilterBar
                 date={executiveDate}
                 setDate={setExecutiveDate}
-                onDownload={() => downloadReport('executive-report', 'executive_summary')}
                 reportId="executive-report"
                 reportName="executive_summary"
             />

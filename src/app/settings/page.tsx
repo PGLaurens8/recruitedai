@@ -27,9 +27,8 @@ import {
   Briefcase,
   Building
 } from 'lucide-react';
-import { doc, serverTimestamp } from 'firebase/firestore';
-import { useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { seedDemoData, saveModelRegistry, useModelRegistry } from '@/lib/data/hooks';
 
 // Mock data for seeding
 const SEED_DATA = {
@@ -50,23 +49,16 @@ const SEED_DATA = {
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const { user: fbUser } = useUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("general");
+  const [registryRefreshKey, setRegistryRefreshKey] = useState(0);
   
   // Model discovery state
   const [discoveredModels, setModels] = useState<ModelInfo[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
 
-  // Persistence (Firestore state)
-  const registryDocRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, 'modelRegistry', 'latest');
-  }, [firestore]);
-
-  const { data: registryData, isLoading: isLoadingRegistry } = useDoc<any>(registryDocRef);
+  const { data: registryData, isLoading: isLoadingRegistry } = useModelRegistry(registryRefreshKey);
 
   const fetchModels = async () => {
     setIsLoadingModels(true);
@@ -86,79 +78,24 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSyncToDatabase = () => {
-    if (!firestore || discoveredModels.length === 0) return;
-    const docRef = doc(firestore, 'modelRegistry', 'latest');
-    setDocumentNonBlocking(docRef, {
+  const handleSyncToDatabase = async () => {
+    if (discoveredModels.length === 0) return;
+    await saveModelRegistry({
       models: discoveredModels,
-      updatedAt: serverTimestamp(),
+      updatedAt: new Date().toISOString(),
       updatedBy: user?.email || 'Unknown Developer',
-    }, { merge: true });
-    toast({ title: "Sync Initiated", description: "The discovered model list is being saved." });
+    });
+    setRegistryRefreshKey((current) => current + 1);
+    toast({ title: "Sync Complete", description: "The discovered model list has been saved." });
   };
 
   // Seeding Logic
   const handleSeedDatabase = async () => {
-    if (!firestore || !user || !fbUser) {
+    if (!user || !user.id) {
       toast({ variant: "destructive", title: "Auth Required", description: "Please ensure you are logged in." });
       return;
     }
-
-    const companyId = 'demo-agency-123';
-    
-    // 1. Ensure Developer Profile matches Company for rules
-    const userRef = doc(firestore, 'users', fbUser.uid);
-    setDocumentNonBlocking(userRef, {
-      companyId: companyId,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-
-    // 2. Seed Company
-    const companyRef = doc(firestore, 'companies', companyId);
-    setDocumentNonBlocking(companyRef, {
-      id: companyId,
-      name: "TalentSource Pro Agency",
-      website: "www.talentsource-pro.ai",
-      plan: "enterprise",
-      createdAt: serverTimestamp()
-    }, { merge: true });
-
-    // 3. Seed Candidates
-    SEED_DATA.candidates.forEach((cand, idx) => {
-      const candId = `cand-${idx}`;
-      const candRef = doc(firestore, 'companies', companyId, 'candidates', candId);
-      setDocumentNonBlocking(candRef, {
-        ...cand,
-        id: candId,
-        companyId,
-        createdBy: fbUser.uid,
-        createdAt: serverTimestamp()
-      }, { merge: true });
-    });
-
-    // 4. Seed Jobs
-    SEED_DATA.jobs.forEach((job, idx) => {
-      const jobId = `job-${idx}`;
-      const jobRef = doc(firestore, 'companies', companyId, 'jobs', jobId);
-      setDocumentNonBlocking(jobRef, {
-        ...job,
-        id: jobId,
-        companyId,
-        createdAt: serverTimestamp()
-      }, { merge: true });
-    });
-
-    // 5. Seed Clients
-    SEED_DATA.clients.forEach((client, idx) => {
-      const clientId = `client-${idx}`;
-      const clientRef = doc(firestore, 'companies', companyId, 'clients', clientId);
-      setDocumentNonBlocking(clientRef, {
-        ...client,
-        id: clientId,
-        companyId,
-        createdAt: serverTimestamp()
-      }, { merge: true });
-    });
+    await seedDemoData(user);
 
     toast({
       title: "Seeding Success",
@@ -219,7 +156,7 @@ export default function SettingsPage() {
                       <DatabaseZap className="h-5 w-5 text-primary" />
                       Database Seeding
                     </CardTitle>
-                    <CardDescription>Populate Firestore with sample multitenant data for development.</CardDescription>
+                    <CardDescription>Populate the active data store with sample multitenant data for development.</CardDescription>
                   </div>
                   <Button onClick={handleSeedDatabase} variant="default">
                     <CloudUpload className="mr-2 h-4 w-4" /> Seed All Samples
@@ -303,7 +240,7 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-1">
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Persisted Registry</h3>
-                  {registryData && <Badge variant="secondary" className="text-[10px]">Last Sync: {registryData.updatedAt?.toDate().toLocaleString()}</Badge>}
+                  {registryData?.updatedAt && <Badge variant="secondary" className="text-[10px]">Last Sync: {new Date(registryData.updatedAt).toLocaleString()}</Badge>}
                 </div>
                 {isLoadingRegistry ? (
                   <div className="flex flex-col items-center justify-center p-12"><Spinner size={48} className="text-primary mb-4" /><p className="text-sm text-muted-foreground">Loading...</p></div>
@@ -312,7 +249,7 @@ export default function SettingsPage() {
                     {(!registryData?.models || registryData.models.length === 0) ? (
                       <div className="col-span-full text-center p-12 border-2 border-dashed rounded-lg bg-muted/10"><p className="text-muted-foreground">Run Discovery to populate.</p></div>
                     ) : (
-                      registryData.models.map((model: ModelInfo) => <ModelCard key={model.name} model={model} />)
+                      (registryData.models as ModelInfo[]).map((model) => <ModelCard key={model.name} model={model} />)
                     )}
                   </div>
                 )}

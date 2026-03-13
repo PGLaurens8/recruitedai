@@ -14,14 +14,7 @@ import { CreditCard, Building, User, UploadCloud, Save, Globe, Mail, MapPin, Zap
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { fileToDataURI } from '@/lib/file-utils';
-
-const LOCAL_STORAGE_KEYS = {
-  COMPANY_NAME: 'recruitedAI_companyName',
-  COMPANY_LOGO: 'recruitedAI_companyLogo',
-  COMPANY_WEBSITE: 'recruitedAI_companyWebsite',
-  COMPANY_EMAIL: 'recruitedAI_companyEmail',
-  COMPANY_ADDRESS: 'recruitedAI_companyAddress',
-};
+import { saveCompany, useCompany } from '@/lib/data/hooks';
 
 const PLAN_FEATURES = {
   Free: ["Basic Resume Builder", "Single Profile", "Community Support"],
@@ -32,6 +25,7 @@ const PLAN_FEATURES = {
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState("user");
   const avatarFallback = user?.name?.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() || 'U';
 
@@ -43,26 +37,34 @@ export default function ProfilePage() {
   const [companyAddress, setCompanyAddress] = useState('');
   const logoInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setCompanyName(localStorage.getItem(LOCAL_STORAGE_KEYS.COMPANY_NAME) || '');
-    setCompanyLogo(localStorage.getItem(LOCAL_STORAGE_KEYS.COMPANY_LOGO) || '');
-    setCompanyWebsite(localStorage.getItem(LOCAL_STORAGE_KEYS.COMPANY_WEBSITE) || '');
-    setCompanyEmail(localStorage.getItem(LOCAL_STORAGE_KEYS.COMPANY_EMAIL) || '');
-    setCompanyAddress(localStorage.getItem(LOCAL_STORAGE_KEYS.COMPANY_ADDRESS) || '');
-  }, []);
+  const { data: companyDoc } = useCompany(user?.companyId, refreshKey);
 
-  const handleSaveCompany = () => {
+  useEffect(() => {
+    if (!companyDoc) return;
+    setCompanyName(companyDoc.name || '');
+    setCompanyLogo(companyDoc.logo || '');
+    setCompanyWebsite(companyDoc.website || '');
+    setCompanyEmail(companyDoc.email || '');
+    setCompanyAddress(companyDoc.address || '');
+  }, [companyDoc]);
+
+  const handleSaveCompany = async () => {
+    if (!user) return;
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_NAME, companyName);
-      localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_LOGO, companyLogo);
-      localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_WEBSITE, companyWebsite);
-      localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_EMAIL, companyEmail);
-      localStorage.setItem(LOCAL_STORAGE_KEYS.COMPANY_ADDRESS, companyAddress);
+      await saveCompany({
+        id: user.companyId,
+        name: companyName,
+        logo: companyLogo,
+        website: companyWebsite,
+        email: companyEmail,
+        address: companyAddress,
+      });
       
       toast({
         title: "Company Profile Saved",
         description: "Your branding details have been updated successfully.",
       });
+      setRefreshKey((current) => current + 1);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Save Failed", description: "Storage limit reached." });
     }
@@ -124,7 +126,7 @@ export default function ProfilePage() {
               <CardContent className="space-y-4">
                 <div className="grid gap-2">
                   <Label>Email Address</Label>
-                  <Input readOnly value="demo-user@recruitedai.com" />
+                  <Input readOnly value={user.email} />
                 </div>
                 <div className="grid gap-2">
                   <Label>Assigned Role</Label>
@@ -151,7 +153,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="companyWebsite">Website</Label>
-                    <Input id="companyWebsite" value={companyWebsite} onChange={(e) => setCompanyName(e.target.value)} />
+                    <Input id="companyWebsite" value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} />
                   </div>
                 </div>
                 <div className="space-y-2">

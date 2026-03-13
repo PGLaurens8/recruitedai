@@ -21,8 +21,8 @@ export const getWebsiteContent = ai.defineTool(
   {
     name: 'getWebsiteContent',
     description: 'Fetches the text content from a given URL. Use this to get information from a specific company website.',
-    input: {schema: WebsiteContentInputSchema},
-    output: {schema: WebsiteContentOutputSchema},
+    inputSchema: WebsiteContentInputSchema,
+    outputSchema: WebsiteContentOutputSchema,
   },
   async (input) => {
     try {

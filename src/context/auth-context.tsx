@@ -1,126 +1,292 @@
-
 'use client';
 
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { initializeFirebase } from '@/firebase';
-import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import React, { createContext, useContext, ReactNode, useEffect, useMemo, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { getRuntimeMode, isMockMode, isSupabaseMode } from '@/lib/runtime-mode';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { getDefaultRouteForRole, isPublicPath } from '@/lib/rbac';
+import { type Role } from '@/lib/roles';
 
-export type Role = 'Admin' | 'Recruiter' | 'Sales' | 'Candidate' | 'Developer';
+export interface AppUser {
+  id?: string;
+  name: string;
+  role: Role;
+  email: string;
+  companyId: string;
+}
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: { name: string; role: Role } | null;
-  login: (role: Role) => void;
-  logout: () => void;
+  user: AppUser | null;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, name?: string) => Promise<void>;
+  logout: () => Promise<void>;
   isLoading: boolean;
+  runtimeMode: ReturnType<typeof getRuntimeMode>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const MOCK_STORAGE_KEY = 'recruitedai.mock-user';
+
+function normalizeUser(partial: Partial<AppUser> & { email: string }): AppUser {
+  const fallbackName = partial.name || partial.email.split('@')[0] || 'User';
+  const fallbackCompanyId = partial.companyId || partial.id || partial.email;
+
+  return {
+    id: partial.id,
+    name: fallbackName,
+    role: partial.role || 'Recruiter',
+    email: partial.email,
+    companyId: fallbackCompanyId,
+  };
+}
+
+async function loadSupabaseProfile(userId: string) {
+  const supabase = createSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, email, name, role, company_id')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    return null;
+  }
+
+  return data;
+}
+
+function handleRedirect(router: ReturnType<typeof useRouter>, role: Role) {
+  router.push(getDefaultRouteForRole(role));
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<{ name: string; role: Role } | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const runtimeMode = useMemo(() => getRuntimeMode(), []);
 
   useEffect(() => {
-    const { auth, firestore } = initializeFirebase();
+    const pathIsPublic = isPublicPath(pathname);
 
-    // Listen for Firebase Auth changes to sync profile
-    const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
-      if (fbUser) {
-        const storedRole = localStorage.getItem('userRole') as Role;
-        if (storedRole) {
-          // Determine default company for demo purposes
-          const defaultCompanyId = storedRole === 'Developer' ? 'demo-agency-123' : 'default-company';
-          
-          // Sync the Demo Role to the Firestore User Profile for Security Rules
-          const userRef = doc(firestore, 'users', fbUser.uid);
-          setDoc(userRef, {
-            id: fbUser.uid,
-            name: 'Demo User',
-            email: fbUser.email || 'demo@example.com',
-            role: storedRole,
-            companyId: defaultCompanyId,
-            plan: 'free',
-            onboardingStep: 'completed',
-            updatedAt: serverTimestamp(),
-            createdAt: serverTimestamp(), // Required by schema
-          }, { merge: true });
-        }
-      }
-    });
+    if (isMockMode()) {
+      const raw = window.localStorage.getItem(MOCK_STORAGE_KEY);
 
-    try {
-      const storedRole = localStorage.getItem('userRole') as Role;
-      if (storedRole) {
-        setUser({ name: 'Demo User', role: storedRole });
-        // Ensure signed in to Firebase if role exists
-        if (!auth.currentUser) {
-          signInAnonymously(auth);
-        }
-        if (pathname === '/' || pathname === '/login') {
-            handleRedirect(storedRole);
+      if (raw) {
+        try {
+          const nextUser = JSON.parse(raw) as AppUser;
+          setUser(nextUser);
+          if (pathIsPublic) {
+            handleRedirect(router, nextUser.role);
+          }
+        } catch {
+          window.localStorage.removeItem(MOCK_STORAGE_KEY);
+          setUser(null);
         }
       } else {
-        const publicPaths = ['/','/login','/signup'];
-        const isPublic = publicPaths.some(p => pathname === p);
-        if (!isPublic) {
-            router.push('/');
-        }
+        setUser(null);
       }
-    } catch (error) {
-        console.error("Could not access local storage", error);
-    }
-    finally {
+
       setIsLoading(false);
+      if (!raw && !pathIsPublic) {
+        router.push('/login');
+      }
+      return;
     }
 
-    return () => unsubscribeAuth();
-  }, [pathname, router]);
+    if (isSupabaseMode()) {
+      const supabase = createSupabaseBrowserClient();
 
-  const handleRedirect = (role: Role) => {
-     switch (role) {
-      case 'Admin':
-      case 'Developer':
-        router.push('/dashboard/admin');
-        break;
-      case 'Recruiter':
-        router.push('/dashboard/recruiter');
-        break;
-      case 'Sales':
-        router.push('/dashboard/sales');
-        break;
-      case 'Candidate':
-      default:
-        router.push('/dashboard'); 
+      const bootstrap = async () => {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+          setUser(null);
+          if (!pathIsPublic) {
+            router.push('/login');
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        const profile = await loadSupabaseProfile(session.user.id);
+        const nextUser = normalizeUser({
+          id: profile?.id || session.user.id,
+          email: profile?.email || session.user.email || '',
+          name:
+            profile?.name ||
+            (session.user.user_metadata.name as string | undefined) ||
+            (session.user.user_metadata.full_name as string | undefined) ||
+            undefined,
+          companyId:
+            profile?.company_id ||
+            (session.user.user_metadata.company_id as string | undefined) ||
+            session.user.id,
+          role:
+            (profile?.role as Role | undefined) ||
+            (session.user.user_metadata.role as Role | undefined) ||
+            'Recruiter',
+        });
+
+        setUser(nextUser);
+        if (pathIsPublic) {
+          handleRedirect(router, nextUser.role);
+        }
+        setIsLoading(false);
+      };
+
+      bootstrap();
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!session?.user) {
+          setUser(null);
+          if (!isPublicPath(pathname)) {
+            router.push('/login');
+          }
+          return;
+        }
+
+        void loadSupabaseProfile(session.user.id).then((profile) => {
+          const nextUser = normalizeUser({
+            id: profile?.id || session.user.id,
+            email: profile?.email || session.user.email || '',
+            name:
+              profile?.name ||
+              (session.user.user_metadata.name as string | undefined) ||
+              (session.user.user_metadata.full_name as string | undefined) ||
+              undefined,
+            companyId:
+              profile?.company_id ||
+              (session.user.user_metadata.company_id as string | undefined) ||
+              session.user.id,
+            role:
+              (profile?.role as Role | undefined) ||
+              (session.user.user_metadata.role as Role | undefined) ||
+              'Recruiter',
+          });
+
+          setUser(nextUser);
+        });
+      });
+
+      return () => subscription.unsubscribe();
     }
-  }
 
-  const login = (selectedRole: Role) => {
-    const { auth } = initializeFirebase();
-    const newUser = { name: 'Demo User', role: selectedRole };
-    setUser(newUser);
-    localStorage.setItem('userRole', selectedRole);
-    
-    // Sign into Firebase to enable Security Rules
-    signInAnonymously(auth);
-    
-    handleRedirect(selectedRole);
+    setUser(null);
+    setIsLoading(false);
+    if (!pathIsPublic) {
+      router.push('/login');
+    }
+    return;
+  }, [pathname, router, runtimeMode]);
+
+  const login = async (email: string, password: string) => {
+    if (isMockMode()) {
+      const nextUser = normalizeUser({
+        id: email,
+        email,
+        name: email.split('@')[0] || 'Demo User',
+        companyId: 'mock-company',
+        role: 'Recruiter',
+      });
+
+      window.localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(nextUser));
+      setUser(nextUser);
+      handleRedirect(router, nextUser.role);
+      return;
+    }
+
+    if (isSupabaseMode()) {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        throw error;
+      }
+      return;
+    }
+
+    throw new Error('Unsupported runtime mode.');
   };
 
-  const logout = () => {
-    const { auth } = initializeFirebase();
+  const signup = async (email: string, password: string, name?: string) => {
+    if (isMockMode()) {
+      const nextUser = normalizeUser({
+        id: email,
+        email,
+        name: name || email.split('@')[0] || 'Demo User',
+        companyId: 'mock-company',
+        role: 'Recruiter',
+      });
+
+      window.localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(nextUser));
+      setUser(nextUser);
+      handleRedirect(router, nextUser.role);
+      return;
+    }
+
+    if (isSupabaseMode()) {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name || email.split('@')[0],
+            role: 'Recruiter',
+          },
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return;
+    }
+
+    throw new Error('Unsupported runtime mode.');
+  };
+
+  const logout = async () => {
     setUser(null);
-    localStorage.removeItem('userRole');
-    auth.signOut();
-    router.push('/');
+
+    if (isMockMode()) {
+      window.localStorage.removeItem(MOCK_STORAGE_KEY);
+      router.push('/');
+      return;
+    }
+
+    if (isSupabaseMode()) {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+      router.push('/');
+      return;
+    }
+
+    throw new Error('Unsupported runtime mode.');
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated: !!user, user, login, logout, isLoading }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated: !!user,
+        user,
+        login,
+        signup,
+        logout,
+        isLoading,
+        runtimeMode,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

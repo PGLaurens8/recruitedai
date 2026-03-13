@@ -41,8 +41,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { ResumeSection } from "@/components/feature/resume-section";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { collection, doc, serverTimestamp } from "firebase/firestore";
-import { useFirestore, useUser, useDoc, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
+import { useAuth } from "@/context/auth-context";
+import { createCandidateFromResume, useCompany, useCurrentProfile } from "@/lib/data/hooks";
 
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -50,14 +50,6 @@ import html2canvas from 'html2canvas';
 type ParsedResume = ReformatResumeOutput & {
   fileName: string;
   extractedData?: ExtractCVDataOutput;
-};
-
-const COMPANY_STORAGE_KEYS = {
-  NAME: 'recruitedAI_companyName',
-  LOGO: 'recruitedAI_companyLogo',
-  WEBSITE: 'recruitedAI_companyWebsite',
-  EMAIL: 'recruitedAI_companyEmail',
-  ADDRESS: 'recruitedAI_companyAddress',
 };
 
 export default function AiParserPage() {
@@ -81,22 +73,23 @@ export default function AiParserPage() {
   const brandedCvRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
-  const firestore = useFirestore();
-  const { user: fbUser } = useUser();
+  const { user } = useAuth();
 
-  // Get Multitenant ID from User Profile
-  const profileRef = useMemoFirebase(() => fbUser ? doc(firestore, 'users', fbUser.uid) : null, [firestore, fbUser]);
-  const { data: profile } = useDoc(profileRef);
+  const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
+  const { data: companyDoc } = useCompany(companyId);
 
   useEffect(() => {
-    const name = localStorage.getItem(COMPANY_STORAGE_KEYS.NAME);
-    const logo = localStorage.getItem(COMPANY_STORAGE_KEYS.LOGO);
-    const website = localStorage.getItem(COMPANY_STORAGE_KEYS.WEBSITE);
-    if (name) {
-      setCompanyInfo({ name, logo: logo || '', website: website || '' });
+    if (companyDoc?.name) {
+      setCompanyInfo({
+        name: companyDoc.name,
+        logo: companyDoc.logo || '',
+        website: companyDoc.website || '',
+      });
+    } else {
+      setCompanyInfo(null);
     }
-  }, []);
+  }, [companyDoc]);
 
   const handleDrag = (e: React.DragEvent<HTMLDivElement | HTMLLabelElement>, type: 'resume' | 'jobspec') => {
     e.preventDefault();
@@ -245,28 +238,29 @@ export default function AiParserPage() {
     setShowSaveDialog(true);
   };
 
-  const handleSaveCandidate = (save: boolean) => {
+  const handleSaveCandidate = async (save: boolean) => {
     setShowSaveDialog(false);
     if (save && parsedResume && companyId) {
-      const candidatesRef = collection(firestore, 'companies', companyId, 'candidates');
-      addDocumentNonBlocking(candidatesRef, {
-        name: parsedResume.fullName || "Unknown",
-        email: parsedResume.contactInfo?.email || "",
-        currentJob: parsedResume.currentJobTitle || parsedResume.extractedData?.role || "",
-        currentCompany: "",
-        status: "Sourced",
-        aiScore: assessmentOutput?.matchScore || 0,
-        extractedDetails: parsedResume.extractedData,
-        fullResumeText: parsedResume.reformattedResume,
-        skills: parsedResume.skills || [],
-        createdAt: serverTimestamp(),
-        companyId: companyId,
-      });
+      try {
+        await createCandidateFromResume(companyId, {
+          fullName: parsedResume.fullName || 'Unknown',
+          currentJobTitle: parsedResume.currentJobTitle || parsedResume.extractedData?.role || '',
+          reformattedText: parsedResume.reformattedResume || '',
+          skills: parsedResume.skills || [],
+          contactInfo: parsedResume.contactInfo || {},
+        });
 
-      toast({
-        title: "Candidate Saved",
-        description: "The record and branded CV have been added to your database.",
-      });
+        toast({
+          title: "Candidate Saved",
+          description: "The record and branded CV have been added to your database.",
+        });
+      } catch (e: any) {
+        toast({
+          variant: "destructive",
+          title: "Save Failed",
+          description: e.message || "Could not save candidate data.",
+        });
+      }
     } else if (save) {
         toast({ variant: "destructive", title: "Cannot Save", description: "Missing company ID or parsed data." });
     } else {

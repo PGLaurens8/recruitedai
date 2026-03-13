@@ -15,13 +15,8 @@ import Image from "next/image";
 import { fileToDataURI } from '@/lib/file-utils';
 import { Spinner } from '@/components/ui/spinner';
 import placeholders from '@/app/lib/placeholder-images.json';
-
-const LOCAL_STORAGE_KEYS = {
-  MASTER_RESUME_TEXT: 'recruitedAI_masterResumeText',
-  MASTER_RESUME_EXTRACTED_NAME: 'recruitedAI_masterResumeExtractedName',
-  MASTER_RESUME_EXTRACTED_JOB_TITLE: 'recruitedAI_masterResumeExtractedJobTitle',
-  MASTER_RESUME_AVATAR_URI: 'recruitedAI_masterResumeAvatarUri',
-};
+import { useAuth } from '@/context/auth-context';
+import { saveMasterResume, useMasterResume } from '@/lib/data/hooks';
 
 const defaultBioData = {
   name: "Your Name",
@@ -41,21 +36,24 @@ const defaultBioData = {
 
 
 export default function LinkTreeBioPage() {
+  const { user } = useAuth();
   const [bioData, setBioData] = useState(defaultBioData);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { data: storedResume } = useMasterResume(user?.id, refreshKey);
 
   const profileImageInputRef = useRef<HTMLInputElement>(null);
   const coverImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const storedName = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_NAME);
-    const storedTitle = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_EXTRACTED_JOB_TITLE);
-    const storedAvatar = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI);
-    const masterResumeText = localStorage.getItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_TEXT);
+    const storedName = storedResume?.fullName;
+    const storedTitle = storedResume?.currentJobTitle;
+    const storedAvatar = storedResume?.avatarUri;
+    const masterResumeText = storedResume?.reformattedText;
 
     let summary = defaultBioData.bio;
     if (masterResumeText) {
-      const paragraphs = masterResumeText.split('\n\n').map(p => p.trim()).filter(p => p);
+      const paragraphs = masterResumeText.split('\n\n').map((p: string) => p.trim()).filter((p: string) => p);
       if (paragraphs.length > 0) {
         const firstParagraph = paragraphs[0];
         const sentences = firstParagraph.match(/[^.!?]+[.!?]+/g) || [];
@@ -75,11 +73,11 @@ export default function LinkTreeBioPage() {
       title: storedTitle || defaultBioData.title,
       avatarUrl: storedAvatar || defaultBioData.avatarUrl,
       bio: summary,
-      avatarFallback: name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() || '??'
+      avatarFallback: name.split(' ').map((n: string) => n[0]).join('').substring(0,2).toUpperCase() || '??'
     }));
 
     setIsLoading(false);
-  }, []);
+  }, [storedResume]);
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -101,8 +99,21 @@ export default function LinkTreeBioPage() {
             const dataUri = await fileToDataURI(file);
             setBioData(prev => ({ ...prev, [field]: dataUri }));
             
-            if (field === 'avatarUrl') {
-              localStorage.setItem(LOCAL_STORAGE_KEYS.MASTER_RESUME_AVATAR_URI, dataUri);
+            if (field === 'avatarUrl' && user?.id) {
+              await saveMasterResume(user.id, {
+                id: storedResume?.id,
+                userTitle: storedResume?.userTitle || 'My Master Resume',
+                reformattedText: storedResume?.reformattedText || '',
+                fullName: storedResume?.fullName || bioData.name,
+                currentJobTitle: storedResume?.currentJobTitle || bioData.title,
+                contactInfo: storedResume?.contactInfo || {},
+                skills: storedResume?.skills || [],
+                missingInformation: storedResume?.missingInformation || [],
+                questions: storedResume?.questions || [],
+                avatarUri: dataUri,
+                processedAt: storedResume?.processedAt,
+              });
+              setRefreshKey((current) => current + 1);
             }
         } catch (error) {
             console.error("Error converting file to Data URI:", error);

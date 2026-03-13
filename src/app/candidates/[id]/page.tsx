@@ -16,8 +16,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { generateCandidateProfile } from '@/ai/flows/generate-candidate-profile';
 import { ArrowLeft, Upload, Mail, Briefcase, Sparkles, Save, Star, Percent, AlertTriangle } from 'lucide-react';
-import { doc, serverTimestamp } from 'firebase/firestore';
-import { useFirestore, useDoc, useMemoFirebase, useUser, updateDocumentNonBlocking } from '@/firebase';
+import { useAuth } from '@/context/auth-context';
+import { saveCandidateInterview, useCandidate, useCurrentProfile } from '@/lib/data/hooks';
 
 const screeningQuestions = [
   "Can you tell me about your background and experience?",
@@ -33,15 +33,11 @@ export default function CandidateDetailPage() {
     const router = useRouter();
     const candidateId = params.id as string;
     const { toast } = useToast();
-    const firestore = useFirestore();
-    const { user: fbUser } = useUser();
+    const { user } = useAuth();
 
-    const profileRef = useMemoFirebase(() => fbUser ? doc(firestore, 'users', fbUser.uid) : null, [firestore, fbUser]);
-    const { data: profile } = useDoc(profileRef);
+    const { data: profile } = useCurrentProfile(user);
     const companyId = profile?.companyId;
-
-    const candidateRef = useMemoFirebase(() => (companyId && candidateId) ? doc(firestore, 'companies', companyId, 'candidates', candidateId) : null, [firestore, companyId, candidateId]);
-    const { data: candidate, isLoading: isCandLoading } = useDoc<any>(candidateRef);
+    const { data: candidate, isLoading: isCandLoading } = useCandidate(companyId, candidateId);
 
     const [notes, setNotes] = useState<Record<string, string>>({});
     const [scores, setScores] = useState<Record<string, number | null>>({});
@@ -115,17 +111,21 @@ export default function CandidateDetailPage() {
         }
     };
 
-    const handleSaveProfile = () => {
-        if (!candidateRef) return;
+    const handleSaveProfile = async () => {
+        if (!companyId || !candidateId) return;
         setIsSaving(true);
-        updateDocumentNonBlocking(candidateRef, {
+        try {
+          await saveCandidateInterview(companyId, candidateId, {
             interviewNotes: notes,
             interviewScores: scores,
             aiSummary: summary,
-            updatedAt: serverTimestamp(),
-        });
-        toast({ title: "Profile Saved", description: "Interview notes and AI summary have been persisted." });
-        setTimeout(() => setIsSaving(false), 500);
+          });
+          toast({ title: "Profile Saved", description: "Interview notes and AI summary have been persisted." });
+        } catch (e: any) {
+          toast({ variant: "destructive", title: "Save failed", description: e.message || "Could not save candidate profile." });
+        } finally {
+          setIsSaving(false);
+        }
     };
 
     if (isCandLoading) {
@@ -165,7 +165,7 @@ export default function CandidateDetailPage() {
                     </Button>
                     <Avatar className="h-16 w-16">
                         <AvatarImage src={candidate.avatar} data-ai-hint="person portrait"/>
-                        <AvatarFallback className="text-2xl">{candidate.name?.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        <AvatarFallback className="text-2xl">{candidate.name?.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
                     </Avatar>
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">{candidate.name}</h1>
