@@ -17,6 +17,30 @@ const createCandidateSchema = z.object({
   contactInfo: z.record(z.string(), z.any()).optional(),
 });
 
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ companyId: string }> }
+) {
+  const requestId = getRequestId(request);
+  try {
+    const { companyId } = await context.params;
+    const { supabase } = await requireUserAndCompany(companyId);
+    const { data, error } = await supabase
+      .from('candidates')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new ApiRouteError(500, 'CANDIDATES_QUERY_FAILED', error.message);
+    }
+
+    return jsonSuccess(requestId, data || []);
+  } catch (error) {
+    return jsonError(requestId, error);
+  }
+}
+
 export async function POST(
   request: Request,
   context: { params: Promise<{ companyId: string }> }
@@ -60,4 +84,3 @@ export async function POST(
     return jsonError(requestId, error);
   }
 }
-

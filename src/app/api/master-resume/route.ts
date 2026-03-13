@@ -3,18 +3,18 @@ import { z } from 'zod';
 import { requireUserAndCompany } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 
-const saveMasterResumeSchema = z.object({
-  id: z.string().optional(),
-  userTitle: z.string().min(1, 'Title is required.'),
-  reformattedText: z.string(),
-  fullName: z.string().optional(),
-  currentJobTitle: z.string().optional(),
-  contactInfo: z.record(z.string(), z.union([z.string(), z.undefined()])).optional(),
+const masterResumeSchema = z.object({
+  id: z.string().uuid().optional(),
+  userTitle: z.string().min(1).max(200),
+  reformattedText: z.string().min(1),
+  fullName: z.string().optional().nullable(),
+  currentJobTitle: z.string().optional().nullable(),
+  contactInfo: z.record(z.string(), z.any()).optional(),
   skills: z.array(z.string()).optional(),
-  avatarUri: z.string().optional(),
+  avatarUri: z.string().max(2048).optional().nullable(),
   missingInformation: z.array(z.string()).optional(),
   questions: z.array(z.string()).optional(),
-  processedAt: z.string().optional(),
+  processedAt: z.string().optional().nullable(),
 });
 
 export async function GET(request: Request) {
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
       .maybeSingle();
 
     if (error) {
-      throw new ApiRouteError(500, 'MASTER_RESUME_QUERY_FAILED', 'Could not load master resume.', error);
+      throw new ApiRouteError(500, 'MASTER_RESUME_QUERY_FAILED', error.message);
     }
 
     return jsonSuccess(requestId, data || null);
@@ -42,11 +42,15 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   const requestId = getRequestId(request);
-
   try {
-    const { supabase, userId } = await requireUserAndCompany();
-    const payload = saveMasterResumeSchema.parse(await request.json());
+    const body = await request.json();
+    const parsed = masterResumeSchema.safeParse(body);
 
+    if (!parsed.success) {
+      throw new ApiRouteError(400, 'VALIDATION_ERROR', 'Invalid master resume payload.', parsed.error.flatten());
+    }
+
+    const { supabase, userId } = await requireUserAndCompany();
     const existing = await supabase
       .from('master_resumes')
       .select('id')
@@ -56,39 +60,33 @@ export async function PUT(request: Request) {
       .maybeSingle();
 
     if (existing.error) {
-      throw new ApiRouteError(
-        500,
-        'MASTER_RESUME_LOOKUP_FAILED',
-        'Could not resolve existing master resume.',
-        existing.error
-      );
+      throw new ApiRouteError(500, 'MASTER_RESUME_LOOKUP_FAILED', existing.error.message);
     }
 
     const { data, error } = await supabase
       .from('master_resumes')
       .upsert({
-        id: existing.data?.id || payload.id,
+        id: existing.data?.id || parsed.data.id,
         user_id: userId,
-        user_title: payload.userTitle,
-        reformatted_text: payload.reformattedText,
-        full_name: payload.fullName || null,
-        current_job_title: payload.currentJobTitle || null,
-        contact_info: payload.contactInfo || {},
-        skills: payload.skills || [],
-        avatar_uri: payload.avatarUri || null,
-        missing_information: payload.missingInformation || [],
-        questions: payload.questions || [],
-        processed_at: payload.processedAt || null,
-        updated_at: new Date().toISOString(),
+        user_title: parsed.data.userTitle,
+        reformatted_text: parsed.data.reformattedText,
+        full_name: parsed.data.fullName ?? null,
+        current_job_title: parsed.data.currentJobTitle ?? null,
+        contact_info: parsed.data.contactInfo || {},
+        skills: parsed.data.skills || [],
+        avatar_uri: parsed.data.avatarUri ?? null,
+        missing_information: parsed.data.missingInformation || [],
+        questions: parsed.data.questions || [],
+        processed_at: parsed.data.processedAt ?? null,
       })
-      .select('*')
-      .maybeSingle();
+      .select('id')
+      .single();
 
     if (error) {
-      throw new ApiRouteError(500, 'MASTER_RESUME_SAVE_FAILED', 'Could not save master resume.', error);
+      throw new ApiRouteError(500, 'MASTER_RESUME_SAVE_FAILED', error.message);
     }
 
-    return jsonSuccess(requestId, data || null);
+    return jsonSuccess(requestId, { id: data.id });
   } catch (error) {
     return jsonError(requestId, error);
   }

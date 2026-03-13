@@ -293,7 +293,7 @@ export function useCandidates(companyId: string | undefined, refreshKey = 0) {
     }
 
     if (isSupabaseMode()) {
-      const data = await requestApi<any[]>('/api/candidates');
+      const data = await requestApi<any[]>(`/api/companies/${companyId}/candidates`);
       return (data || []).map(toCandidateRecord);
     }
 
@@ -316,7 +316,7 @@ export function useCandidate(
     }
 
     if (isSupabaseMode()) {
-      const data = await requestApi<any>(`/api/candidates/${candidateId}`);
+      const data = await requestApi<any>(`/api/companies/${companyId}/candidates/${candidateId}`);
       return toCandidateRecord(data);
     }
 
@@ -335,7 +335,7 @@ export async function saveCandidateInterview(
   }
 
   if (isSupabaseMode()) {
-    await requestApi(`/api/candidates/${candidateId}/interview`, {
+    await requestApi(`/api/companies/${companyId}/candidates/${candidateId}`, {
       method: 'PATCH',
       body: JSON.stringify({
         interviewNotes: updates.interviewNotes || {},
@@ -353,7 +353,7 @@ export async function removeCandidate(companyId: string, candidateId: string) {
   }
 
   if (isSupabaseMode()) {
-    await requestApi(`/api/candidates/${candidateId}`, {
+    await requestApi(`/api/companies/${companyId}/candidates/${candidateId}`, {
       method: 'DELETE',
     });
   }
@@ -404,7 +404,7 @@ export async function removeClient(companyId: string, clientId: string) {
   }
 
   if (isSupabaseMode()) {
-    await requestApi(`/api/clients/${clientId}`, {
+    await requestApi(`/api/companies/${companyId}/clients/${clientId}`, {
       method: 'DELETE',
     });
   }
@@ -485,7 +485,7 @@ export async function createCandidateFromResume(
   }
 
   if (isSupabaseMode()) {
-    await requestApi('/api/candidates', {
+    await requestApi(`/api/companies/${companyId}/candidates`, {
       method: 'POST',
       body: JSON.stringify({
         name: resume.fullName || 'Unknown',
@@ -516,10 +516,11 @@ export async function saveCandidateInterviewAnalysis(
   }
 
   if (isSupabaseMode()) {
-    await requestApi(`/api/candidates/${candidateId}/analysis`, {
+    await requestApi(`/api/companies/${companyId}/candidates/${candidateId}`, {
       method: 'PATCH',
       body: JSON.stringify({
-        analysis,
+        interviewAnalysis: analysis,
+        lastInterviewAt: new Date().toISOString(),
       }),
     });
   }
@@ -564,7 +565,7 @@ export async function seedDemoData(user: AppUser) {
   }
 
   if (isSupabaseMode()) {
-    const result = await requestApi<{ companyId: string }>('/api/seed/demo', {
+    const result = await requestApi<{ companyId: string }>('/api/seed', {
       method: 'POST',
       body: JSON.stringify({}),
     });
