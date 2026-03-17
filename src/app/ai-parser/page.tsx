@@ -95,9 +95,17 @@ export default function AiParserPage() {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
-      type === 'resume' ? setDragActiveResume(true) : setDragActiveJobSpec(true);
+      if (type === 'resume') {
+        setDragActiveResume(true);
+      } else {
+        setDragActiveJobSpec(true);
+      }
     } else if (e.type === "dragleave") {
-      type === 'resume' ? setDragActiveResume(false) : setDragActiveJobSpec(false);
+      if (type === 'resume') {
+        setDragActiveResume(false);
+      } else {
+        setDragActiveJobSpec(false);
+      }
     }
   };
 
