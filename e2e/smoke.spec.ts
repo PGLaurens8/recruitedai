@@ -9,7 +9,8 @@ test('smoke: demo login, candidate creation, and interview save persistence', as
   const note = `Strong communication and systems thinking ${stamp}`;
 
   await page.goto('/login');
-  await page.getByRole('button', { name: 'Use Demo Credentials' }).click();
+  await page.getByLabel('Email').fill('demo@dem.com');
+  await page.getByLabel('Password').fill('demo');
   await page.getByRole('button', { name: 'Log In' }).click();
   await expect(page).toHaveURL(/\/dashboard\/recruiter/);
 
