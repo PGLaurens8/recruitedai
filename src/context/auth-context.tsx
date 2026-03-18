@@ -15,11 +15,23 @@ export interface AppUser {
   companyId: string;
 }
 
+interface SignupMetadata {
+  accountType?: 'personal' | 'company';
+  companyName?: string;
+  firstName?: string;
+  lastName?: string;
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
   user: AppUser | null;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name?: string) => Promise<void>;
+  signup: (
+    email: string,
+    password: string,
+    name?: string,
+    metadata?: SignupMetadata
+  ) => Promise<void>;
   logout: () => Promise<void>;
   isLoading: boolean;
   runtimeMode: ReturnType<typeof getRuntimeMode>;
@@ -28,6 +40,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const MOCK_STORAGE_KEY = 'recruitedai.mock-user';
+const MOCK_DEMO_EMAIL = 'demo@dem.com';
+const MOCK_DEMO_PASSWORD = 'demo';
+const TEMP_BYPASS_STORAGE_KEY = 'recruitedai.temp-enter-bypass';
+const TEMP_BYPASS_COOKIE = 'recruitedai-enter-bypass';
 
 function normalizeUser(partial: Partial<AppUser> & { email: string }): AppUser {
   const fallbackName = partial.name || partial.email.split('@')[0] || 'User';
@@ -40,6 +56,31 @@ function normalizeUser(partial: Partial<AppUser> & { email: string }): AppUser {
     email: partial.email,
     companyId: fallbackCompanyId,
   };
+}
+
+function getTempBypassUser() {
+  return normalizeUser({
+    id: 'temp-bypass-user',
+    email: 'temp-access@local',
+    name: 'Temporary Access',
+    companyId: 'temp-company',
+    role: 'Recruiter',
+  });
+}
+
+function isTempBypassEnabled() {
+  const localFlag = window.localStorage.getItem(TEMP_BYPASS_STORAGE_KEY) === '1';
+  const cookieFlag = document.cookie
+    .split(';')
+    .map((item) => item.trim())
+    .some((item) => item === `${TEMP_BYPASS_COOKIE}=1`);
+
+  return localFlag || cookieFlag;
+}
+
+function clearTempBypass() {
+  window.localStorage.removeItem(TEMP_BYPASS_STORAGE_KEY);
+  document.cookie = `${TEMP_BYPASS_COOKIE}=; path=/; max-age=0; samesite=lax`;
 }
 
 async function loadSupabaseProfile(userId: string) {
@@ -55,6 +96,39 @@ async function loadSupabaseProfile(userId: string) {
   }
 
   return data;
+}
+
+function normalizeSupabaseUser(
+  sessionUser: {
+    id: string;
+    email?: string | null;
+    user_metadata?: Record<string, unknown>;
+  },
+  profile: {
+    id?: string;
+    email?: string;
+    name?: string;
+    role?: string;
+    company_id?: string;
+  } | null
+) {
+  return normalizeUser({
+    id: profile?.id || sessionUser.id,
+    email: profile?.email || sessionUser.email || '',
+    name:
+      profile?.name ||
+      (sessionUser.user_metadata?.name as string | undefined) ||
+      (sessionUser.user_metadata?.full_name as string | undefined) ||
+      undefined,
+    companyId:
+      profile?.company_id ||
+      (sessionUser.user_metadata?.company_id as string | undefined) ||
+      sessionUser.id,
+    role:
+      (profile?.role as Role | undefined) ||
+      (sessionUser.user_metadata?.role as Role | undefined) ||
+      'Recruiter',
+  });
 }
 
 function handleRedirect(router: ReturnType<typeof useRouter>, role: Role) {
@@ -105,32 +179,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } = await supabase.auth.getSession();
 
         if (!session?.user) {
-          setUser(null);
-          if (!pathIsPublic) {
-            router.push('/login');
+          if (isTempBypassEnabled()) {
+            const bypassUser = getTempBypassUser();
+            setUser(bypassUser);
+            if (pathIsPublic) {
+              handleRedirect(router, bypassUser.role);
+            }
+          } else {
+            setUser(null);
+            if (!pathIsPublic) {
+              router.push('/login');
+            }
           }
+
           setIsLoading(false);
           return;
         }
 
+        clearTempBypass();
         const profile = await loadSupabaseProfile(session.user.id);
-        const nextUser = normalizeUser({
-          id: profile?.id || session.user.id,
-          email: profile?.email || session.user.email || '',
-          name:
-            profile?.name ||
-            (session.user.user_metadata.name as string | undefined) ||
-            (session.user.user_metadata.full_name as string | undefined) ||
-            undefined,
-          companyId:
-            profile?.company_id ||
-            (session.user.user_metadata.company_id as string | undefined) ||
-            session.user.id,
-          role:
-            (profile?.role as Role | undefined) ||
-            (session.user.user_metadata.role as Role | undefined) ||
-            'Recruiter',
-        });
+        const nextUser = normalizeSupabaseUser(session.user, profile);
 
         setUser(nextUser);
         if (pathIsPublic) {
@@ -139,12 +207,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(false);
       };
 
-      bootstrap();
+      void bootstrap();
 
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_event, session) => {
         if (!session?.user) {
+          if (isTempBypassEnabled()) {
+            setUser(getTempBypassUser());
+            return;
+          }
+
           setUser(null);
           if (!isPublicPath(pathname)) {
             router.push('/login');
@@ -152,25 +225,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
+        clearTempBypass();
         void loadSupabaseProfile(session.user.id).then((profile) => {
-          const nextUser = normalizeUser({
-            id: profile?.id || session.user.id,
-            email: profile?.email || session.user.email || '',
-            name:
-              profile?.name ||
-              (session.user.user_metadata.name as string | undefined) ||
-              (session.user.user_metadata.full_name as string | undefined) ||
-              undefined,
-            companyId:
-              profile?.company_id ||
-              (session.user.user_metadata.company_id as string | undefined) ||
-              session.user.id,
-            role:
-              (profile?.role as Role | undefined) ||
-              (session.user.user_metadata.role as Role | undefined) ||
-              'Recruiter',
-          });
-
+          const nextUser = normalizeSupabaseUser(session.user, profile);
           setUser(nextUser);
         });
       });
@@ -188,10 +245,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     if (isMockMode()) {
+      const isDemoLogin = email.trim().toLowerCase() === MOCK_DEMO_EMAIL && password === MOCK_DEMO_PASSWORD;
       const nextUser = normalizeUser({
-        id: email,
-        email,
-        name: email.split('@')[0] || 'Demo User',
+        id: isDemoLogin ? MOCK_DEMO_EMAIL : email,
+        email: isDemoLogin ? MOCK_DEMO_EMAIL : email,
+        name: isDemoLogin ? 'Demo Recruiter' : email.split('@')[0] || 'Demo User',
         companyId: 'mock-company',
         role: 'Recruiter',
       });
@@ -204,17 +262,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (isSupabaseMode()) {
       const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
       if (error) {
         throw error;
       }
+
+      if (!data.user) {
+        throw new Error('Sign in succeeded but no active user was returned.');
+      }
+
+      clearTempBypass();
+      const profile = await loadSupabaseProfile(data.user.id);
+      const nextUser = normalizeSupabaseUser(data.user, profile);
+      setUser(nextUser);
+      handleRedirect(router, nextUser.role);
       return;
     }
 
     throw new Error('Unsupported runtime mode.');
   };
 
-  const signup = async (email: string, password: string, name?: string) => {
+  const signup = async (
+    email: string,
+    password: string,
+    name?: string,
+    metadata?: SignupMetadata
+  ) => {
     if (isMockMode()) {
       const nextUser = normalizeUser({
         id: email,
@@ -239,6 +313,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data: {
             name: name || email.split('@')[0],
             role: 'Recruiter',
+            account_type: metadata?.accountType || 'personal',
+            company_name: metadata?.companyName || undefined,
+            first_name: metadata?.firstName || undefined,
+            last_name: metadata?.lastName || undefined,
           },
         },
       });
@@ -255,6 +333,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     setUser(null);
+    clearTempBypass();
 
     if (isMockMode()) {
       window.localStorage.removeItem(MOCK_STORAGE_KEY);

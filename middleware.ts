@@ -3,8 +3,9 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import { getDefaultRouteForRole, isPublicPath, isRoleAllowedForPath } from '@/lib/rbac';
 import { type Role } from '@/lib/roles';
+import { getSupabasePublicEnv, validateRuntimeConfig } from '@/lib/runtime-config';
 
-const authOnlyMode = process.env.NEXT_PUBLIC_RUNTIME_MODE?.toLowerCase() === 'supabase';
+const TEMP_BYPASS_COOKIE = 'recruitedai-enter-bypass';
 
 function toAppRole(value: string | undefined): Role {
   if (
@@ -21,23 +22,55 @@ function toAppRole(value: string | undefined): Role {
 }
 
 export async function middleware(request: NextRequest) {
-  if (!authOnlyMode) {
+  const runtimeCheck = validateRuntimeConfig();
+  const isSupabaseRuntime = runtimeCheck.mode === 'supabase';
+
+  if (!runtimeCheck.ok) {
+    return new NextResponse(
+      `Runtime misconfiguration: ${runtimeCheck.errors.join(' ')}`,
+      { status: 503 }
+    );
+  }
+
+  if (!isSupabaseRuntime) {
     return NextResponse.next();
   }
 
   const pathname = request.nextUrl.pathname;
   const isPublic = isPublicPath(pathname);
+  const bypassRequested = request.nextUrl.searchParams.get('bypass') === '1';
+  const hasBypassCookie = request.cookies.get(TEMP_BYPASS_COOKIE)?.value === '1';
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
+  let supabaseUrl: string;
+  let supabaseAnonKey: string;
+  try {
+    ({ supabaseUrl, supabaseAnonKey } = getSupabasePublicEnv());
+  } catch {
+    if (process.env.NODE_ENV === 'production') {
+      return new NextResponse(
+        'Runtime misconfiguration: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required.',
+        { status: 503 }
+      );
+    }
     return NextResponse.next();
   }
 
   let response = NextResponse.next({
     request,
   });
+
+  if (bypassRequested || hasBypassCookie) {
+    if (bypassRequested && !hasBypassCookie) {
+      response.cookies.set(TEMP_BYPASS_COOKIE, '1', {
+        path: '/',
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: false,
+        maxAge: 60 * 60 * 8,
+      });
+    }
+    return response;
+  }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {

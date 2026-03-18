@@ -1,6 +1,6 @@
 # Project State & Execution Roadmap
 
-Last updated: 2026-03-16
+Last updated: 2026-03-18
 Owner: Product + Engineering
 Status: In Progress
 
@@ -90,6 +90,12 @@ Pilot-ready when all are true:
 - Demo path works in mock mode for non-production demos
 
 ## 7) Execution Log
+
+- 2026-03-18:
+  - Fixed Supabase login post-auth redirect to role dashboard (users were previously left on login after successful auth).
+  - Added temporary bottom-screen Enter App (Temporary) bypass button on / and /login.
+  - Added middleware bypass cookie support (recruitedai-enter-bypass, 8h) for temporary access while auth hardening continues.
+  - Revalidated with npm run typecheck.
 
 - 2026-03-17:
   - Added Playwright E2E test infrastructure (`playwright.config.ts`, `e2e/smoke.spec.ts`).
