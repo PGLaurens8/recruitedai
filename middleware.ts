@@ -36,12 +36,6 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  const isFrameworkAsset = pathname.startsWith("/_next/") || pathname === "/favicon.ico";
-  const isImageAsset = /\.(?:svg|png|jpg|jpeg|gif|webp)$/i.test(pathname);
-  if (isFrameworkAsset || isImageAsset) {
-    return NextResponse.next();
-  }
-
   const isPublic = isPublicPath(pathname);
 
   let supabaseUrl: string;
@@ -118,5 +112,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/:path*"],
+  matcher: [
+    "/:path((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };
