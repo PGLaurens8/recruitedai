@@ -28,6 +28,8 @@ CareerCraft AI is a dual-purpose platform designed to serve both job seekers (Ca
 
 ## Runtime Modes
 
+Note: changing any `NEXT_PUBLIC_*` environment variable requires restarting the dev server/process to rebuild client bundles with the new values.
+
 Set `NEXT_PUBLIC_RUNTIME_MODE` to one of:
 
 - `supabase`: uses Supabase Auth and Postgres-backed app data.

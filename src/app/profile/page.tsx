@@ -160,7 +160,13 @@ export default function ProfilePage() {
                   <Label>Agency Logo</Label>
                   <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/20">
                     <div className="h-12 w-12 border rounded bg-white flex items-center justify-center">
-                      {companyLogo ? <img src={companyLogo} className="h-full object-contain" /> : <Building />}
+                      {companyLogo ? (
+                        <img
+                          src={companyLogo}
+                          alt={companyName ? `${companyName} logo` : 'Company logo'}
+                          className="h-full object-contain"
+                        />
+                      ) : <Building />}
                     </div>
                     <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()}>Change Logo</Button>
                     <input ref={logoInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
