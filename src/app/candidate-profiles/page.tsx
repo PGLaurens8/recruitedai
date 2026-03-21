@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { UserCheck, Sparkles, Save, AlertTriangle } from "lucide-react";
-import { generateCandidateProfile } from "@/ai/flows/generate-candidate-profile";
+import { postJson } from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -55,7 +55,7 @@ export default function CandidateProfilesPage() {
     setError(null);
 
     try {
-      const result = await generateCandidateProfile({
+      const result = await postJson<{ profileSummary: string }>("/api/ai/generate-candidate-profile", {
         candidateName,
         candidateRole,
         interviewNotes: allNotes,

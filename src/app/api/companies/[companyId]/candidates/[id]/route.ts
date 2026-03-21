@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { requireUserAndCompany } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
+import { enforceRateLimit } from '@/server/api/rate-limit';
 
 const candidatePatchSchema = z.object({
   interviewNotes: z.record(z.string(), z.string()).optional(),
@@ -74,7 +75,14 @@ export async function PATCH(
       throw new ApiRouteError(400, 'NO_UPDATES', 'No candidate updates were provided.');
     }
 
-    const { supabase } = await requireUserAndCompany(companyId);
+    const { supabase, userId } = await requireUserAndCompany(companyId);
+await enforceRateLimit(request, {
+      scope: 'write:candidate-update',
+      subject: userId,
+      limit: 80,
+      windowMs: 60_000,
+    });
+
     const { error } = await supabase
       .from('candidates')
       .update(updatePayload)

@@ -32,10 +32,11 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { postJson } from "@/lib/api-client";
 import { fileToDataURI, textToDataURI } from "@/lib/file-utils";
-import { reformatResume, type ReformatResumeOutput } from "@/ai/flows/reformat-resume";
-import { extractCVData, type ExtractCVDataOutput } from "@/ai/flows/extract-cv-data";
-import { assessJobMatch, type AssessJobMatchInput, type AssessJobMatchOutput } from "@/ai/flows/assess-job-match";
+import type { ReformatResumeOutput } from "@/ai/flows/reformat-resume";
+import type { ExtractCVDataOutput } from "@/ai/flows/extract-cv-data";
+import type { AssessJobMatchInput, AssessJobMatchOutput } from "@/ai/flows/assess-job-match";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -137,15 +138,15 @@ export default function AiParserPage() {
       try {
         const resumeDataUri = await fileToDataURI(file);
         
-        const [reformatResult, extractResult] = await Promise.all([
-          reformatResume({ resumeDataUri }),
-          extractCVData({ resumeDataUri })
-        ]);
+        const result = await postJson<{
+          reformatted: ReformatResumeOutput;
+          extracted: ExtractCVDataOutput;
+        }>("/api/ai/parse-cv", { resumeDataUri });
 
-        setParsedResume({ 
-          ...reformatResult, 
+        setParsedResume({
+          ...result.reformatted,
           fileName: file.name,
-          extractedData: extractResult
+          extractedData: result.extracted,
         });
 
         toast({
@@ -197,7 +198,7 @@ export default function AiParserPage() {
         jobSpecText: jobSpecText.trim() || undefined,
       };
 
-      const result = await assessJobMatch(input);
+      const result = await postJson<AssessJobMatchOutput>("/api/ai/match-job", input);
       setAssessmentOutput(result);
       toast({
         title: "Match Assessed!",

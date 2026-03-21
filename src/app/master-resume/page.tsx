@@ -5,7 +5,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FileUploadCard } from '@/components/feature/file-upload-card';
-import { reformatResume, type ReformatResumeOutput } from '@/ai/flows/reformat-resume';
+import { postJson } from '@/lib/api-client';
+import type { ReformatResumeOutput } from '@/ai/flows/reformat-resume';
 import { fileToDataURI } from '@/lib/file-utils';
 import { ResumeSection } from '@/components/feature/resume-section';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -76,7 +77,10 @@ export default function MasterResumePage() {
     
     try {
       const resumeDataUri = await fileToDataURI(file);
-      const result = await reformatResume({ resumeDataUri });
+      const parseResult = await postJson<{
+        reformatted: ReformatResumeOutput;
+      }>("/api/ai/parse-cv", { resumeDataUri });
+      const result = parseResult.reformatted;
       setAiOutput(result);
       setProcessedTimestamp(currentTimestamp); 
 

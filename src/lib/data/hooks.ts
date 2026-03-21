@@ -567,7 +567,7 @@ export async function seedDemoData(user: AppUser) {
   if (isSupabaseMode()) {
     const result = await requestApi<{ companyId: string }>('/api/seed', {
       method: 'POST',
-      body: JSON.stringify({}),
+      body: JSON.stringify({ confirm: true }),
     });
     return result.companyId;
   }

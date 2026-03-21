@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { 
-  FileSearch, 
-  Sparkles, 
-  UserCircle, 
-  CheckCircle2, 
-  AlertTriangle, 
+import {
+  FileSearch,
+  Sparkles,
+  UserCircle,
+  CheckCircle2,
+  AlertTriangle,
   MessageSquare,
   BarChart,
   Save,
@@ -31,17 +31,18 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
-import { analyzeInterview, type AnalyzeInterviewOutput } from "@/ai/flows/analyze-interview";
+import { postJson } from "@/lib/api-client";
+import type { AnalyzeInterviewOutput } from "@/ai/flows/analyze-interview";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -66,25 +67,41 @@ const defaultQuestions = [
   "What are your salary expectations?",
 ];
 
+const TRANSCRIPT_CHUNK_TARGET_CHARS = 4000;
+const TRANSCRIPT_MAX_CHARS = 250000;
+const CHECKPOINT_INTERVAL_MS = 30000;
+const AUTO_RESTART_DELAY_MS = 600;
+const CHECKPOINT_STORAGE_KEY = "recruitedai.interview-checkpoint.v1";
+
 export default function InterviewAnalysisPage() {
   const [activeTab, setActiveTab] = useState("setup");
   const [transcript, setTranscript] = useState("");
   const [analysis, setAnalysis] = useState<AnalyzeInterviewOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Live Session States
   const [isListening, setIsListening] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState("");
   const [questions, setQuestions] = useState<string[]>(defaultQuestions);
   const [newQuestion, setNewQuestion] = useState("");
   const [selectedCandidateId, setSelectedJobCandidateId] = useState<string>("");
-  
+  const [sessionStartedAt, setSessionStartedAt] = useState<string | null>(null);
+  const [checkpointCount, setCheckpointCount] = useState(0);
+  const [lastCheckpointAt, setLastCheckpointAt] = useState<string | null>(null);
+  const [transcriptChunks, setTranscriptChunks] = useState<string[]>([]);
+
   // Branding States
   const [companyInfo, setCompanyInfo] = useState<any>(null);
   const packRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
-  
+  const shouldKeepListeningRef = useRef(false);
+  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const liveTranscriptRef = useRef("");
+  const transcriptChunksRef = useRef<string[]>([]);
+  const questionsRef = useRef<string[]>(defaultQuestions);
+  const selectedCandidateIdRef = useRef("");
+
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -92,8 +109,25 @@ export default function InterviewAnalysisPage() {
   const companyId = profile?.companyId;
   const { data: companyDoc } = useCompany(companyId);
   const { data: candidates } = useCandidates(companyId);
-  
+
   const selectedCandidate = candidates?.find(c => c.id === selectedCandidateId);
+  const transcriptForAnalysis = (transcriptChunks.join(' ').trim() || liveTranscript).trim();
+
+  useEffect(() => {
+    liveTranscriptRef.current = liveTranscript;
+  }, [liveTranscript]);
+
+  useEffect(() => {
+    transcriptChunksRef.current = transcriptChunks;
+  }, [transcriptChunks]);
+
+  useEffect(() => {
+    questionsRef.current = questions;
+  }, [questions]);
+
+  useEffect(() => {
+    selectedCandidateIdRef.current = selectedCandidateId;
+  }, [selectedCandidateId]);
 
   useEffect(() => {
     if (companyDoc?.name) {
@@ -106,55 +140,294 @@ export default function InterviewAnalysisPage() {
     }
   }, [companyDoc]);
 
+  const saveCheckpoint = useCallback((source: 'interval' | 'manual' | 'analysis') => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const mergedTranscript = transcriptChunksRef.current.join(' ').trim() || liveTranscriptRef.current.trim();
+    if (!mergedTranscript) {
+      return;
+    }
+
+    const payload = {
+      savedAt: new Date().toISOString(),
+      source,
+      transcript: mergedTranscript,
+      chunks: transcriptChunksRef.current,
+      questions: questionsRef.current,
+      selectedCandidateId: selectedCandidateIdRef.current,
+    };
+
+    window.localStorage.setItem(CHECKPOINT_STORAGE_KEY, JSON.stringify(payload));
+    setCheckpointCount((count) => count + 1);
+    setLastCheckpointAt(payload.savedAt);
+  }, []);
+
+  const appendTranscriptSegment = useCallback((segment: string) => {
+    const cleaned = segment.replace(/\s+/g, ' ').trim();
+    if (!cleaned) {
+      return;
+    }
+
+    setLiveTranscript((prev) => [prev, cleaned].filter(Boolean).join(' ').trim());
+    setTranscriptChunks((prev) => {
+      const next = [...prev];
+      let remaining = cleaned;
+
+      while (remaining.length > 0) {
+        const last = next[next.length - 1];
+        if (!last) {
+          next.push(remaining.slice(0, TRANSCRIPT_CHUNK_TARGET_CHARS));
+          remaining = remaining.slice(TRANSCRIPT_CHUNK_TARGET_CHARS);
+          continue;
+        }
+
+        if (last.length >= TRANSCRIPT_CHUNK_TARGET_CHARS) {
+          next.push(remaining.slice(0, TRANSCRIPT_CHUNK_TARGET_CHARS));
+          remaining = remaining.slice(TRANSCRIPT_CHUNK_TARGET_CHARS);
+          continue;
+        }
+
+        const available = TRANSCRIPT_CHUNK_TARGET_CHARS - last.length;
+        const piece = remaining.slice(0, available);
+        next[next.length - 1] = `${last} ${piece}`.trim();
+        remaining = remaining.slice(available);
+      }
+
+      return next;
+    });
+  }, []);
+
+  const startListening = useCallback(() => {
+    if (!recognitionRef.current) {
+      toast({
+        variant: 'destructive',
+        title: 'Speech recognition unavailable',
+        description: 'Your browser does not support live speech recognition.',
+      });
+      return;
+    }
+
+    shouldKeepListeningRef.current = true;
+    if (!sessionStartedAt) {
+      setSessionStartedAt(new Date().toISOString());
+    }
+
+    try {
+      recognitionRef.current.start();
+    } catch (error: any) {
+      if (error?.name !== 'InvalidStateError') {
+        shouldKeepListeningRef.current = false;
+        toast({
+          variant: 'destructive',
+          title: 'Could not start listening',
+          description: error?.message || 'Microphone capture failed to start.',
+        });
+      }
+    }
+  }, [sessionStartedAt, toast]);
+
+  const stopListening = useCallback((source: 'manual' | 'analysis' = 'manual') => {
+    shouldKeepListeningRef.current = false;
+
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
+
+    recognitionRef.current?.stop();
+    setIsListening(false);
+    saveCheckpoint(source);
+  }, [saveCheckpoint]);
+
+  const resetSession = useCallback(() => {
+    stopListening('manual');
+    setAnalysis(null);
+    setError(null);
+    setLiveTranscript('');
+    setTranscript('');
+    setTranscriptChunks([]);
+    setSessionStartedAt(null);
+    setCheckpointCount(0);
+    setLastCheckpointAt(null);
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(CHECKPOINT_STORAGE_KEY);
+    }
+
+    setActiveTab('setup');
+  }, [stopListening]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const raw = window.localStorage.getItem(CHECKPOINT_STORAGE_KEY);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        savedAt?: string;
+        transcript?: string;
+        chunks?: string[];
+        questions?: string[];
+        selectedCandidateId?: string;
+      };
+
+      if (parsed.chunks?.length) {
+        setTranscriptChunks(parsed.chunks);
+      }
+
+      if (parsed.transcript) {
+        setLiveTranscript(parsed.transcript);
+        setTranscript(parsed.transcript);
+      }
+
+      if (parsed.questions?.length) {
+        setQuestions(parsed.questions);
+      }
+
+      if (parsed.selectedCandidateId) {
+        setSelectedJobCandidateId(parsed.selectedCandidateId);
+      }
+
+      if (parsed.savedAt) {
+        setLastCheckpointAt(parsed.savedAt);
+      }
+    } catch {
+      window.localStorage.removeItem(CHECKPOINT_STORAGE_KEY);
+    }
+  }, []);
+
   useEffect(() => {
     // Initialize Speech Recognition
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-US";
-
-      recognition.onresult = (event: any) => {
-        let final = "";
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) final += event.results[i][0].transcript + " ";
-        }
-        setLiveTranscript(prev => prev + final);
-      };
-
-      recognition.onerror = (err: any) => {
-        setIsListening(false);
-        toast({
-          variant: "destructive",
-          title: "Speech Recognition Error",
-          description: `An error occurred: ${err.error || 'Unknown error'}. Please check microphone permissions.`,
-        });
-      };
-
-      recognitionRef.current = recognition;
+    if (!SpeechRecognition) {
+      return;
     }
-  }, [toast]);
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event: any) => {
+      let final = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          final += event.results[i][0].transcript + " ";
+        }
+      }
+      appendTranscriptSegment(final);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+
+      if (!shouldKeepListeningRef.current) {
+        return;
+      }
+
+      if (restartTimerRef.current) {
+        clearTimeout(restartTimerRef.current);
+      }
+
+      restartTimerRef.current = setTimeout(() => {
+        try {
+          recognition.start();
+        } catch {
+          // Retry will happen on the next onend callback.
+        }
+      }, AUTO_RESTART_DELAY_MS);
+    };
+
+    recognition.onerror = (err: any) => {
+      const reason = err?.error || 'unknown';
+      setIsListening(false);
+
+      const fatal =
+        reason === 'not-allowed' ||
+        reason === 'service-not-allowed' ||
+        reason === 'audio-capture';
+
+      if (fatal) {
+        shouldKeepListeningRef.current = false;
+      }
+
+      toast({
+        variant: 'destructive',
+        title: 'Speech Recognition Error',
+        description: `An error occurred: ${reason}. ${fatal ? 'Please re-enable microphone permissions.' : 'Attempting to continue capture.'}`,
+      });
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      shouldKeepListeningRef.current = false;
+      if (restartTimerRef.current) {
+        clearTimeout(restartTimerRef.current);
+        restartTimerRef.current = null;
+      }
+      recognition.stop();
+    };
+  }, [appendTranscriptSegment, toast]);
+
+  useEffect(() => {
+    if (!isListening) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      saveCheckpoint('interval');
+    }, CHECKPOINT_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [isListening, saveCheckpoint]);
 
   const handleToggleListening = () => {
     if (isListening) {
-      recognitionRef.current?.stop();
-    } else {
-      recognitionRef.current?.start();
+      stopListening('manual');
+      return;
     }
-    setIsListening(!isListening);
+
+    startListening();
   };
 
   const handleAnalyze = async (textToAnalyze: string) => {
-    if (!textToAnalyze.trim()) {
+    const normalizedTranscript = textToAnalyze.trim();
+    if (!normalizedTranscript) {
       toast({ variant: "destructive", title: "No content to analyze." });
       return;
     }
+
+    if (normalizedTranscript.length > TRANSCRIPT_MAX_CHARS) {
+      toast({
+        variant: 'destructive',
+        title: 'Transcript too large',
+        description: `Current transcript is ${normalizedTranscript.length.toLocaleString()} characters, but the analysis endpoint limit is ${TRANSCRIPT_MAX_CHARS.toLocaleString()}.`,
+      });
+      return;
+    }
+
+    stopListening('analysis');
+    saveCheckpoint('analysis');
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const result = await analyzeInterview({ transcript: textToAnalyze });
+      const result = await postJson<AnalyzeInterviewOutput>("/api/ai/interview-analyze", {
+        transcript: normalizedTranscript,
+        questions,
+      });
       setAnalysis(result);
       setActiveTab("results");
       toast({ title: "Analysis Complete!", description: "AI has extracted structured data." });
@@ -175,9 +448,9 @@ export default function InterviewAnalysisPage() {
 
   const downloadBrandedPack = async () => {
     if (!packRef.current) return;
-    
+
     toast({ title: "Generating Branded Pack...", description: "Combining CV and Interview notes." });
-    
+
     const canvas = await html2canvas(packRef.current, { scale: 2 });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -189,7 +462,7 @@ export default function InterviewAnalysisPage() {
 
     let heightLeft = imgHeight;
     let position = 0;
-    
+
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
     heightLeft -= pdfHeight;
 
@@ -199,7 +472,7 @@ export default function InterviewAnalysisPage() {
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pdfHeight;
     }
-    
+
     pdf.save(`Candidate_Pack_${selectedCandidate?.name || 'Profile'}.pdf`);
   };
 
@@ -220,7 +493,7 @@ export default function InterviewAnalysisPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setActiveTab("setup")}>
+          <Button variant="outline" onClick={resetSession}>
             <Plus className="mr-2 h-4 w-4" /> New Session
           </Button>
           <Button disabled={!analysis} onClick={downloadBrandedPack}>
@@ -361,9 +634,16 @@ export default function InterviewAnalysisPage() {
                 )}
               </div>
 
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>Session start: {sessionStartedAt ? new Date(sessionStartedAt).toLocaleTimeString() : "Not started"}</span>
+                <span>Chunks: {transcriptChunks.length}</span>
+                <span>Checkpoints: {checkpointCount}</span>
+                <span>Last checkpoint: {lastCheckpointAt ? new Date(lastCheckpointAt).toLocaleTimeString() : "None"}</span>
+              </div>
+
               <div className="flex justify-center gap-4">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   variant={isListening ? "destructive" : "default"}
                   className="rounded-full h-16 w-16"
                   onClick={handleToggleListening}
@@ -377,7 +657,7 @@ export default function InterviewAnalysisPage() {
             </CardContent>
             <CardFooter className="bg-muted/10 justify-between">
               <p className="text-xs text-muted-foreground">Session ends when you stop recording and run AI Analysis.</p>
-              <Button onClick={() => handleAnalyze(liveTranscript)} disabled={!liveTranscript || isLoading}>
+              <Button onClick={() => handleAnalyze(transcriptForAnalysis)} disabled={!transcriptForAnalysis || isLoading}>
                 {isLoading ? <Loader2 className="animate-spin mr-2" /> : <Sparkles className="mr-2 h-4 w-4" />}
                 End & Run AI Analysis
               </Button>
@@ -393,8 +673,8 @@ export default function InterviewAnalysisPage() {
               <CardDescription>Paste existing text from Zoom/Teams logs.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Textarea 
-                placeholder="Paste conversation here..." 
+              <Textarea
+                placeholder="Paste conversation here..."
                 className="min-h-[400px] font-mono text-sm"
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}

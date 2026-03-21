@@ -13,8 +13,9 @@ import { Spinner } from "@/components/ui/spinner";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { fileToDataURI } from "@/lib/file-utils";
-import { findCompanies, type FindCompaniesOutput } from "@/ai/flows/find-companies";
-import { findSmartLeads, type FindSmartLeadsInput, type FindSmartLeadsOutput, type Lead } from "@/ai/flows/find-smart-leads";
+import { postJson } from "@/lib/api-client";
+import type { FindCompaniesOutput } from "@/ai/flows/find-companies";
+import type { FindSmartLeadsInput, FindSmartLeadsOutput, Lead } from "@/ai/flows/find-smart-leads";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -94,7 +95,7 @@ export default function CompanyFinderPage() {
 
         try {
             const resumeDataUri = resumeFile ? await fileToDataURI(resumeFile) : undefined;
-            const result = await findCompanies({
+            const result = await postJson<FindCompaniesOutput>("/api/ai/find-companies", {
                 resumeDataUri,
                 keySkills: keySkills.trim() || undefined,
             });
@@ -133,7 +134,7 @@ export default function CompanyFinderPage() {
         setLeadsError(null);
         setLeadsOutput(null);
         try {
-            const result = await findSmartLeads(leadsInput);
+            const result = await postJson<FindSmartLeadsOutput>("/api/ai/find-smart-leads", leadsInput);
             setLeadsOutput(result);
             if (result.insights && result.insights.length > 0) {
               toast({

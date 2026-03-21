@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { listAvailableModels, type ModelInfo } from '@/ai/flows/list-models';
+import { postJson } from '@/lib/api-client';
+import type { ModelInfo } from '@/ai/flows/list-models';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +19,11 @@ export default function DebugModelsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await listAvailableModels();
+      const data = await fetch("/api/ai/list-models", { method: "GET" }).then(async (response) => {
+        const body = await response.json();
+        if (response.ok && body?.ok) return body.data as ModelInfo[];
+        throw new Error(body?.error?.message || `Request failed: ${response.status}`);
+      });
       setModels(data);
     } catch (err: any) {
       setError(err.message);

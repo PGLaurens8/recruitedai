@@ -24,6 +24,7 @@ export default function SignupPage() {
   const { signup } = useAuth();
   const { toast } = useToast();
   const [accountType, setAccountType] = useState<AccountType>('personal');
+  const [companyName, setCompanyName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,7 +36,12 @@ export default function SignupPage() {
     setIsSubmitting(true);
     try {
       const fullName = `${firstName} ${lastName}`.trim();
-      await signup(email, password, fullName || undefined);
+      await signup(email, password, fullName || undefined, {
+        accountType,
+        companyName: accountType === 'company' ? companyName.trim() : undefined,
+        firstName: firstName.trim() || undefined,
+        lastName: lastName.trim() || undefined,
+      });
       toast({
         title: 'Account created',
         description: 'Your account has been created successfully.',
@@ -92,7 +98,13 @@ export default function SignupPage() {
                   {accountType === 'company' && (
                     <div className="grid gap-2">
                       <Label htmlFor="organization-name">Company Name</Label>
-                      <Input id="organization-name" placeholder="Acme Inc." required />
+                      <Input
+                        id="organization-name"
+                        placeholder="Acme Inc."
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        required
+                      />
                     </div>
                   )}
 

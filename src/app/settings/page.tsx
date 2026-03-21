@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { listAvailableModels, type ModelInfo } from '@/ai/flows/list-models';
+import { getJson } from '@/lib/api-client';
+import type { ModelInfo } from '@/ai/flows/list-models';
 import { 
   Settings, 
   Code, 
@@ -64,7 +65,7 @@ export default function SettingsPage() {
     setIsLoadingModels(true);
     setModelsError(null);
     try {
-      const data = await listAvailableModels();
+      const data = await getJson<ModelInfo[]>("/api/ai/list-models");
       setModels(data);
       toast({
         title: "Models Discovered",
@@ -191,7 +192,7 @@ export default function SettingsPage() {
                   <AlertTriangle className="h-4 w-4 text-blue-600" />
                   <AlertTitle className="text-blue-800">Seed Configuration</AlertTitle>
                   <AlertDescription className="text-blue-700 text-xs">
-                    Seeded data will be assigned to <code>companyId: demo-agency-123</code>. Your user record will also be updated to this ID.
+                    Seeded data is applied to your current company (or a per-user demo company if your profile has none). Your profile company_id is updated automatically.
                   </AlertDescription>
                 </Alert>
               </CardContent>
