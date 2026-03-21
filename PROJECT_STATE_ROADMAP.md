@@ -14,8 +14,10 @@ Ship a production-ready pilot of RecruitedAI where real users can test recruitin
 
 ## 2) Current Baseline (Verified)
 
-- Branch: `chore/e2e-smoke-ci` (ahead of origin by 3 commits)
+- Branch: `chore/e2e-smoke-ci` (ahead of origin by 5 commits)
 - Latest commits:
+  - `8321316` Stabilize dev preview defaults and harden build checks
+  - `dcff6be` Update roadmap with latest branch state and next priorities
   - `da1e24c` Add runtime config, AI API handlers, and rate-limit test coverage
   - `9eb787e` Harden auth flows, add telemetry, live dashboards, and security runbooks
   - `7636ba9` Fix Supabase login redirect and add temporary enter-app bypass
@@ -98,6 +100,10 @@ Pilot-ready when all are true:
 ## 7) Execution Log
 
 - 2026-03-21:
+  - Updated dev script defaults to non-Turbopack (`npm run dev`) and kept `dev:turbo` opt-in to reduce preview hard-restart churn.
+  - Removed `next.config.ts` build-time ignore flags for TypeScript/ESLint to harden release safety.
+  - Documented `NEXT_PUBLIC_*` env-change restart requirement in README runtime section.
+  - Added missing `alt` text for company logo image on profile page to close accessibility warning.
   - Created two targeted commits (`9eb787e`, `da1e24c`) and verified branch is clean locally (ahead by 3 commits).
   - Push attempts from agent environment timed out; branch publish and PR creation are queued as next operator action.
   - Added key rotation completion tracker (`docs/key-rotation-tracker.md`) to evidence provider-console rotations and close remaining security item.
