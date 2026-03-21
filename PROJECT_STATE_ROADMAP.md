@@ -14,11 +14,16 @@ Ship a production-ready pilot of RecruitedAI where real users can test recruitin
 
 ## 2) Current Baseline (Verified)
 
-- Branch: `chore/e2e-smoke-ci`
+- Branch: `chore/e2e-smoke-ci` (ahead of origin by 3 commits)
+- Latest commits:
+  - `da1e24c` Add runtime config, AI API handlers, and rate-limit test coverage
+  - `9eb787e` Harden auth flows, add telemetry, live dashboards, and security runbooks
+  - `7636ba9` Fix Supabase login redirect and add temporary enter-app bypass
 - Build: passing (`npm run build`)
 - Typecheck: passing (`npm run typecheck`)
 - Tests: passing (`npm run test`) (6 files / 29 tests)
 - Lint: passing (`npm run lint`) with warnings only
+- Secret scan: passing (`npm run security:secrets`)
 
 ## 3) Testing Access Plan
 
@@ -93,6 +98,8 @@ Pilot-ready when all are true:
 ## 7) Execution Log
 
 - 2026-03-21:
+  - Created two targeted commits (`9eb787e`, `da1e24c`) and verified branch is clean locally (ahead by 3 commits).
+  - Push attempts from agent environment timed out; branch publish and PR creation are queued as next operator action.
   - Added key rotation completion tracker (`docs/key-rotation-tracker.md`) to evidence provider-console rotations and close remaining security item.
   - Added `security:secrets` npm script and CI secret-scan quality gate.
   - Added key-rotation and secret hygiene runbook (`docs/api-key-rotation-and-secret-hygiene.md`) and sanitized hardcoded key-like doc example(s).
@@ -142,3 +149,19 @@ Pilot-ready when all are true:
   - Added auth/tenant-isolation tests for `requireUserAndCompany`.
   - Expanded automated test suite from 9 tests to 18 tests.
   - Revalidated lint/typecheck/test/build after runtime-validation refactor.
+
+## 8) Priorities (Next Session)
+
+Priority order for continuation:
+1. **P0: External key rotation closure**
+   - Complete provider-console rotations using `docs/key-rotation-tracker.md`.
+   - Revoke old keys and record timestamps/owners.
+   - Flip roadmap item **Rotate any exposed local/test API keys** from `[~]` to `[x]`.
+2. **P1: Publish branch updates and open PR**
+   - Push `chore/e2e-smoke-ci` to origin (local environment, since push timed out in agent environment).
+   - Open PR with the 3 pending commits and run full CI.
+3. **P2: Post-PR cleanup and hardening**
+   - Address existing lint warnings (`<img>` usage, hook dependency warning).
+   - Optional: expand telemetry to include structured success logs for high-value API routes.
+
+---
