@@ -1,6 +1,6 @@
 # Project State & Execution Roadmap
 
-Last updated: 2026-03-18
+Last updated: 2026-03-21
 Owner: Product + Engineering
 Status: In Progress
 
@@ -14,11 +14,11 @@ Ship a production-ready pilot of RecruitedAI where real users can test recruitin
 
 ## 2) Current Baseline (Verified)
 
-- Branch: `main`
+- Branch: `chore/e2e-smoke-ci`
 - Build: passing (`npm run build`)
 - Typecheck: passing (`npm run typecheck`)
-- Tests: passing (`npm run test`) but low coverage (2 files / 9 tests)
-- Lint: not yet configured (currently blocks `npm run lint`)
+- Tests: passing (`npm run test`) (6 files / 29 tests)
+- Lint: passing (`npm run lint`) with warnings only
 
 ## 3) Testing Access Plan
 
@@ -45,8 +45,8 @@ Legend:
 - [x] Fix `/login` page to perform real auth submission via `AuthContext.login`
 - [x] Add explicit mock demo credential support (`demo@dem.com` / `demo`)
 - [x] Pass signup metadata (`account_type`, `company_name`) to Supabase
-- [ ] Add password reset flow
-- [ ] Add session-expiry UX handling
+- [x] Add password reset flow
+- [x] Add session-expiry UX handling
 
 ### B) Runtime Safety
 - [x] Fail closed in production if runtime/env is invalid (no silent `mock` fallback)
@@ -60,24 +60,25 @@ Legend:
 - [x] Add one E2E smoke test (sign in -> create candidate -> parse/interview save)
 
 ### D) Product Readiness
-- [ ] Replace recruiter dashboard placeholder with live metrics
-- [ ] Replace sales dashboard placeholder with live metrics
-- [ ] Add production incident/error telemetry (request IDs + structured logs)
-- [ ] Add route-level rate limiting for AI and write-heavy endpoints
+- [x] Replace recruiter dashboard placeholder with live metrics
+- [x] Replace sales dashboard placeholder with live metrics
+- [x] Add production incident/error telemetry (request IDs + structured logs)
+- [x] Add route-level rate limiting for AI and write-heavy endpoints
 
 ### E) Security & Operations
-- [ ] Rotate any exposed local/test API keys
+- [~] Rotate any exposed local/test API keys
 - [x] Finalize `.env.example` with required vars only
-- [ ] Confirm Supabase backups/PITR and recovery runbook
-- [ ] Document staged rollout + rollback checklist
+- [x] Confirm Supabase backups/PITR and recovery runbook
+- [x] Document staged rollout + rollback checklist
 
 ## 5) Command Checklist (Per Release Candidate)
 
 Run and record outcomes:
 1. `npm run lint`
-2. `npm run typecheck`
-3. `npm run test`
-4. `npm run build`
+2. `npm run security:secrets`
+3. `npm run typecheck`
+4. `npm run test`
+5. `npm run build`
 
 ## 6) Release Readiness Definition
 
@@ -91,6 +92,26 @@ Pilot-ready when all are true:
 
 ## 7) Execution Log
 
+- 2026-03-21:
+  - Added key rotation completion tracker (`docs/key-rotation-tracker.md`) to evidence provider-console rotations and close remaining security item.
+  - Added `security:secrets` npm script and CI secret-scan quality gate.
+  - Added key-rotation and secret hygiene runbook (`docs/api-key-rotation-and-secret-hygiene.md`) and sanitized hardcoded key-like doc example(s).
+  - Confirmed local `.env` values are git-ignored; provider-console key rotation remains an explicit owner action.
+  - Removed temporary auth bypass controls from middleware and login surfaces.
+  - Added full password reset flow (`/forgot-password` and `/reset-password`) and login status messaging.
+  - Added session-expiry redirect UX (`reason=session-expired`) in auth state handling.
+  - Replaced recruiter and sales dashboard placeholders with live workspace metrics.
+  - Added structured API error telemetry with request context in `src/server/api/http.ts`.
+  - Added operations docs: `docs/supabase-backup-recovery-runbook.md` and `docs/release-rollout-rollback-checklist.md`.
+  - Revalidated with `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build`.
+- 2026-03-19:
+  - Fixed Settings model discovery API contract to use GET on `/api/ai/list-models`.
+  - Restored strict seed safeguards: production disabled + Admin/Developer-only access + explicit `{ "confirm": true }` intent.
+  - Added distributed-capable API rate limiting (`@upstash/redis`) with safe in-memory fallback when env vars are unset/unavailable.
+  - Migrated AI and write-heavy API routes to async `await enforceRateLimit(...)` usage.
+  - Added/expanded tests: `requireUserAndCompanyRole` coverage and dedicated rate-limit unit tests.
+  - Updated `.env.example` with optional Upstash env keys for multi-instance deployments.
+  - Revalidated with `npm run lint`, `npm run typecheck`, and `npm run test`.
 - 2026-03-18:
   - Fixed Supabase login post-auth redirect to role dashboard (users were previously left on login after successful auth).
   - Added temporary bottom-screen Enter App (Temporary) bypass button on / and /login.

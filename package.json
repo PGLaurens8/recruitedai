@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:smoke": "playwright test e2e/smoke.spec.ts --project=chromium"
+    "test:e2e:smoke": "playwright test e2e/smoke.spec.ts --project=chromium",
+    "security:secrets": "sh -c 'rg -n --hidden --glob '!.git' --glob '!node_modules' --glob '!.env*' --glob '!package.json' --glob '!docs/api-key-rotation-and-secret-hygiene.md' \"(sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|BEGIN PRIVATE KEY|xox[baprs]-)\"; code=$?; if [ $code -eq 0 ]; then exit 1; elif [ $code -eq 1 ]; then exit 0; else exit $code; fi'"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.0.0",
@@ -40,6 +41,7 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.1",
+    "@upstash/redis": "^1.37.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",

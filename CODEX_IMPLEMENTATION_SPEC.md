@@ -1058,7 +1058,7 @@ Create/update: **`.env.local`**
 
 ```bash
 # Firebase (already configured via App Hosting, but needed for local dev)
-NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyBruvt6pO5DW38eShuv8U6-B3pBkBPWBWI
+NEXT_PUBLIC_FIREBASE_API_KEY=<your-firebase-web-api-key>
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=studio-6739586953-52e1c.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=studio-6739586953-52e1c
 NEXT_PUBLIC_FIREBASE_APP_ID=1:166018757600:web:5f868945e7dc94e22ef185

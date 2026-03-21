@@ -10,7 +10,6 @@ import { Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
-const TEMP_BYPASS_STORAGE_KEY = 'recruitedai.temp-enter-bypass';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -35,10 +34,6 @@ export default function LoginPage() {
     }
   };
 
-  const enterAppTemporarily = () => {
-    window.localStorage.setItem(TEMP_BYPASS_STORAGE_KEY, '1');
-    window.location.assign('/dashboard/recruiter?bypass=1');
-  };
 
   return (
     <>
@@ -97,12 +92,6 @@ export default function LoginPage() {
           <h1 className="text-5xl font-bold mb-4">RecruitedAI</h1>
           <p className="text-xl text-indigo-200">AI-Powered Recruiting & Career Tools</p>
         </div>
-      </div>
-
-      <div className="fixed inset-x-0 bottom-4 z-50 flex justify-center px-4">
-        <Button type="button" variant="secondary" className="shadow-lg" onClick={enterAppTemporarily}>
-          Enter App (Temporary)
-        </Button>
       </div>
     </>
   );

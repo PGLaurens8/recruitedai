@@ -26,6 +26,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Secret Scan
+        run: npm run security:secrets
+
       - name: Typecheck
         run: npm run typecheck
 

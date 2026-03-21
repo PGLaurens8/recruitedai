@@ -64,3 +64,13 @@ The active app runtime no longer depends on Firebase. Legacy Firebase files may 
 - **Background:** Light Blue Gray (#F0F4F7)
 - **Accent:** Teal (#1AA3A3)
 - **Typography:** Inter (UI), Source Code Pro (Data).
+
+## Security Checks
+
+Run repository secret-pattern scan before release:
+
+```bash
+npm run security:secrets
+```
+
+The command exits non-zero only when likely secret patterns are found. It intentionally ignores local `.env*` files and focuses on tracked source/docs.

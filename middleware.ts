@@ -1,54 +1,57 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
-import { getDefaultRouteForRole, isPublicPath, isRoleAllowedForPath } from '@/lib/rbac';
-import { type Role } from '@/lib/roles';
-import { getSupabasePublicEnv, validateRuntimeConfig } from '@/lib/runtime-config';
-
-const TEMP_BYPASS_COOKIE = 'recruitedai-enter-bypass';
+import { getDefaultRouteForRole, isPublicPath, isRoleAllowedForPath } from "@/lib/rbac";
+import { type Role } from "@/lib/roles";
+import { getSupabasePublicEnv, validateRuntimeConfig } from "@/lib/runtime-config";
 
 function toAppRole(value: string | undefined): Role {
   if (
-    value === 'Admin' ||
-    value === 'Recruiter' ||
-    value === 'Sales' ||
-    value === 'Candidate' ||
-    value === 'Developer'
+    value === "Admin" ||
+    value === "Recruiter" ||
+    value === "Sales" ||
+    value === "Candidate" ||
+    value === "Developer"
   ) {
     return value;
   }
 
-  return 'Recruiter';
+  return "Recruiter";
 }
 
 export async function middleware(request: NextRequest) {
   const runtimeCheck = validateRuntimeConfig();
-  const isSupabaseRuntime = runtimeCheck.mode === 'supabase';
+  const isSupabaseRuntime = runtimeCheck.mode === "supabase";
 
-  if (!runtimeCheck.ok) {
+  if (runtimeCheck.ok === false) {
     return new NextResponse(
-      `Runtime misconfiguration: ${runtimeCheck.errors.join(' ')}`,
+      "Runtime misconfiguration: " + runtimeCheck.errors.join(" "),
       { status: 503 }
     );
   }
 
-  if (!isSupabaseRuntime) {
+  if (isSupabaseRuntime === false) {
     return NextResponse.next();
   }
 
   const pathname = request.nextUrl.pathname;
+
+  const isFrameworkAsset = pathname.startsWith("/_next/") || pathname === "/favicon.ico";
+  const isImageAsset = /\.(?:svg|png|jpg|jpeg|gif|webp)$/i.test(pathname);
+  if (isFrameworkAsset || isImageAsset) {
+    return NextResponse.next();
+  }
+
   const isPublic = isPublicPath(pathname);
-  const bypassRequested = request.nextUrl.searchParams.get('bypass') === '1';
-  const hasBypassCookie = request.cookies.get(TEMP_BYPASS_COOKIE)?.value === '1';
 
   let supabaseUrl: string;
   let supabaseAnonKey: string;
   try {
     ({ supabaseUrl, supabaseAnonKey } = getSupabasePublicEnv());
   } catch {
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       return new NextResponse(
-        'Runtime misconfiguration: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required.',
+        "Runtime misconfiguration: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required.",
         { status: 503 }
       );
     }
@@ -58,19 +61,6 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
-
-  if (bypassRequested || hasBypassCookie) {
-    if (bypassRequested && !hasBypassCookie) {
-      response.cookies.set(TEMP_BYPASS_COOKIE, '1', {
-        path: '/',
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: false,
-        maxAge: 60 * 60 * 8,
-      });
-    }
-    return response;
-  }
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -89,21 +79,21 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (user == null) {
     if (isPublic) {
       return response;
     }
 
     const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/login';
-    loginUrl.searchParams.set('redirectTo', pathname);
+    loginUrl.pathname = "/login";
+    loginUrl.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
     .maybeSingle();
 
   const role = toAppRole(
@@ -113,14 +103,14 @@ export async function middleware(request: NextRequest) {
   if (isPublic) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = getDefaultRouteForRole(role);
-    redirectUrl.search = '';
+    redirectUrl.search = "";
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (!isRoleAllowedForPath(role, pathname)) {
+  if (isRoleAllowedForPath(role, pathname) === false) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = getDefaultRouteForRole(role);
-    redirectUrl.search = '';
+    redirectUrl.search = "";
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -128,5 +118,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: ["/((.*))"],
 };

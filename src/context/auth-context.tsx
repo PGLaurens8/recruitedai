@@ -1,11 +1,12 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, ReactNode, useEffect, useMemo, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { getRuntimeMode, isMockMode, isSupabaseMode } from '@/lib/runtime-mode';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { getDefaultRouteForRole, isPublicPath } from '@/lib/rbac';
-import { type Role } from '@/lib/roles';
+import React, { createContext, useContext, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+
+import { getRuntimeMode, isMockMode, isSupabaseMode } from "@/lib/runtime-mode";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getDefaultRouteForRole, isPublicPath } from "@/lib/rbac";
+import { type Role } from "@/lib/roles";
 
 export interface AppUser {
   id?: string;
@@ -16,7 +17,7 @@ export interface AppUser {
 }
 
 interface SignupMetadata {
-  accountType?: 'personal' | 'company';
+  accountType?: "personal" | "company";
   companyName?: string;
   firstName?: string;
   lastName?: string;
@@ -39,56 +40,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const MOCK_STORAGE_KEY = 'recruitedai.mock-user';
-const MOCK_DEMO_EMAIL = 'demo@dem.com';
-const MOCK_DEMO_PASSWORD = 'demo';
-const TEMP_BYPASS_STORAGE_KEY = 'recruitedai.temp-enter-bypass';
-const TEMP_BYPASS_COOKIE = 'recruitedai-enter-bypass';
+const MOCK_STORAGE_KEY = "recruitedai.mock-user";
+const MOCK_DEMO_EMAIL = "demo@dem.com";
+const MOCK_DEMO_PASSWORD = "demo";
 
 function normalizeUser(partial: Partial<AppUser> & { email: string }): AppUser {
-  const fallbackName = partial.name || partial.email.split('@')[0] || 'User';
+  const fallbackName = partial.name || partial.email.split("@")[0] || "User";
   const fallbackCompanyId = partial.companyId || partial.id || partial.email;
 
   return {
     id: partial.id,
     name: fallbackName,
-    role: partial.role || 'Recruiter',
+    role: partial.role || "Recruiter",
     email: partial.email,
     companyId: fallbackCompanyId,
   };
 }
 
-function getTempBypassUser() {
-  return normalizeUser({
-    id: 'temp-bypass-user',
-    email: 'temp-access@local',
-    name: 'Temporary Access',
-    companyId: 'temp-company',
-    role: 'Recruiter',
-  });
-}
-
-function isTempBypassEnabled() {
-  const localFlag = window.localStorage.getItem(TEMP_BYPASS_STORAGE_KEY) === '1';
-  const cookieFlag = document.cookie
-    .split(';')
-    .map((item) => item.trim())
-    .some((item) => item === `${TEMP_BYPASS_COOKIE}=1`);
-
-  return localFlag || cookieFlag;
-}
-
-function clearTempBypass() {
-  window.localStorage.removeItem(TEMP_BYPASS_STORAGE_KEY);
-  document.cookie = `${TEMP_BYPASS_COOKIE}=; path=/; max-age=0; samesite=lax`;
-}
-
 async function loadSupabaseProfile(userId: string) {
   const supabase = createSupabaseBrowserClient();
   const { data, error } = await supabase
-    .from('profiles')
-    .select('id, email, name, role, company_id')
-    .eq('id', userId)
+    .from("profiles")
+    .select("id, email, name, role, company_id")
+    .eq("id", userId)
     .single();
 
   if (error) {
@@ -114,7 +88,7 @@ function normalizeSupabaseUser(
 ) {
   return normalizeUser({
     id: profile?.id || sessionUser.id,
-    email: profile?.email || sessionUser.email || '',
+    email: profile?.email || sessionUser.email || "",
     name:
       profile?.name ||
       (sessionUser.user_metadata?.name as string | undefined) ||
@@ -127,7 +101,7 @@ function normalizeSupabaseUser(
     role:
       (profile?.role as Role | undefined) ||
       (sessionUser.user_metadata?.role as Role | undefined) ||
-      'Recruiter',
+      "Recruiter",
   });
 }
 
@@ -141,6 +115,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
   const runtimeMode = useMemo(() => getRuntimeMode(), []);
+  const isSigningOutRef = useRef(false);
 
   useEffect(() => {
     const pathIsPublic = isPublicPath(pathname);
@@ -164,8 +139,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setIsLoading(false);
-      if (!raw && !pathIsPublic) {
-        router.push('/login');
+      if (raw == null && pathIsPublic === false) {
+        const params = new URLSearchParams({ redirectTo: pathname });
+        router.push(`/login?${params.toString()}`);
       }
       return;
     }
@@ -178,25 +154,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data: { session },
         } = await supabase.auth.getSession();
 
-        if (!session?.user) {
-          if (isTempBypassEnabled()) {
-            const bypassUser = getTempBypassUser();
-            setUser(bypassUser);
-            if (pathIsPublic) {
-              handleRedirect(router, bypassUser.role);
-            }
-          } else {
-            setUser(null);
-            if (!pathIsPublic) {
-              router.push('/login');
-            }
+        if (session?.user == null) {
+          setUser(null);
+          if (pathIsPublic === false) {
+            const params = new URLSearchParams({ redirectTo: pathname });
+            router.push(`/login?${params.toString()}`);
           }
 
           setIsLoading(false);
           return;
         }
 
-        clearTempBypass();
         const profile = await loadSupabaseProfile(session.user.id);
         const nextUser = normalizeSupabaseUser(session.user, profile);
 
@@ -211,21 +179,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (!session?.user) {
-          if (isTempBypassEnabled()) {
-            setUser(getTempBypassUser());
-            return;
-          }
-
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        if (session?.user == null) {
           setUser(null);
-          if (!isPublicPath(pathname)) {
-            router.push('/login');
+          if (isPublicPath(pathname) === false && isSigningOutRef.current === false) {
+            const reason = event === "SIGNED_OUT" ? null : "session-expired";
+            const params = new URLSearchParams({ redirectTo: pathname });
+            if (reason) {
+              params.set("reason", reason);
+            }
+            router.push(`/login?${params.toString()}`);
           }
           return;
         }
 
-        clearTempBypass();
         void loadSupabaseProfile(session.user.id).then((profile) => {
           const nextUser = normalizeSupabaseUser(session.user, profile);
           setUser(nextUser);
@@ -237,8 +204,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setUser(null);
     setIsLoading(false);
-    if (!pathIsPublic) {
-      router.push('/login');
+    if (pathIsPublic === false) {
+      const params = new URLSearchParams({ redirectTo: pathname });
+      router.push(`/login?${params.toString()}`);
     }
     return;
   }, [pathname, router, runtimeMode]);
@@ -249,9 +217,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const nextUser = normalizeUser({
         id: isDemoLogin ? MOCK_DEMO_EMAIL : email,
         email: isDemoLogin ? MOCK_DEMO_EMAIL : email,
-        name: isDemoLogin ? 'Demo Recruiter' : email.split('@')[0] || 'Demo User',
-        companyId: 'mock-company',
-        role: 'Recruiter',
+        name: isDemoLogin ? "Demo Recruiter" : email.split("@")[0] || "Demo User",
+        companyId: "mock-company",
+        role: "Recruiter",
       });
 
       window.localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(nextUser));
@@ -268,11 +236,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
 
-      if (!data.user) {
-        throw new Error('Sign in succeeded but no active user was returned.');
+      if (data.user == null) {
+        throw new Error("Sign in succeeded but no active user was returned.");
       }
 
-      clearTempBypass();
       const profile = await loadSupabaseProfile(data.user.id);
       const nextUser = normalizeSupabaseUser(data.user, profile);
       setUser(nextUser);
@@ -280,7 +247,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    throw new Error('Unsupported runtime mode.');
+    throw new Error("Unsupported runtime mode.");
   };
 
   const signup = async (
@@ -293,9 +260,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const nextUser = normalizeUser({
         id: email,
         email,
-        name: name || email.split('@')[0] || 'Demo User',
-        companyId: 'mock-company',
-        role: 'Recruiter',
+        name: name || email.split("@")[0] || "Demo User",
+        companyId: "mock-company",
+        role: "Recruiter",
       });
 
       window.localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(nextUser));
@@ -311,9 +278,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
         options: {
           data: {
-            name: name || email.split('@')[0],
-            role: 'Recruiter',
-            account_type: metadata?.accountType || 'personal',
+            name: name || email.split("@")[0],
+            role: "Recruiter",
+            account_type: metadata?.accountType || "personal",
             company_name: metadata?.companyName || undefined,
             first_name: metadata?.firstName || undefined,
             last_name: metadata?.lastName || undefined,
@@ -328,36 +295,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    throw new Error('Unsupported runtime mode.');
+    throw new Error("Unsupported runtime mode.");
   };
 
   const logout = async () => {
     setUser(null);
-    clearTempBypass();
 
     if (isMockMode()) {
       window.localStorage.removeItem(MOCK_STORAGE_KEY);
-      router.push('/');
+      router.push("/");
       return;
     }
 
     if (isSupabaseMode()) {
-      const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
+      isSigningOutRef.current = true;
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          throw error;
+        }
+      } finally {
+        isSigningOutRef.current = false;
       }
-      router.push('/');
+      router.push("/");
       return;
     }
 
-    throw new Error('Unsupported runtime mode.');
+    throw new Error("Unsupported runtime mode.");
   };
 
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated: !!user,
+        isAuthenticated: user != null,
         user,
         login,
         signup,
@@ -374,7 +345,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
