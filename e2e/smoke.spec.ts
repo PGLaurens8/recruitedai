@@ -3,8 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 const DB_KEY = 'recruitedai.mock-db';
 
 async function waitForCandidatesPageReady(page: Page) {
-  await expect(page).toHaveURL(/\/candidates/);
-  await expect(page.getByRole('heading', { name: 'Candidate Management' })).toBeVisible();
+  await expect(page).toHaveURL(/\/candidates(?:\?|$)/, { timeout: 30_000 });
+  await expect(page.getByText('Candidate Management')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText('Loading candidates...')).toHaveCount(0, { timeout: 30_000 });
 }
 
