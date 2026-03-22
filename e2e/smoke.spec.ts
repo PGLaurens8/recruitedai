@@ -1,6 +1,12 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const DB_KEY = 'recruitedai.mock-db';
+
+async function waitForCandidatesPageReady(page: Page) {
+  await expect(page).toHaveURL(/\/candidates/);
+  await expect(page.getByRole('heading', { name: 'Candidate Management' })).toBeVisible();
+  await expect(page.getByText('Loading candidates...')).toHaveCount(0, { timeout: 30_000 });
+}
 
 test('smoke: demo login, candidate creation, and interview save persistence', async ({ page }) => {
   const stamp = Date.now();
@@ -15,6 +21,8 @@ test('smoke: demo login, candidate creation, and interview save persistence', as
   await expect(page).toHaveURL(/\/dashboard\/recruiter/);
 
   await page.goto('/candidates');
+  await waitForCandidatesPageReady(page);
+
   await page.evaluate(
     ({ dbKey, id, name }) => {
       const raw = window.localStorage.getItem(dbKey);
@@ -41,9 +49,25 @@ test('smoke: demo login, candidate creation, and interview save persistence', as
     { dbKey: DB_KEY, id: candidateId, name: candidateName }
   );
 
+  await expect.poll(
+    async () =>
+      page.evaluate(
+        ({ dbKey, id }) => {
+          const raw = window.localStorage.getItem(dbKey);
+          const db = raw ? JSON.parse(raw) : null;
+          return !!db?.candidates?.some((candidate: { id: string }) => candidate.id === id);
+        },
+        { dbKey: DB_KEY, id: candidateId }
+      ),
+    { timeout: 10_000 }
+  ).toBe(true);
+
   await page.reload();
-  await expect(page.getByRole('link', { name: candidateName })).toBeVisible();
-  await page.getByRole('link', { name: candidateName }).click();
+  await waitForCandidatesPageReady(page);
+
+  const candidateLink = page.locator('a', { hasText: candidateName }).first();
+  await expect(candidateLink).toBeVisible({ timeout: 30_000 });
+  await candidateLink.click();
 
   await expect(page.getByRole('heading', { name: candidateName })).toBeVisible();
   await page.locator('#question-0').fill(note);
