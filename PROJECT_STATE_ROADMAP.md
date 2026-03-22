@@ -73,7 +73,7 @@ Legend:
 - [x] Add route-level rate limiting for AI and write-heavy endpoints
 
 ### E) Security & Operations
-- [~] Rotate any exposed local/test API keys
+- [x] Rotate any exposed local/test API keys
 - [x] Finalize `.env.example` with required vars only
 - [x] Confirm Supabase backups/PITR and recovery runbook
 - [x] Document staged rollout + rollback checklist
@@ -98,6 +98,9 @@ Pilot-ready when all are true:
 - Demo path works in mock mode for non-production demos
 
 ## 7) Execution Log
+
+- 2026-03-22:
+  - Completed external key rotation tracker and provider-console rotation evidence in `docs/key-rotation-tracker.md`; roadmap security item moved to complete.
 
 - 2026-03-22:
   - Added global API CORS headers in `next.config.ts` for reliable preflight responses (origin/methods/headers).
