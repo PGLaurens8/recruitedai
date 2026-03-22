@@ -10,8 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/auth-context";
-import { generateInterviewQuestions } from "@/ai/flows/generate-interview-questions";
-import { analyzeInterviewResponse, type AnalyzeInterviewResponseOutput } from "@/ai/flows/analyze-interview-response";
+import { postJson } from "@/lib/api-client";
+import type { AnalyzeInterviewResponseOutput } from "@/ai/flows/analyze-interview-response";
 import { ClipboardCheck, Mic, MicOff, AlertTriangle, Copy, Rocket, Lightbulb, BarChart, ChevronRight } from "lucide-react";
 import { useCurrentProfile, useJobs } from "@/lib/data/hooks";
 
@@ -110,7 +110,7 @@ export default function InterviewPrepPage() {
     
     try {
         const jobSpecText = `${selectedJob.title}\nCompany: ${selectedJob.company}\nLocation: ${selectedJob.location}\nSalary: ${selectedJob.salary}`;
-        const result = await generateInterviewQuestions({ jobSpecText });
+        const result = await postJson<{ questions: string[] }>("/api/ai/generate-interview-questions", { jobSpecText });
         setQuestions(result.questions);
         setCurrentQuestionIndex(0);
         setInterviewState("in_progress");
@@ -141,7 +141,7 @@ export default function InterviewPrepPage() {
     setInterviewState("analyzing");
     
     try {
-        const result = await analyzeInterviewResponse({
+        const result = await postJson<AnalyzeInterviewResponseOutput>("/api/ai/analyze-interview-response", {
             question: questions[currentQuestionIndex],
             answer: transcript
         });

@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { tailorResumeToJobSpec, type TailorResumeToJobSpecOutput } from '@/ai/flows/tailor-resume-to-job-spec';
-import { assessJobMatch, type AssessJobMatchInput, type AssessJobMatchOutput } from '@/ai/flows/assess-job-match';
-import { generateCoverLetter, type GenerateCoverLetterInput, type GenerateCoverLetterOutput } from '@/ai/flows/generate-cover-letter';
+import { postJson } from '@/lib/api-client';
+import type { TailorResumeToJobSpecOutput } from '@/ai/flows/tailor-resume-to-job-spec';
+import type { AssessJobMatchInput, AssessJobMatchOutput } from '@/ai/flows/assess-job-match';
+import type { GenerateCoverLetterInput, GenerateCoverLetterOutput } from '@/ai/flows/generate-cover-letter';
 import { fileToDataURI, textToDataURI } from '@/lib/file-utils';
 import { ResumeSection } from '@/components/feature/resume-section';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -166,7 +167,7 @@ export default function JobMatchingPage() {
     try {
       const masterResumeDataUri = textToDataURI(masterResumeText);
       const input: AssessJobMatchInput = { masterResumeDataUri, jobSpecDataUri, jobSpecText: currentJobSpecText };
-      const result = await assessJobMatch(input);
+      const result = await postJson<AssessJobMatchOutput>('/api/ai/match-job', input);
       setAssessmentOutput(result);
       toast({ title: "Job Match Assessed!", description: "AI has analyzed your resume against the job spec." });
     } catch (e: any) {
@@ -199,7 +200,7 @@ export default function JobMatchingPage() {
 
     try {
       const tailorInput = { masterResumeDataUri: masterResumeDataUriVal, jobSpecDataUri, jobSpecText: currentJobSpecText };
-      const tailoredResult = await tailorResumeToJobSpec(tailorInput);
+      const tailoredResult = await postJson<TailorResumeToJobSpecOutput>('/api/ai/tailor-resume', tailorInput);
       setTailoredResumeOutput(tailoredResult);
       toast({ title: "Resume Tailored!", description: "Your resume has been customized for the job." });
 
@@ -211,7 +212,7 @@ export default function JobMatchingPage() {
         jobTitle: jobTitleForCoverLetter.trim() || undefined,
         tailoredResumeText: tailoredResult.tailoredResume, 
       };
-      const coverLetterResult = await generateCoverLetter(coverLetterInput);
+      const coverLetterResult = await postJson<GenerateCoverLetterOutput>('/api/ai/generate-cover-letter', coverLetterInput);
       setCoverLetterOutput(coverLetterResult);
       toast({ title: "Cover Letter Generated!", description: "AI has drafted a cover letter for you." });
 

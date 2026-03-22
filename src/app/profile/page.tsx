@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreditCard, Building, User, UploadCloud, Save, Globe, Mail, MapPin, Zap, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { fileToDataURI } from '@/lib/file-utils';
 import { saveCompany, useCompany } from '@/lib/data/hooks';
@@ -160,7 +161,16 @@ export default function ProfilePage() {
                   <Label>Agency Logo</Label>
                   <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/20">
                     <div className="h-12 w-12 border rounded bg-white flex items-center justify-center">
-                      {companyLogo ? <img src={companyLogo} className="h-full object-contain" /> : <Building />}
+                      {companyLogo ? (
+                        <Image
+                          src={companyLogo}
+                          alt={companyName ? `${companyName} logo` : 'Company logo'}
+                          width={48}
+                          height={48}
+                          unoptimized
+                          className="h-full w-full object-contain"
+                        />
+                      ) : <Building />}
                     </div>
                     <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()}>Change Logo</Button>
                     <input ref={logoInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />

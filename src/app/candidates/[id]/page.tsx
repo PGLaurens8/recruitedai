@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
-import { generateCandidateProfile } from '@/ai/flows/generate-candidate-profile';
+import { postJson } from '@/lib/api-client';
 import { ArrowLeft, Upload, Mail, Briefcase, Sparkles, Save, Star, Percent, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { saveCandidateInterview, useCandidate, useCurrentProfile } from '@/lib/data/hooks';
@@ -93,7 +93,7 @@ export default function CandidateDetailPage() {
         setError(null);
 
         try {
-          const result = await generateCandidateProfile({
+          const result = await postJson<{ profileSummary: string }>("/api/ai/generate-candidate-profile", {
             candidateName: candidate.name,
             candidateRole: candidate.currentJob,
             interviewNotes: allNotes,

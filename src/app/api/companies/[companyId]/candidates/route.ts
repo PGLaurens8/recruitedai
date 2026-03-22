@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { requireUserAndCompany } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
+import { enforceRateLimit } from '@/server/api/rate-limit';
 
 const createCandidateSchema = z.object({
   name: z.string().min(1).max(200),
@@ -55,7 +56,14 @@ export async function POST(
       throw new ApiRouteError(400, 'VALIDATION_ERROR', 'Invalid candidate payload.', parsed.error.flatten());
     }
 
-    const { supabase } = await requireUserAndCompany(companyId);
+    const { supabase, userId } = await requireUserAndCompany(companyId);
+await enforceRateLimit(request, {
+      scope: 'write:candidate-create',
+      subject: userId,
+      limit: 40,
+      windowMs: 60_000,
+    });
+
     const { data, error } = await supabase
       .from('candidates')
       .insert({

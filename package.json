@@ -3,14 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p 9002",
+    "dev": "next dev -p 9002",
+    "dev:turbo": "next dev --turbopack -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test e2e/smoke.spec.ts --project=chromium",
+    "security:secrets": "sh -c 'PATTERN=\"(sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{35}|AKIA[0-9A-Z]{16}|BEGIN PRIVATE KEY|xox[baprs]-)\"; if command -v rg >/dev/null 2>&1; then rg -n --hidden --glob \"!.git\" --glob \"!node_modules\" --glob \"!.env*\" --glob \"!package.json\" --glob \"!docs/api-key-rotation-and-secret-hygiene.md\" \"$PATTERN\"; code=$?; elif command -v grep >/dev/null 2>&1; then grep -RInE --binary-files=without-match --exclude-dir=.git --exclude-dir=node_modules --exclude=.env --exclude=.env.* --exclude=package.json --exclude=api-key-rotation-and-secret-hygiene.md \"$PATTERN\" .; code=$?; else echo \"Neither rg nor grep found\" >&2; exit 127; fi; if [ $code -eq 0 ]; then exit 1; elif [ $code -eq 1 ]; then exit 0; else exit $code; fi'"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.0.0",
@@ -38,6 +42,7 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.1",
+    "@upstash/redis": "^1.37.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -60,10 +65,13 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.3.8",
     "genkit-cli": "^1.0.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",

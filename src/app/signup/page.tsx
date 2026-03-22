@@ -24,6 +24,7 @@ export default function SignupPage() {
   const { signup } = useAuth();
   const { toast } = useToast();
   const [accountType, setAccountType] = useState<AccountType>('personal');
+  const [companyName, setCompanyName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,7 +36,12 @@ export default function SignupPage() {
     setIsSubmitting(true);
     try {
       const fullName = `${firstName} ${lastName}`.trim();
-      await signup(email, password, fullName || undefined);
+      await signup(email, password, fullName || undefined, {
+        accountType,
+        companyName: accountType === 'company' ? companyName.trim() : undefined,
+        firstName: firstName.trim() || undefined,
+        lastName: lastName.trim() || undefined,
+      });
       toast({
         title: 'Account created',
         description: 'Your account has been created successfully.',
@@ -92,18 +98,25 @@ export default function SignupPage() {
                   {accountType === 'company' && (
                     <div className="grid gap-2">
                       <Label htmlFor="organization-name">Company Name</Label>
-                      <Input id="organization-name" placeholder="Acme Inc." required />
+                      <Input
+                        id="organization-name"
+                        autoComplete="organization"
+                        placeholder="Acme Inc."
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        required
+                      />
                     </div>
                   )}
 
                   <div className="grid grid-cols-2 gap-4">
                       <div className="grid gap-2">
                       <Label htmlFor="first-name">First name</Label>
-                      <Input id="first-name" placeholder="Max" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                      <Input id="first-name" autoComplete="given-name" placeholder="Max" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                       </div>
                       <div className="grid gap-2">
                       <Label htmlFor="last-name">Last name</Label>
-                      <Input id="last-name" placeholder="Robinson" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                      <Input id="last-name" autoComplete="family-name" placeholder="Robinson" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
                       </div>
                   </div>
                   <div className="grid gap-2">
@@ -111,6 +124,7 @@ export default function SignupPage() {
                       <Input
                       id="email"
                       type="email"
+                      autoComplete="username"
                       placeholder="m@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -119,7 +133,7 @@ export default function SignupPage() {
                   </div>
                   <div className="grid gap-2">
                       <Label htmlFor="password">Password</Label>
-                      <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+                      <Input id="password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
                   </div>
                   <Button type="submit" className="w-full" disabled={isSubmitting}>
                       {isSubmitting ? 'Creating account...' : 'Create an account'}

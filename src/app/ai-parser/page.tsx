@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,10 +33,11 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { postJson } from "@/lib/api-client";
 import { fileToDataURI, textToDataURI } from "@/lib/file-utils";
-import { reformatResume, type ReformatResumeOutput } from "@/ai/flows/reformat-resume";
-import { extractCVData, type ExtractCVDataOutput } from "@/ai/flows/extract-cv-data";
-import { assessJobMatch, type AssessJobMatchInput, type AssessJobMatchOutput } from "@/ai/flows/assess-job-match";
+import type { ReformatResumeOutput } from "@/ai/flows/reformat-resume";
+import type { ExtractCVDataOutput } from "@/ai/flows/extract-cv-data";
+import type { AssessJobMatchInput, AssessJobMatchOutput } from "@/ai/flows/assess-job-match";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -95,9 +97,17 @@ export default function AiParserPage() {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
-      type === 'resume' ? setDragActiveResume(true) : setDragActiveJobSpec(true);
+      if (type === 'resume') {
+        setDragActiveResume(true);
+      } else {
+        setDragActiveJobSpec(true);
+      }
     } else if (e.type === "dragleave") {
-      type === 'resume' ? setDragActiveResume(false) : setDragActiveJobSpec(false);
+      if (type === 'resume') {
+        setDragActiveResume(false);
+      } else {
+        setDragActiveJobSpec(false);
+      }
     }
   };
 
@@ -129,15 +139,15 @@ export default function AiParserPage() {
       try {
         const resumeDataUri = await fileToDataURI(file);
         
-        const [reformatResult, extractResult] = await Promise.all([
-          reformatResume({ resumeDataUri }),
-          extractCVData({ resumeDataUri })
-        ]);
+        const result = await postJson<{
+          reformatted: ReformatResumeOutput;
+          extracted: ExtractCVDataOutput;
+        }>("/api/ai/parse-cv", { resumeDataUri });
 
-        setParsedResume({ 
-          ...reformatResult, 
+        setParsedResume({
+          ...result.reformatted,
           fileName: file.name,
-          extractedData: extractResult
+          extractedData: result.extracted,
         });
 
         toast({
@@ -189,7 +199,7 @@ export default function AiParserPage() {
         jobSpecText: jobSpecText.trim() || undefined,
       };
 
-      const result = await assessJobMatch(input);
+      const result = await postJson<AssessJobMatchOutput>("/api/ai/match-job", input);
       setAssessmentOutput(result);
       toast({
         title: "Match Assessed!",
@@ -485,7 +495,7 @@ export default function AiParserPage() {
               {/* Agency Header */}
               <div className="flex items-center justify-between border-b-2 border-primary pb-6 mb-8">
                 {companyInfo?.logo ? (
-                  <img src={companyInfo.logo} alt="Logo" className="h-16 object-contain" />
+                  <Image src={companyInfo.logo} alt="Logo" width={256} height={64} unoptimized className="h-16 w-auto object-contain" />
                 ) : (
                   <div className="h-16 w-16 bg-primary/10 flex items-center justify-center text-primary font-bold text-3xl">
                     {companyInfo?.name?.charAt(0) || 'A'}
