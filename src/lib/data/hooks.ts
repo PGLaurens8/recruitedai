@@ -83,8 +83,8 @@ function useAsyncValue<T>(load: () => Promise<T>, deps: DependencyList): QuerySt
     return () => {
       isActive = false;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- caller supplies a stable dependency list for this generic hook.
-  }, [load, ...deps]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- generic hook accepts caller-provided deps array.
+  }, deps);
 
   return state;
 }
