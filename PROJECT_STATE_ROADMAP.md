@@ -1,6 +1,6 @@
 # Project State & Execution Roadmap
 
-Last updated: 2026-03-21
+Last updated: 2026-03-22
 Owner: Product + Engineering
 Status: In Progress
 
@@ -14,17 +14,17 @@ Ship a production-ready pilot of RecruitedAI where real users can test recruitin
 
 ## 2) Current Baseline (Verified)
 
-- Branch: `chore/e2e-smoke-ci` (ahead of origin by 5 commits)
+- Branch: `chore/e2e-smoke-ci` (ahead of origin by 10 commits)
 - Latest commits:
-  - `8321316` Stabilize dev preview defaults and harden build checks
-  - `dcff6be` Update roadmap with latest branch state and next priorities
-  - `da1e24c` Add runtime config, AI API handlers, and rate-limit test coverage
-  - `9eb787e` Harden auth flows, add telemetry, live dashboards, and security runbooks
-  - `7636ba9` Fix Supabase login redirect and add temporary enter-app bypass
+  - `f43f3a1` Clear remaining lint warnings (next/image, next/font, hooks deps)
+  - `5c35623` Fix API CORS headers and add auth form autocomplete
+  - `c73d808` Exclude static assets in middleware matcher
+  - `5edaf51` Fix middleware matcher to prevent preview startup crash
+  - `7ae4935` Refresh roadmap after preview stability hardening
 - Build: passing (`npm run build`)
 - Typecheck: passing (`npm run typecheck`)
 - Tests: passing (`npm run test`) (6 files / 29 tests)
-- Lint: passing (`npm run lint`) with warnings only
+- Lint: passing (`npm run lint`) with no warnings
 - Secret scan: passing (`npm run security:secrets`)
 
 ## 3) Testing Access Plan
@@ -99,6 +99,13 @@ Pilot-ready when all are true:
 
 ## 7) Execution Log
 
+- 2026-03-22:
+  - Added global API CORS headers in `next.config.ts` for reliable preflight responses (origin/methods/headers).
+  - Kept middleware parser-safe matcher at `/:path*` and retained runtime static-asset short-circuit to avoid preview startup regressions.
+  - Added missing auth form autocomplete attributes on login, signup, forgot-password, and reset-password pages.
+  - Cleared remaining lint warnings by replacing `<img>` with `next/image` in branded templates/profile logo, and by switching Google Fonts to `next/font/google` in app layout.
+  - Revalidated with `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build` (all passing).
+
 - 2026-03-21:
   - Updated dev script defaults to non-Turbopack (`npm run dev`) and kept `dev:turbo` opt-in to reduce preview hard-restart churn.
   - Removed `next.config.ts` build-time ignore flags for TypeScript/ESLint to harden release safety.
@@ -165,9 +172,9 @@ Priority order for continuation:
    - Flip roadmap item **Rotate any exposed local/test API keys** from `[~]` to `[x]`.
 2. **P1: Publish branch updates and open PR**
    - Push `chore/e2e-smoke-ci` to origin (local environment, since push timed out in agent environment).
-   - Open PR with the 3 pending commits and run full CI.
+   - Open PR with current pending commits and run full CI.
 3. **P2: Post-PR cleanup and hardening**
-   - Address existing lint warnings (`<img>` usage, hook dependency warning).
-   - Optional: expand telemetry to include structured success logs for high-value API routes.
+   - [x] Address lint warnings (`<img>` usage, hook dependency warning, layout font loading warning).
+   - [ ] Optional: expand telemetry to include structured success logs for high-value API routes.
 
 ---
