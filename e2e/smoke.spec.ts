@@ -72,7 +72,7 @@ test('smoke: demo login, candidate creation, and interview save persistence', as
   await expect(page.getByRole('heading', { name: candidateName })).toBeVisible();
   await page.locator('#question-0').fill(note);
   await page.getByRole('button', { name: 'Save Profile Changes' }).click();
-  await expect(page.getByText('Profile Saved')).toBeVisible();
+  await expect(page.getByText('Profile Saved', { exact: true })).toBeVisible();
 
   await page.reload();
   await expect(page.locator('#question-0')).toHaveValue(note);
