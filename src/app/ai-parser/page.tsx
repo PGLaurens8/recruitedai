@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -494,7 +495,7 @@ export default function AiParserPage() {
               {/* Agency Header */}
               <div className="flex items-center justify-between border-b-2 border-primary pb-6 mb-8">
                 {companyInfo?.logo ? (
-                  <img src={companyInfo.logo} alt="Logo" className="h-16 object-contain" />
+                  <Image src={companyInfo.logo} alt="Logo" width={256} height={64} unoptimized className="h-16 w-auto object-contain" />
                 ) : (
                   <div className="h-16 w-16 bg-primary/10 flex items-center justify-center text-primary font-bold text-3xl">
                     {companyInfo?.name?.charAt(0) || 'A'}

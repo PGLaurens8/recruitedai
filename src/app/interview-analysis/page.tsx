@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -749,7 +750,7 @@ export default function InterviewAnalysisPage() {
                     {/* Header */}
                     <div className="flex items-center justify-between border-b-4 border-primary pb-8 mb-10">
                       {companyInfo?.logo ? (
-                        <img src={companyInfo.logo} alt="Agency Logo" className="h-20 object-contain" />
+                        <Image src={companyInfo.logo} alt="Agency Logo" width={320} height={80} unoptimized className="h-20 w-auto object-contain" />
                       ) : (
                         <div className="h-20 w-20 bg-primary text-white flex items-center justify-center font-bold text-4xl">
                           {companyInfo?.name?.charAt(0) || 'A'}

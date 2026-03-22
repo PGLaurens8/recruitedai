@@ -3,6 +3,7 @@
 
 import './globals.css';
 
+import { Inter, Source_Code_Pro } from 'next/font/google';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { type ReactNode } from 'react';
@@ -15,6 +16,9 @@ import { Header } from '@/components/layout/header';
 import { AppProviders } from '@/components/providers/app-providers';
 import { getDefaultRouteForRole, isPublicPath, isRoleAllowedForPath } from '@/lib/rbac';
 
+
+const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-inter' });
+const sourceCodePro = Source_Code_Pro({ subsets: ['latin'], display: 'swap', variable: '--font-source-code-pro' });
 
 function RootLayoutContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -76,12 +80,9 @@ export default function RootLayout({
        <head>
         <title>RecruitedAI</title>
         <meta name="description" content="AI-Powered Recruiting & Career Tools"/>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet" />
+
       </head>
-      <body suppressHydrationWarning>
+      <body suppressHydrationWarning className={`${inter.variable} ${sourceCodePro.variable}`}>
         <AppProviders>
           <RootLayoutContent>{children}</RootLayoutContent>
           <Toaster />
