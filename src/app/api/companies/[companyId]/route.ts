@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
 import { requireUserAndCompany } from '@/server/api/auth';
+import { writeAuditLog } from '@/server/api/audit';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
+import { readIdempotencyKey, runIdempotent } from '@/server/api/idempotency';
 
 const companyPatchSchema = z.object({
   name: z.string().min(1).max(200),
@@ -18,32 +20,57 @@ export async function PATCH(
   const requestId = getRequestId(request);
   try {
     const { companyId } = await context.params;
-    const body = await request.json();
+    const rawBody = await request.text();
+    const body = JSON.parse(rawBody || '{}');
     const parsed = companyPatchSchema.safeParse(body);
 
-    if (!parsed.success) {
+    if (parsed.success === false) {
       throw new ApiRouteError(400, 'VALIDATION_ERROR', 'Invalid company update payload.', parsed.error.flatten());
     }
 
-    const { supabase } = await requireUserAndCompany(companyId);
-    const { error } = await supabase
-      .from('companies')
-      .update({
-        name: parsed.data.name,
-        logo: parsed.data.logo ?? null,
-        website: parsed.data.website ?? null,
-        email: parsed.data.email ?? null,
-        address: parsed.data.address ?? null,
-      })
-      .eq('id', companyId);
+    const canonicalBody = JSON.stringify(parsed.data);
+    const { supabase, userId } = await requireUserAndCompany(companyId);
 
-    if (error) {
-      throw new ApiRouteError(500, 'COMPANY_UPDATE_FAILED', error.message);
-    }
+    const result = await runIdempotent({
+      supabase,
+      companyId,
+      actorUserId: userId,
+      scope: 'company:update:' + companyId,
+      idempotencyKey: readIdempotencyKey(request),
+      requestBodyRaw: canonicalBody,
+      execute: async () => {
+        const { error } = await supabase
+          .from('companies')
+          .update({
+            name: parsed.data.name,
+            logo: parsed.data.logo ?? null,
+            website: parsed.data.website ?? null,
+            email: parsed.data.email ?? null,
+            address: parsed.data.address ?? null,
+          })
+          .eq('id', companyId);
 
-    return jsonSuccess(requestId, { companyId });
+        if (error) {
+          throw new ApiRouteError(500, 'COMPANY_UPDATE_FAILED', error.message);
+        }
+
+        await writeAuditLog(supabase, {
+          companyId,
+          actorUserId: userId,
+          action: 'company.settings_updated',
+          targetType: 'company',
+          targetId: companyId,
+          metadata: {
+            changedFields: Object.keys(parsed.data),
+          },
+        });
+
+        return { companyId };
+      },
+    });
+
+    return jsonSuccess(requestId, result);
   } catch (error) {
     return jsonError(requestId, error);
   }
 }
-

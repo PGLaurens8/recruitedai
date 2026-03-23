@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
 import { requireUserAndCompany } from '@/server/api/auth';
+import { writeAuditLog } from '@/server/api/audit';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
+import { readIdempotencyKey, runIdempotent } from '@/server/api/idempotency';
 import { enforceRateLimit } from '@/server/api/rate-limit';
 
 const candidatePatchSchema = z.object({
@@ -25,12 +27,13 @@ export async function GET(
       .select('*')
       .eq('company_id', companyId)
       .eq('id', id)
+      .is('deleted_at', null)
       .maybeSingle();
 
     if (error) {
       throw new ApiRouteError(500, 'CANDIDATE_QUERY_FAILED', error.message);
     }
-    if (!data) {
+    if (data == null) {
       throw new ApiRouteError(404, 'CANDIDATE_NOT_FOUND', 'Candidate not found.');
     }
 
@@ -47,10 +50,11 @@ export async function PATCH(
   const requestId = getRequestId(request);
   try {
     const { companyId, id } = await context.params;
-    const body = await request.json();
+    const rawBody = await request.text();
+    const body = JSON.parse(rawBody || '{}');
     const parsed = candidatePatchSchema.safeParse(body);
 
-    if (!parsed.success) {
+    if (parsed.success === false) {
       throw new ApiRouteError(400, 'VALIDATION_ERROR', 'Invalid candidate update payload.', parsed.error.flatten());
     }
 
@@ -61,10 +65,14 @@ export async function PATCH(
     if (parsed.data.interviewScores) {
       updatePayload.interview_scores = parsed.data.interviewScores;
     }
-    if (typeof parsed.data.aiSummary !== 'undefined') {
+    if (typeof parsed.data.aiSummary === 'undefined') {
+      // no-op
+    } else {
       updatePayload.ai_summary = parsed.data.aiSummary;
     }
-    if (typeof parsed.data.interviewAnalysis !== 'undefined') {
+    if (typeof parsed.data.interviewAnalysis === 'undefined') {
+      // no-op
+    } else {
       updatePayload.interview_analysis = parsed.data.interviewAnalysis;
     }
     if (parsed.data.lastInterviewAt) {
@@ -75,25 +83,55 @@ export async function PATCH(
       throw new ApiRouteError(400, 'NO_UPDATES', 'No candidate updates were provided.');
     }
 
+    const canonicalBody = JSON.stringify(parsed.data);
     const { supabase, userId } = await requireUserAndCompany(companyId);
-await enforceRateLimit(request, {
+    await enforceRateLimit(request, {
       scope: 'write:candidate-update',
       subject: userId,
       limit: 80,
       windowMs: 60_000,
     });
 
-    const { error } = await supabase
-      .from('candidates')
-      .update(updatePayload)
-      .eq('company_id', companyId)
-      .eq('id', id);
+    const result = await runIdempotent({
+      supabase,
+      companyId,
+      actorUserId: userId,
+      scope: 'candidate:update:' + id,
+      idempotencyKey: readIdempotencyKey(request),
+      requestBodyRaw: canonicalBody,
+      execute: async () => {
+        const { data, error } = await supabase
+          .from('candidates')
+          .update(updatePayload)
+          .eq('company_id', companyId)
+          .eq('id', id)
+          .is('deleted_at', null)
+          .select('id')
+          .maybeSingle();
 
-    if (error) {
-      throw new ApiRouteError(500, 'CANDIDATE_UPDATE_FAILED', error.message);
-    }
+        if (error) {
+          throw new ApiRouteError(500, 'CANDIDATE_UPDATE_FAILED', error.message);
+        }
+        if (data == null) {
+          throw new ApiRouteError(404, 'CANDIDATE_NOT_FOUND', 'Candidate not found.');
+        }
 
-    return jsonSuccess(requestId, { id });
+        await writeAuditLog(supabase, {
+          companyId,
+          actorUserId: userId,
+          action: 'candidate.updated',
+          targetType: 'candidate',
+          targetId: id,
+          metadata: {
+            changedFields: Object.keys(updatePayload),
+          },
+        });
+
+        return { id };
+      },
+    });
+
+    return jsonSuccess(requestId, result);
   } catch (error) {
     return jsonError(requestId, error);
   }
@@ -106,16 +144,30 @@ export async function DELETE(
   const requestId = getRequestId(request);
   try {
     const { companyId, id } = await context.params;
-    const { supabase } = await requireUserAndCompany(companyId);
-    const { error } = await supabase
+    const { supabase, userId } = await requireUserAndCompany(companyId);
+    const { data, error } = await supabase
       .from('candidates')
-      .delete()
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       .eq('company_id', companyId)
-      .eq('id', id);
+      .eq('id', id)
+      .is('deleted_at', null)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       throw new ApiRouteError(500, 'CANDIDATE_DELETE_FAILED', error.message);
     }
+    if (data == null) {
+      throw new ApiRouteError(404, 'CANDIDATE_NOT_FOUND', 'Candidate not found.');
+    }
+
+    await writeAuditLog(supabase, {
+      companyId,
+      actorUserId: userId,
+      action: 'candidate.soft_deleted',
+      targetType: 'candidate',
+      targetId: id,
+    });
 
     return jsonSuccess(requestId, { id });
   } catch (error) {

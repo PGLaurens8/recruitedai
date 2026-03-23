@@ -1,7 +1,9 @@
 import { z } from 'zod';
 
 import { requireUserAndCompany } from '@/server/api/auth';
+import { writeAuditLog } from '@/server/api/audit';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
+import { readIdempotencyKey, runIdempotent } from '@/server/api/idempotency';
 
 const updateCompanySchema = z.object({
   name: z.string().min(1, 'Company name is required.'),
@@ -25,7 +27,7 @@ export async function GET(request: Request) {
     if (error) {
       throw new ApiRouteError(500, 'COMPANY_QUERY_FAILED', 'Could not load company.', error);
     }
-    if (!data) {
+    if (data == null) {
       throw new ApiRouteError(404, 'COMPANY_NOT_FOUND', 'Company not found.');
     }
 
@@ -39,30 +41,56 @@ export async function PATCH(request: Request) {
   const requestId = getRequestId(request);
 
   try {
-    const { supabase, companyId } = await requireUserAndCompany();
-    const payload = updateCompanySchema.parse(await request.json());
-    const { data, error } = await supabase
-      .from('companies')
-      .update({
-        name: payload.name,
-        logo: payload.logo || null,
-        website: payload.website || null,
-        email: payload.email || null,
-        address: payload.address || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', companyId)
-      .select('*')
-      .maybeSingle();
+    const { supabase, companyId, userId } = await requireUserAndCompany();
+    const rawBody = await request.text();
+    const payload = updateCompanySchema.parse(JSON.parse(rawBody || '{}'));
+    const canonicalBody = JSON.stringify(payload);
 
-    if (error) {
-      throw new ApiRouteError(500, 'COMPANY_UPDATE_FAILED', 'Could not update company.', error);
-    }
-    if (!data) {
-      throw new ApiRouteError(404, 'COMPANY_NOT_FOUND', 'Company not found.');
-    }
+    const updatedCompany = await runIdempotent({
+      supabase,
+      companyId,
+      actorUserId: userId,
+      scope: 'company:update:self',
+      idempotencyKey: readIdempotencyKey(request),
+      requestBodyRaw: canonicalBody,
+      execute: async () => {
+        const { data, error } = await supabase
+          .from('companies')
+          .update({
+            name: payload.name,
+            logo: payload.logo || null,
+            website: payload.website || null,
+            email: payload.email || null,
+            address: payload.address || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', companyId)
+          .select('*')
+          .maybeSingle();
 
-    return jsonSuccess(requestId, data);
+        if (error) {
+          throw new ApiRouteError(500, 'COMPANY_UPDATE_FAILED', 'Could not update company.', error);
+        }
+        if (data == null) {
+          throw new ApiRouteError(404, 'COMPANY_NOT_FOUND', 'Company not found.');
+        }
+
+        await writeAuditLog(supabase, {
+          companyId,
+          actorUserId: userId,
+          action: 'company.settings_updated',
+          targetType: 'company',
+          targetId: companyId,
+          metadata: {
+            changedFields: Object.keys(payload),
+          },
+        });
+
+        return data;
+      },
+    });
+
+    return jsonSuccess(requestId, updatedCompany);
   } catch (error) {
     return jsonError(requestId, error);
   }

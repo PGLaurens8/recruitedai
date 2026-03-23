@@ -63,3 +63,14 @@ export function getSupabasePublicEnv(env: NodeJS.ProcessEnv = process.env) {
 
   return { supabaseUrl, supabaseAnonKey };
 }
+
+export function getSupabaseServiceEnv(env: NodeJS.ProcessEnv = process.env) {
+  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Supabase service-role environment variables are missing.');
+  }
+
+  return { supabaseUrl, serviceRoleKey };
+}

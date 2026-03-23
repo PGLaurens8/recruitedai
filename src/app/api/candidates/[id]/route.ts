@@ -1,4 +1,5 @@
 import { requireUserAndCompany } from '@/server/api/auth';
+import { writeAuditLog } from '@/server/api/audit';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 
 interface RouteContext {
@@ -22,6 +23,7 @@ export async function GET(request: Request, { params }: RouteContext) {
       .select('*')
       .eq('company_id', companyId)
       .eq('id', candidateId)
+      .is('deleted_at', null)
       .maybeSingle();
 
     if (error) {
@@ -46,16 +48,30 @@ export async function DELETE(request: Request, { params }: RouteContext) {
       throw new ApiRouteError(400, 'CANDIDATE_ID_REQUIRED', 'Candidate ID is required.');
     }
 
-    const { supabase, companyId } = await requireUserAndCompany();
-    const { error } = await supabase
+    const { supabase, companyId, userId } = await requireUserAndCompany();
+    const { data, error } = await supabase
       .from('candidates')
-      .delete()
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       .eq('company_id', companyId)
-      .eq('id', candidateId);
+      .eq('id', candidateId)
+      .is('deleted_at', null)
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       throw new ApiRouteError(500, 'CANDIDATE_DELETE_FAILED', 'Could not delete candidate.', error);
     }
+    if (!data) {
+      throw new ApiRouteError(404, 'CANDIDATE_NOT_FOUND', 'Candidate not found.');
+    }
+
+    await writeAuditLog(supabase, {
+      companyId,
+      actorUserId: userId,
+      action: 'candidate.soft_deleted',
+      targetType: 'candidate',
+      targetId: candidateId,
+    });
 
     return jsonSuccess(requestId, { deleted: true });
   } catch (error) {

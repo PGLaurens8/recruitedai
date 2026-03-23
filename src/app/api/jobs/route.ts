@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { requireUserAndCompany } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
+import { readIdempotencyKey, runIdempotent } from '@/server/api/idempotency';
 
 const createJobSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
@@ -22,6 +23,7 @@ export async function GET(request: Request) {
       .from('jobs')
       .select('*')
       .eq('company_id', companyId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -39,28 +41,44 @@ export async function POST(request: Request) {
 
   try {
     const { supabase, companyId, userId } = await requireUserAndCompany();
-    const payload = createJobSchema.parse(await request.json());
-    const { data, error } = await supabase
-      .from('jobs')
-      .insert({
-        company_id: companyId,
-        title: payload.title,
-        salary: payload.salary || null,
-        company: payload.company || null,
-        location: payload.location || null,
-        status: payload.status || 'active',
-        approval: payload.approval || 'pending',
-        description: payload.description || null,
-        created_by: userId,
-      })
-      .select('*')
-      .single();
+    const rawBody = await request.text();
+    const payload = createJobSchema.parse(JSON.parse(rawBody || '{}'));
+    const canonicalBody = JSON.stringify(payload);
 
-    if (error) {
-      throw new ApiRouteError(500, 'JOB_CREATE_FAILED', 'Could not create job.', error);
-    }
+    const createdJob = await runIdempotent({
+      supabase,
+      companyId,
+      actorUserId: userId,
+      scope: 'job:create',
+      idempotencyKey: readIdempotencyKey(request),
+      requestBodyRaw: canonicalBody,
+      successStatus: 201,
+      execute: async () => {
+        const { data, error } = await supabase
+          .from('jobs')
+          .insert({
+            company_id: companyId,
+            title: payload.title,
+            salary: payload.salary || null,
+            company: payload.company || null,
+            location: payload.location || null,
+            status: payload.status || 'active',
+            approval: payload.approval || 'pending',
+            description: payload.description || null,
+            created_by: userId,
+          })
+          .select('*')
+          .single();
 
-    return jsonSuccess(requestId, data, 201);
+        if (error) {
+          throw new ApiRouteError(500, 'JOB_CREATE_FAILED', 'Could not create job.', error);
+        }
+
+        return data;
+      },
+    });
+
+    return jsonSuccess(requestId, createdJob, 201);
   } catch (error) {
     return jsonError(requestId, error);
   }

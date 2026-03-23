@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { requireUserAndCompany } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
+import { readIdempotencyKey, runIdempotent } from '@/server/api/idempotency';
 
 const createCandidateSchema = z.object({
   name: z.string().min(1, 'Name is required.'),
@@ -28,6 +29,7 @@ export async function GET(request: Request) {
       .from('candidates')
       .select('*')
       .eq('company_id', companyId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -45,33 +47,48 @@ export async function POST(request: Request) {
 
   try {
     const { supabase, companyId, userId } = await requireUserAndCompany();
-    const payload = createCandidateSchema.parse(await request.json());
+    const rawBody = await request.text();
+    const payload = createCandidateSchema.parse(JSON.parse(rawBody || '{}'));
+    const canonicalBody = JSON.stringify(payload);
 
-    const { data, error } = await supabase
-      .from('candidates')
-      .insert({
-        company_id: companyId,
-        name: payload.name,
-        email: payload.email || null,
-        avatar: payload.avatar || null,
-        status: payload.status || 'Sourced',
-        ai_score: payload.aiScore ?? null,
-        current_job: payload.currentJob || null,
-        current_company: payload.currentCompany || null,
-        applied_for: payload.appliedFor || null,
-        full_resume_text: payload.fullResumeText || null,
-        skills: payload.skills || [],
-        contact_info: payload.contactInfo || {},
-        created_by: userId,
-      })
-      .select('*')
-      .single();
+    const createdCandidate = await runIdempotent({
+      supabase,
+      companyId,
+      actorUserId: userId,
+      scope: 'candidate:create',
+      idempotencyKey: readIdempotencyKey(request),
+      requestBodyRaw: canonicalBody,
+      successStatus: 201,
+      execute: async () => {
+        const { data, error } = await supabase
+          .from('candidates')
+          .insert({
+            company_id: companyId,
+            name: payload.name,
+            email: payload.email || null,
+            avatar: payload.avatar || null,
+            status: payload.status || 'Sourced',
+            ai_score: payload.aiScore ?? null,
+            current_job: payload.currentJob || null,
+            current_company: payload.currentCompany || null,
+            applied_for: payload.appliedFor || null,
+            full_resume_text: payload.fullResumeText || null,
+            skills: payload.skills || [],
+            contact_info: payload.contactInfo || {},
+            created_by: userId,
+          })
+          .select('*')
+          .single();
 
-    if (error) {
-      throw new ApiRouteError(500, 'CANDIDATE_CREATE_FAILED', 'Could not create candidate.', error);
-    }
+        if (error) {
+          throw new ApiRouteError(500, 'CANDIDATE_CREATE_FAILED', 'Could not create candidate.', error);
+        }
 
-    return jsonSuccess(requestId, data, 201);
+        return data;
+      },
+    });
+
+    return jsonSuccess(requestId, createdCandidate, 201);
   } catch (error) {
     return jsonError(requestId, error);
   }

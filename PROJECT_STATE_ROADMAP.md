@@ -71,6 +71,9 @@ Legend:
 - [x] Replace sales dashboard placeholder with live metrics
 - [x] Add production incident/error telemetry (request IDs + structured logs)
 - [x] Add route-level rate limiting for AI and write-heavy endpoints
+- [x] Add idempotency key dedupe on core create/update routes (candidates, jobs, clients, company, invites)
+- [x] Add replay-safety tests for mutable candidate endpoints (analysis, interview)
+- [x] Add replay-safety tests for company mutable endpoints (company settings, invites, company candidate patch)
 
 ### E) Security & Operations
 - [x] Rotate any exposed local/test API keys
@@ -98,6 +101,16 @@ Pilot-ready when all are true:
 - Demo path works in mock mode for non-production demos
 
 ## 7) Execution Log
+
+- 2026-03-22:
+  - Added replay integration tests for company mutable endpoints: src/app/api/company/idempotency-replay.test.ts and src/app/api/companies/idempotency-replay.test.ts.
+  - Validated replay behavior for company settings updates, company invite create, and company candidate patch, including same-key replay and payload-mismatch rejection.
+  - Revalidated with focused route replay tests and npm run typecheck (passing).
+
+- 2026-03-22:
+  - Wired idempotency into remaining mutable candidate endpoints: /api/candidates/[id]/analysis and /api/candidates/[id]/interview.
+  - Added route-level replay integration tests in src/app/api/candidates/idempotency-replay.test.ts for same-key replay and key-reuse mismatch behavior.
+  - Revalidated with focused idempotency/replay tests and npm run typecheck (passing).
 
 - 2026-03-22:
   - Completed external key rotation tracker and provider-console rotation evidence in `docs/key-rotation-tracker.md`; roadmap security item moved to complete.
@@ -169,15 +182,14 @@ Pilot-ready when all are true:
 ## 8) Priorities (Next Session)
 
 Priority order for continuation:
-1. **P0: External key rotation closure**
-   - Complete provider-console rotations using `docs/key-rotation-tracker.md`.
-   - Revoke old keys and record timestamps/owners.
-   - Flip roadmap item **Rotate any exposed local/test API keys** from `[~]` to `[x]`.
-2. **P1: Publish branch updates and open PR**
-   - Push `chore/e2e-smoke-ci` to origin (local environment, since push timed out in agent environment).
-   - Open PR with current pending commits and run full CI.
-3. **P2: Post-PR cleanup and hardening**
-   - [x] Address lint warnings (`<img>` usage, hook dependency warning, layout font loading warning).
-   - [ ] Optional: expand telemetry to include structured success logs for high-value API routes.
+1. **P0: Tenant governance completion**
+   - Finish membership lifecycle UX/API hardening (invite revoke/expire UX, role-change guardrails, owner-transfer policy).
+   - Add negative-path tests for cross-tenant and role-guard failures on member/invite routes.
+2. **P0: Data integrity hardening**
+   - Add restore-flow integration tests (candidate/job/client) plus audit-log verification tests.
+   - Add idempotency replay tests for any remaining mutable endpoints not yet covered.
+3. **P1: Recruiter workflow completeness**
+   - Consolidate candidate pipeline updates (stage, notes, scorecards, interview status) behind one stable API contract.
+   - Add bulk-action APIs with tenant-safe limits and test coverage.
 
 ---

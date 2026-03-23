@@ -2,7 +2,7 @@ import { requireUserAndCompany } from '@/server/api/auth';
 import { writeAuditLog } from '@/server/api/audit';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 
-export async function DELETE(
+export async function POST(
   request: Request,
   context: { params: Promise<{ companyId: string; id: string }> }
 ) {
@@ -13,29 +13,29 @@ export async function DELETE(
     const { supabase, userId } = await requireUserAndCompany(companyId);
     const { data, error } = await supabase
       .from('clients')
-      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .update({ deleted_at: null, updated_at: new Date().toISOString() })
       .eq('company_id', companyId)
       .eq('id', id)
-      .is('deleted_at', null)
+      .not('deleted_at', 'is', null)
       .select('id')
       .maybeSingle();
 
     if (error) {
-      throw new ApiRouteError(500, 'CLIENT_DELETE_FAILED', error.message);
+      throw new ApiRouteError(500, 'CLIENT_RESTORE_FAILED', 'Could not restore client.', error);
     }
     if (!data) {
-      throw new ApiRouteError(404, 'CLIENT_NOT_FOUND', 'Client not found.');
+      throw new ApiRouteError(404, 'CLIENT_NOT_FOUND', 'Client not found in deleted records.');
     }
 
     await writeAuditLog(supabase, {
       companyId,
       actorUserId: userId,
-      action: 'client.soft_deleted',
+      action: 'client.restored',
       targetType: 'client',
       targetId: id,
     });
 
-    return jsonSuccess(requestId, { id });
+    return jsonSuccess(requestId, { restored: true });
   } catch (error) {
     return jsonError(requestId, error);
   }

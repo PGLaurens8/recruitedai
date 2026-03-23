@@ -2,7 +2,7 @@ import { requireUserAndCompany } from '@/server/api/auth';
 import { writeAuditLog } from '@/server/api/audit';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 
-export async function DELETE(
+export async function POST(
   request: Request,
   context: { params: Promise<{ companyId: string; id: string }> }
 ) {
@@ -12,30 +12,30 @@ export async function DELETE(
     const { companyId, id } = await context.params;
     const { supabase, userId } = await requireUserAndCompany(companyId);
     const { data, error } = await supabase
-      .from('clients')
-      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .from('candidates')
+      .update({ deleted_at: null, updated_at: new Date().toISOString() })
       .eq('company_id', companyId)
       .eq('id', id)
-      .is('deleted_at', null)
+      .not('deleted_at', 'is', null)
       .select('id')
       .maybeSingle();
 
     if (error) {
-      throw new ApiRouteError(500, 'CLIENT_DELETE_FAILED', error.message);
+      throw new ApiRouteError(500, 'CANDIDATE_RESTORE_FAILED', 'Could not restore candidate.', error);
     }
     if (!data) {
-      throw new ApiRouteError(404, 'CLIENT_NOT_FOUND', 'Client not found.');
+      throw new ApiRouteError(404, 'CANDIDATE_NOT_FOUND', 'Candidate not found in deleted records.');
     }
 
     await writeAuditLog(supabase, {
       companyId,
       actorUserId: userId,
-      action: 'client.soft_deleted',
-      targetType: 'client',
+      action: 'candidate.restored',
+      targetType: 'candidate',
       targetId: id,
     });
 
-    return jsonSuccess(requestId, { id });
+    return jsonSuccess(requestId, { restored: true });
   } catch (error) {
     return jsonError(requestId, error);
   }
