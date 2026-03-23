@@ -3,6 +3,10 @@
 
 > **Agent-Ready Specification** - All instructions use precise file paths, code snippets, and deterministic steps for automated execution.
 
+> **Status Sync (2026-03-23)**
+> This file is a legacy implementation draft; active execution state and near-term planning now live in `PROJECT_STATE_ROADMAP.md`.
+> Current production path in this repo is Supabase-backed multi-tenant APIs (not the Firestore draft below).
+
 ---
 
 ## 1. Tech Stack Confirmation

@@ -1,6 +1,6 @@
 # Project State & Execution Roadmap
 
-Last updated: 2026-03-22
+Last updated: 2026-03-23
 Owner: Product + Engineering
 Status: In Progress
 
@@ -14,16 +14,16 @@ Ship a production-ready pilot of RecruitedAI where real users can test recruitin
 
 ## 2) Current Baseline (Verified)
 
-- Branch: `chore/e2e-smoke-ci` (ahead of origin by 10 commits)
+- Branch: `main` (synced with `origin/main`)
 - Latest commits:
-  - `f43f3a1` Clear remaining lint warnings (next/image, next/font, hooks deps)
-  - `5c35623` Fix API CORS headers and add auth form autocomplete
-  - `c73d808` Exclude static assets in middleware matcher
-  - `5edaf51` Fix middleware matcher to prevent preview startup crash
-  - `7ae4935` Refresh roadmap after preview stability hardening
+  - `e4964c1` Expand membership and invite guardrail negative-path tests
+  - `eeb43cb` Add role-guard denial tests for company member and invite routes
+  - `5970f26` Add replay tests for idempotent candidate job and client creates
+  - `b342390` Add restore-flow integration tests with audit log assertions
+  - `98f5c73` Add tenant-safe restore, invites/members governance, and idempotency replay coverage
 - Build: passing (`npm run build`)
 - Typecheck: passing (`npm run typecheck`)
-- Tests: passing (`npm run test`) (6 files / 29 tests)
+- Tests: passing (`npm run test`) (16 files / 86 tests)
 - Lint: passing (`npm run lint`) with no warnings
 - Secret scan: passing (`npm run security:secrets`)
 
@@ -74,6 +74,8 @@ Legend:
 - [x] Add idempotency key dedupe on core create/update routes (candidates, jobs, clients, company, invites)
 - [x] Add replay-safety tests for mutable candidate endpoints (analysis, interview)
 - [x] Add replay-safety tests for company mutable endpoints (company settings, invites, company candidate patch)
+- [x] Add restore-flow integration tests (candidate/job/client) plus audit-log verification tests
+- [x] Add idempotency replay tests for remaining mutable create endpoints (candidate, job, client)
 
 ### E) Security & Operations
 - [x] Rotate any exposed local/test API keys
@@ -101,6 +103,15 @@ Pilot-ready when all are true:
 - Demo path works in mock mode for non-production demos
 
 ## 7) Execution Log
+
+- 2026-03-23:
+  - Published five backend hardening commits to `main` and synced with `origin/main` (HEAD `e4964c1`).
+  - Added restore-flow integration coverage with audit-log assertions in `src/app/api/restore-flow.test.ts` (candidate/job/client restore routes).
+  - Added replay-safety coverage for idempotent create endpoints in `src/app/api/create-idempotency-replay.test.ts` (candidate/job/client).
+  - Added route-level role-guard denial tests for company members/invites in `src/app/api/company/role-guards.test.ts`.
+  - Expanded service-level negative-path tests in `src/server/api/company-members.test.ts` and `src/server/api/company-invites.test.ts` (owner demotion lock, self-remove forbidden, expired invite rejection).
+  - Revalidated with `npm run lint`, `npm run typecheck`, and `npm run test` (16 files / 86 tests passing).
+
 
 - 2026-03-22:
   - Added replay integration tests for company mutable endpoints: src/app/api/company/idempotency-replay.test.ts and src/app/api/companies/idempotency-replay.test.ts.
@@ -182,12 +193,12 @@ Pilot-ready when all are true:
 ## 8) Priorities (Next Session)
 
 Priority order for continuation:
-1. **P0: Tenant governance completion**
-   - Finish membership lifecycle UX/API hardening (invite revoke/expire UX, role-change guardrails, owner-transfer policy).
-   - Add negative-path tests for cross-tenant and role-guard failures on member/invite routes.
-2. **P0: Data integrity hardening**
-   - Add restore-flow integration tests (candidate/job/client) plus audit-log verification tests.
-   - Add idempotency replay tests for any remaining mutable endpoints not yet covered.
+1. **P0: Tenant governance completion (remaining)**
+   - Implement owner-transfer policy and API guardrails (explicit transfer action, single-owner invariants, audit trail).
+   - Add revoke/expire member-invite UX wiring and acceptance-state UX for pending/expired/revoked tokens.
+2. **P1: Data integrity hardening (remaining)**
+   - Add restore-flow tests for company-scoped restore routes under `/api/companies/[companyId]/*/restore`.
+   - Add failure-path assertions for audit-log write failures (ensure non-blocking behavior is preserved).
 3. **P1: Recruiter workflow completeness**
    - Consolidate candidate pipeline updates (stage, notes, scorecards, interview status) behind one stable API contract.
    - Add bulk-action APIs with tenant-safe limits and test coverage.
