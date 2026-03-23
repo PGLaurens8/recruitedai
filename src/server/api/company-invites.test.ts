@@ -187,3 +187,33 @@ describe('company-invites', () => {
     expect(result.role).toBe('Sales');
   });
 });
+
+describe('company-invites additional guardrails', () => {
+  beforeEach(() => {
+    createSupabaseAdminClientMock.mockReset();
+  });
+
+  it('rejects invite accept when invite is expired and marks it expired', async () => {
+    const now = Date.now();
+    createSupabaseAdminClientMock.mockReturnValue(
+      createAdminClientMock({
+        inviteByToken: {
+          id: 'invite-expired',
+          company_id: 'company-1',
+          email: 'invitee@example.com',
+          role: 'Recruiter',
+          token: 'token-expired',
+          status: 'pending',
+          expires_at: new Date(now - 60000).toISOString(),
+        },
+      })
+    );
+
+    await expect(
+      acceptCompanyInvite('user-7', 'invitee@example.com', 'token-expired')
+    ).rejects.toMatchObject({
+      status: 400,
+      code: 'INVITE_EXPIRED',
+    } as Partial<ApiRouteError>);
+  });
+});

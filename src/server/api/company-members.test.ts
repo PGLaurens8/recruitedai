@@ -198,3 +198,43 @@ describe('company-members', () => {
     });
   });
 });
+
+describe('company-members additional guardrails', () => {
+  beforeEach(() => {
+    createSupabaseAdminClientMock.mockReset();
+  });
+
+  it('blocks owner demotion away from Admin', async () => {
+    createSupabaseAdminClientMock.mockReturnValue(
+      createAdminClientMock({
+        ownerId: 'owner-1',
+        profilesById: {
+          'owner-1': {
+            id: 'owner-1',
+            email: 'owner@example.com',
+            name: 'Owner One',
+            role: 'Admin',
+            company_id: 'company-a',
+            account_type: 'company',
+          },
+        },
+      })
+    );
+
+    await expect(
+      updateCompanyMemberRole('admin-1', 'company-a', 'owner-1', 'Recruiter')
+    ).rejects.toMatchObject({
+      status: 400,
+      code: 'OWNER_ROLE_LOCKED',
+    } as Partial<ApiRouteError>);
+  });
+
+  it('blocks self-remove before any data-layer mutation', async () => {
+    await expect(removeCompanyMember('member-9', 'company-a', 'member-9')).rejects.toMatchObject({
+      status: 400,
+      code: 'SELF_REMOVE_FORBIDDEN',
+    } as Partial<ApiRouteError>);
+
+    expect(createSupabaseAdminClientMock).not.toHaveBeenCalled();
+  });
+});
