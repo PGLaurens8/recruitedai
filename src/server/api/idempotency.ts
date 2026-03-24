@@ -103,6 +103,31 @@ export async function runIdempotent<T>(options: IdempotencyOptions<T>) {
 
   if (insertError == null) {
     // continue
+  } else if ((insertError as { code?: string } | null)?.code === '23505') {
+    // Another request won the insert race for the same composite key.
+    const { data: racedRecord, error: raceLookupError } = await options.supabase
+      .from('idempotency_keys')
+      .select('request_hash, status, response_body')
+      .eq('company_id', options.companyId)
+      .eq('actor_user_id', options.actorUserId)
+      .eq('scope', options.scope)
+      .eq('idempotency_key', normalizedKey)
+      .maybeSingle();
+
+    if (raceLookupError || racedRecord == null) {
+      throw new ApiRouteError(500, 'IDEMPOTENCY_CREATE_FAILED', 'Could not create idempotency key state.', insertError);
+    }
+
+    const record = racedRecord as StoredIdempotencyRecord;
+    if (record.request_hash == null || record.request_hash === hash) {
+      return parseIdempotencyResult(record) as T;
+    }
+
+    throw new ApiRouteError(
+      409,
+      'IDEMPOTENCY_KEY_REUSED',
+      'Idempotency key was already used for a different request payload.'
+    );
   } else {
     throw new ApiRouteError(500, 'IDEMPOTENCY_CREATE_FAILED', 'Could not create idempotency key state.', insertError);
   }

@@ -29,7 +29,9 @@ function idempotencyComposite(row: Pick<IdempotencyRow, 'company_id' | 'actor_us
   return [row.company_id, row.actor_user_id, row.scope, row.idempotency_key].join(':');
 }
 
-function createSupabaseRouteMock() {
+function createSupabaseRouteMock(
+  options?: { simulateInsertConflictOnce?: { row: IdempotencyRow } }
+) {
   const idempotencyRows = new Map<string, IdempotencyRow>();
   const candidateRows = new Map<string, CandidateRow>();
   candidateRows.set('cand-1', {
@@ -59,6 +61,11 @@ function createSupabaseRouteMock() {
       const key = idempotencyComposite(payload);
       if (idempotencyRows.has(key)) {
         return Promise.resolve({ error: null });
+      }
+      if (options?.simulateInsertConflictOnce?.row) {
+        idempotencyRows.set(key, options.simulateInsertConflictOnce.row);
+        options = { ...options, simulateInsertConflictOnce: undefined };
+        return Promise.resolve({ error: { code: '23505' } });
       }
       idempotencyRows.set(key, payload);
       return Promise.resolve({ error: null });
@@ -265,5 +272,75 @@ describe('candidate route idempotency replay', () => {
     expect(replay.status).toBe(409);
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe('IDEMPOTENCY_KEY_REUSED');
+  });
+
+  it('replays analysis patch when insert loses a unique-key race', async () => {
+    const supabase = createSupabaseRouteMock({
+      simulateInsertConflictOnce: {
+        row: {
+          company_id: 'company-1',
+          actor_user_id: 'user-1',
+          scope: 'candidate:analysis:update:cand-1',
+          idempotency_key: 'analysis-race-1',
+          request_hash: null,
+          status: 'succeeded',
+          response_body: { id: 'cand-1', interview_analysis: { score: 91 } },
+        },
+      },
+    });
+    requireUserAndCompanyMock.mockResolvedValue({
+      supabase,
+      companyId: 'company-1',
+      userId: 'user-1',
+    });
+
+    const context = { params: Promise.resolve({ id: 'cand-1' }) };
+    const replay = await patchAnalysis(
+      patchRequest('http://localhost/api/candidates/cand-1/analysis', { analysis: { score: 88 } }, 'analysis-race-1'),
+      context
+    );
+    const body = await replay.json();
+
+    expect(replay.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.interview_analysis).toEqual({ score: 91 });
+    expect(supabase.getCandidateUpdateCalls()).toBe(0);
+  });
+
+  it('replays interview patch when insert loses a unique-key race', async () => {
+    const supabase = createSupabaseRouteMock({
+      simulateInsertConflictOnce: {
+        row: {
+          company_id: 'company-1',
+          actor_user_id: 'user-1',
+          scope: 'candidate:interview:update:cand-1',
+          idempotency_key: 'interview-race-1',
+          request_hash: null,
+          status: 'succeeded',
+          response_body: { id: 'cand-1', ai_summary: 'Raced summary' },
+        },
+      },
+    });
+    requireUserAndCompanyMock.mockResolvedValue({
+      supabase,
+      companyId: 'company-1',
+      userId: 'user-1',
+    });
+
+    const context = { params: Promise.resolve({ id: 'cand-1' }) };
+    const replay = await patchInterview(
+      patchRequest(
+        'http://localhost/api/candidates/cand-1/interview',
+        { interviewNotes: { q1: 'Solid answer' }, interviewScores: { q1: 4 }, aiSummary: 'Strong fit' },
+        'interview-race-1'
+      ),
+      context
+    );
+    const body = await replay.json();
+
+    expect(replay.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.ai_summary).toBe('Raced summary');
+    expect(supabase.getCandidateUpdateCalls()).toBe(0);
   });
 });

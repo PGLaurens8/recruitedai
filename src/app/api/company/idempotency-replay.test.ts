@@ -37,7 +37,9 @@ function idempotencyComposite(row: Pick<IdempotencyRow, 'company_id' | 'actor_us
   return [row.company_id, row.actor_user_id, row.scope, row.idempotency_key].join(':');
 }
 
-function createSupabaseRouteMock() {
+function createSupabaseRouteMock(
+  options?: { simulateInsertConflictOnce?: { row: IdempotencyRow } }
+) {
   const idempotencyRows = new Map<string, IdempotencyRow>();
   let companyUpdateCalls = 0;
   let auditInsertCalls = 0;
@@ -66,6 +68,11 @@ function createSupabaseRouteMock() {
       const key = idempotencyComposite(payload);
       if (idempotencyRows.has(key)) {
         return Promise.resolve({ error: null });
+      }
+      if (options?.simulateInsertConflictOnce?.row) {
+        idempotencyRows.set(key, options.simulateInsertConflictOnce.row);
+        options = { ...options, simulateInsertConflictOnce: undefined };
+        return Promise.resolve({ error: { code: '23505' } });
       }
       idempotencyRows.set(key, payload);
       return Promise.resolve({ error: null });
@@ -311,5 +318,80 @@ describe('company route idempotency replay', () => {
     expect(replay.status).toBe(409);
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe('IDEMPOTENCY_KEY_REUSED');
+  });
+
+  it('replays company patch when insert loses a unique-key race', async () => {
+    const supabase = createSupabaseRouteMock({
+      simulateInsertConflictOnce: {
+        row: {
+          company_id: 'company-1',
+          actor_user_id: 'user-1',
+          scope: 'company:update:self',
+          idempotency_key: 'company-race-1',
+          request_hash: null,
+          status: 'succeeded',
+          response_body: { id: 'company-1', name: 'Acme Raced' },
+        },
+      },
+    });
+    requireUserAndCompanyMock.mockResolvedValue({
+      supabase,
+      companyId: 'company-1',
+      userId: 'user-1',
+    });
+
+    const replay = await patchCompany(
+      patchRequest(
+        'http://localhost/api/company',
+        { name: 'Acme Updated', logo: '', website: '', email: 'team@acme.dev', address: '' },
+        'company-race-1'
+      )
+    );
+    const body = await replay.json();
+
+    expect(replay.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.data.name).toBe('Acme Raced');
+    expect(supabase.getCompanyUpdateCalls()).toBe(0);
+    expect(supabase.getAuditInsertCalls()).toBe(0);
+  });
+
+  it('replays invite create when insert loses a unique-key race', async () => {
+    const supabase = createSupabaseRouteMock({
+      simulateInsertConflictOnce: {
+        row: {
+          company_id: 'company-1',
+          actor_user_id: 'user-1',
+          scope: 'company-invite:create',
+          idempotency_key: 'invite-race-1',
+          request_hash: null,
+          status: 'succeeded',
+          response_body: {
+            invite: { id: 'invite-raced', email: 'hire@acme.dev', role: 'Recruiter', status: 'pending' },
+            acceptToken: 'token-raced',
+          },
+        },
+      },
+    });
+    requireUserAndCompanyRoleMock.mockResolvedValue({
+      supabase,
+      companyId: 'company-1',
+      userId: 'user-1',
+      role: 'Admin',
+    });
+
+    const replay = await postInvite(
+      postRequest(
+        'http://localhost/api/company/invites',
+        { email: 'hire@acme.dev', role: 'Recruiter', expiresInDays: 7 },
+        'invite-race-1'
+      )
+    );
+    const body = await replay.json();
+
+    expect(replay.status).toBe(201);
+    expect(body.ok).toBe(true);
+    expect(body.data.invite.id).toBe('invite-raced');
+    expect(createCompanyInviteMock).not.toHaveBeenCalled();
   });
 });

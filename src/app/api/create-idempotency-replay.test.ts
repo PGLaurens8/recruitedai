@@ -29,7 +29,10 @@ function idempotencyComposite(row: Pick<IdempotencyRow, 'company_id' | 'actor_us
   return [row.company_id, row.actor_user_id, row.scope, row.idempotency_key].join(':');
 }
 
-function createSupabaseRouteMock(entityTable: EntityTable) {
+function createSupabaseRouteMock(
+  entityTable: EntityTable,
+  options?: { simulateInsertConflictOnce?: { row: IdempotencyRow } }
+) {
   const idempotencyRows = new Map<string, IdempotencyRow>();
   let createCalls = 0;
 
@@ -48,6 +51,11 @@ function createSupabaseRouteMock(entityTable: EntityTable) {
       const key = idempotencyComposite(payload);
       if (idempotencyRows.has(key)) {
         return Promise.resolve({ error: null });
+      }
+      if (options?.simulateInsertConflictOnce?.row) {
+        idempotencyRows.set(key, options.simulateInsertConflictOnce.row);
+        options = { ...options, simulateInsertConflictOnce: undefined };
+        return Promise.resolve({ error: { code: '23505' } });
       }
       idempotencyRows.set(key, payload);
       return Promise.resolve({ error: null });
@@ -218,5 +226,41 @@ describe('create route idempotency replay', () => {
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe('IDEMPOTENCY_KEY_REUSED');
     expect(supabase.getCreateCalls()).toBe(1);
+  });
+
+  it.each(cases)('replays $name when insert loses a unique-key race', async (testCase) => {
+    const scopeByTable: Record<EntityTable, string> = {
+      candidates: 'candidate:create',
+      jobs: 'job:create',
+      clients: 'client:create',
+    };
+
+    const supabase = createSupabaseRouteMock(testCase.entityTable, {
+      simulateInsertConflictOnce: {
+        row: {
+          company_id: 'company-1',
+          actor_user_id: 'user-1',
+          scope: scopeByTable[testCase.entityTable],
+          idempotency_key: 'race-k1',
+          request_hash: null,
+          status: 'succeeded',
+          response_body: { id: testCase.entityTable + '-raced' },
+        },
+      },
+    });
+
+    requireUserAndCompanyMock.mockResolvedValue({
+      supabase,
+      companyId: 'company-1',
+      userId: 'user-1',
+    });
+
+    const replay = await testCase.route(postRequest(testCase.url, testCase.stablePayload, 'race-k1'));
+    const body = await replay.json();
+
+    expect(replay.status).toBe(201);
+    expect(body.ok).toBe(true);
+    expect(body.data.id).toBe(testCase.entityTable + '-raced');
+    expect(supabase.getCreateCalls()).toBe(0);
   });
 });

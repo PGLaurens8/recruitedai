@@ -22,7 +22,10 @@ function keyFor(row: Pick<Row, 'company_id' | 'actor_user_id' | 'scope' | 'idemp
   return [row.company_id, row.actor_user_id, row.scope, row.idempotency_key].join(':');
 }
 
-function createSupabaseMock(seedRows: Row[] = []) {
+function createSupabaseMock(
+  seedRows: Row[] = [],
+  options?: { simulateInsertConflictOnce?: { row: Row } }
+) {
   const rows = new Map<string, Row>();
   for (const row of seedRows) {
     rows.set(keyFor(row), row);
@@ -47,6 +50,12 @@ function createSupabaseMock(seedRows: Row[] = []) {
       const composite = keyFor(payload);
       if (rows.has(composite)) {
         return Promise.resolve({ error: null });
+      }
+
+      if (options?.simulateInsertConflictOnce?.row && !rows.has(composite)) {
+        rows.set(composite, options.simulateInsertConflictOnce.row);
+        options = { ...options, simulateInsertConflictOnce: undefined };
+        return Promise.resolve({ error: { code: '23505' } });
       }
 
       rows.set(composite, payload);
@@ -224,6 +233,70 @@ describe('runIdempotent', () => {
     ).rejects.toMatchObject({
       status: 409,
       code: 'IDEMPOTENCY_IN_PROGRESS',
+    } as Partial<ApiRouteError>);
+  });
+
+  it('replays result when insert hits unique-key race for the same request', async () => {
+    const supabase = createSupabaseMock([], {
+      simulateInsertConflictOnce: {
+        row: {
+          company_id: 'company-1',
+          actor_user_id: 'user-1',
+          scope: 'job:create',
+          idempotency_key: 'race-key',
+          request_hash: '3529d0a41555dcce5409451ca186444db8e972ff8d5867546e0e7928f37408f5',
+          status: 'succeeded',
+          response_body: { id: 'job-raced' },
+        },
+      },
+    });
+    let calls = 0;
+
+    const result = await runIdempotent({
+      supabase,
+      companyId: 'company-1',
+      actorUserId: 'user-1',
+      scope: 'job:create',
+      idempotencyKey: 'race-key',
+      requestBodyRaw: '{"title":"A"}',
+      execute: async () => {
+        calls += 1;
+        return { id: 'job-local' };
+      },
+    });
+
+    expect(result).toEqual({ id: 'job-raced' });
+    expect(calls).toBe(0);
+  });
+
+  it('returns key-reused when insert race record has different request hash', async () => {
+    const supabase = createSupabaseMock([], {
+      simulateInsertConflictOnce: {
+        row: {
+          company_id: 'company-1',
+          actor_user_id: 'user-1',
+          scope: 'job:create',
+          idempotency_key: 'race-key-mismatch',
+          request_hash: 'different-hash',
+          status: 'succeeded',
+          response_body: { id: 'job-other' },
+        },
+      },
+    });
+
+    await expect(
+      runIdempotent({
+        supabase,
+        companyId: 'company-1',
+        actorUserId: 'user-1',
+        scope: 'job:create',
+        idempotencyKey: 'race-key-mismatch',
+        requestBodyRaw: '{\"title\":\"A\"}',
+        execute: async () => ({ id: 'job-local' }),
+      })
+    ).rejects.toMatchObject({
+      status: 409,
+      code: 'IDEMPOTENCY_KEY_REUSED',
     } as Partial<ApiRouteError>);
   });
 });
