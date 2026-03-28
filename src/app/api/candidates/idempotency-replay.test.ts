@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { requireUserAndCompanyMock } = vi.hoisted(() => ({
-  requireUserAndCompanyMock: vi.fn(),
+const { requireUserAndCompanyRoleMock } = vi.hoisted(() => ({
+  requireUserAndCompanyRoleMock: vi.fn(),
 }));
 
 vi.mock('@/server/api/auth', () => ({
-  requireUserAndCompany: requireUserAndCompanyMock,
+  requireUserAndCompanyRole: requireUserAndCompanyRoleMock,
 }));
 
 import { PATCH as patchAnalysis } from './[id]/analysis/route';
@@ -188,7 +188,7 @@ describe('candidate route idempotency replay', () => {
 
   it('replays analysis patch without second candidate update', async () => {
     const supabase = createSupabaseRouteMock();
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',
@@ -213,7 +213,7 @@ describe('candidate route idempotency replay', () => {
 
   it('replays interview patch without second candidate update', async () => {
     const supabase = createSupabaseRouteMock();
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',
@@ -242,7 +242,7 @@ describe('candidate route idempotency replay', () => {
 
   it('returns 409 when idempotency key is reused with different interview payload', async () => {
     const supabase = createSupabaseRouteMock();
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',
@@ -288,7 +288,7 @@ describe('candidate route idempotency replay', () => {
         },
       },
     });
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',
@@ -321,7 +321,7 @@ describe('candidate route idempotency replay', () => {
         },
       },
     });
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',

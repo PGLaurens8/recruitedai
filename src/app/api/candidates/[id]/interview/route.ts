@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { requireUserAndCompany } from '@/server/api/auth';
+import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 import { readIdempotencyKey, runIdempotent } from '@/server/api/idempotency';
 
@@ -29,7 +29,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const updates = updateInterviewSchema.parse(JSON.parse(rawBody || '{}'));
     const canonicalBody = JSON.stringify(updates);
 
-    const { supabase, companyId, userId } = await requireUserAndCompany();
+    const { supabase, companyId, userId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Developer']);
 
     const result = await runIdempotent({
       supabase,

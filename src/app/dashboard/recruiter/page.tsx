@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
-
+import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { useCandidates, useClients, useJobs } from "@/lib/data/hooks";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { UserPlus, Mic2, FilePlus2, Search } from "lucide-react";
 
 function formatAverageScore(values: number[]) {
   if (values.length === 0) {
@@ -53,9 +55,9 @@ export default function RecruiterDashboardPage() {
       </div>
 
       {error && (
-        <Card>
+        <Card className="border-destructive">
           <CardHeader>
-            <CardTitle>Could not load metrics</CardTitle>
+            <CardTitle className="text-destructive">Could not load metrics</CardTitle>
             <CardDescription>{error.message}</CardDescription>
           </CardHeader>
         </Card>
@@ -108,28 +110,59 @@ export default function RecruiterDashboardPage() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Candidates</CardTitle>
-          <CardDescription>Most recently loaded candidate records.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading candidates...</p>
-          ) : metrics.recentCandidates.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No candidate records yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {metrics.recentCandidates.map((candidate) => (
-                <div key={candidate.id} className="flex items-center justify-between rounded-md border px-3 py-2">
-                  <span className="font-medium">{candidate.name}</span>
-                  <span className="text-sm text-muted-foreground">{candidate.status}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common tasks for recruitment operations.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <Button className="w-full justify-start" variant="outline" asChild>
+              <Link href="/jobs/new">
+                <Mic2 className="mr-2 h-4 w-4" /> Create Job Brief (Voice)
+              </Link>
+            </Button>
+            <Button className="w-full justify-start" variant="outline" asChild>
+              <Link href="/ai-parser">
+                <UserPlus className="mr-2 h-4 w-4" /> Smart Parse Resume
+              </Link>
+            </Button>
+            <Button className="w-full justify-start" variant="outline" asChild>
+              <Link href="/interview-analysis">
+                <FilePlus2 className="mr-2 h-4 w-4" /> Start AI Note Taker
+              </Link>
+            </Button>
+            <Button className="w-full justify-start" variant="outline" asChild>
+              <Link href="/company-finder">
+                <Search className="mr-2 h-4 w-4" /> Find Matching Leads
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Candidates</CardTitle>
+            <CardDescription>Most recently loaded candidate records.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading candidates...</p>
+            ) : metrics.recentCandidates.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No candidate records yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {metrics.recentCandidates.map((candidate) => (
+                  <div key={candidate.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                    <span className="font-medium">{candidate.name}</span>
+                    <span className="text-sm text-muted-foreground">{candidate.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

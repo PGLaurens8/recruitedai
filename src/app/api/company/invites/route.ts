@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       requestBodyRaw: canonicalBody,
       successStatus: 201,
       execute: async () => {
-        const invite = await createCompanyInvite(
+        const created = await createCompanyInvite(
           userId,
           companyId,
           payload.email,
@@ -52,8 +52,8 @@ export async function POST(request: Request) {
         );
 
         return {
-          invite,
-          acceptToken: invite.token,
+          invite: created.invite,
+          acceptToken: created.acceptToken,
         };
       },
     });

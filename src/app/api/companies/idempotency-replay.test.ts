@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
-  requireUserAndCompanyMock,
+  requireUserAndCompanyRoleMock,
   enforceRateLimitMock,
 } = vi.hoisted(() => ({
-  requireUserAndCompanyMock: vi.fn(),
+  requireUserAndCompanyRoleMock: vi.fn(),
   enforceRateLimitMock: vi.fn(),
 }));
 
 vi.mock('@/server/api/auth', () => ({
-  requireUserAndCompany: requireUserAndCompanyMock,
+  requireUserAndCompanyRole: requireUserAndCompanyRoleMock,
 }));
 
 vi.mock('@/server/api/rate-limit', () => ({
@@ -168,7 +168,7 @@ describe('company candidate route idempotency replay', () => {
 
   it('replays company candidate patch without duplicate update or audit entry', async () => {
     const supabase = createSupabaseRouteMock();
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',
@@ -200,7 +200,7 @@ describe('company candidate route idempotency replay', () => {
 
   it('returns 409 when company candidate key is reused for different payload', async () => {
     const supabase = createSupabaseRouteMock();
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -21,7 +20,8 @@ import {
   Mic,
   Target,
   Zap,
-  HelpCircle
+  HelpCircle,
+  FilePlus2
 } from 'lucide-react';
 
 export interface NavLink {
@@ -64,6 +64,7 @@ const navGroups: NavGroup[] = [
     roles: ['Admin', 'Recruiter', 'Sales', 'Developer'],
     links: [
       { href: '/jobs', label: 'Job Board', icon: React.createElement(Briefcase, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
+      { href: '/jobs/new', label: 'Job Brief Builder', icon: React.createElement(FilePlus2, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'], badge: 'New' },
       { href: '/clients', label: 'Client CRM', icon: React.createElement(Building, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
       { href: '/company-finder', label: 'Smart Lead Finder', icon: React.createElement(Search, { size: 18 }), roles: ['Admin', 'Sales', 'Developer'] },
     ]

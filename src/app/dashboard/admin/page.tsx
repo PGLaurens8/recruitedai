@@ -1,4 +1,3 @@
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -15,7 +14,8 @@ import {
   UserPlus,
   FilePlus,
   Send,
-  Contact
+  Contact,
+  Mic2
 } from "lucide-react";
 import Link from "next/link";
 
@@ -186,8 +186,8 @@ export default function AdminDashboardPage() {
               </Link>
             </Button>
             <Button size="lg" variant="secondary" className="w-full" asChild>
-              <Link href="/jobs">
-                <FilePlus className="mr-2 h-5 w-5"/> Create Job
+              <Link href="/jobs/new">
+                <Mic2 className="mr-2 h-5 w-5"/> AI Brief Builder
               </Link>
             </Button>
             <Button size="lg" variant="secondary" className="w-full" asChild>

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { requireUserAndCompany } from '@/server/api/auth';
+import { requireUserAndCompany, requireUserAndCompanyRole } from '@/server/api/auth';
 import { writeAuditLog } from '@/server/api/audit';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 import { readIdempotencyKey, runIdempotent } from '@/server/api/idempotency';
@@ -84,7 +84,7 @@ export async function PATCH(
     }
 
     const canonicalBody = JSON.stringify(parsed.data);
-    const { supabase, userId } = await requireUserAndCompany(companyId);
+    const { supabase, userId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Developer'], companyId);
     await enforceRateLimit(request, {
       scope: 'write:candidate-update',
       subject: userId,
@@ -144,7 +144,7 @@ export async function DELETE(
   const requestId = getRequestId(request);
   try {
     const { companyId, id } = await context.params;
-    const { supabase, userId } = await requireUserAndCompany(companyId);
+    const { supabase, userId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Developer'], companyId);
     const { data, error } = await supabase
       .from('candidates')
       .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })

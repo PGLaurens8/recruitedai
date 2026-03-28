@@ -199,7 +199,7 @@ describe('company route idempotency replay', () => {
 
   it('replays company settings patch without second update or second audit log', async () => {
     const supabase = createSupabaseRouteMock();
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',
@@ -229,7 +229,7 @@ describe('company route idempotency replay', () => {
 
   it('returns 409 when company patch key is reused for different payload', async () => {
     const supabase = createSupabaseRouteMock();
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',
@@ -267,11 +267,20 @@ describe('company route idempotency replay', () => {
     });
 
     createCompanyInviteMock.mockResolvedValue({
-      id: 'invite-1',
-      token: 'token-1',
-      email: 'hire@acme.dev',
-      role: 'Recruiter',
-      status: 'pending',
+      invite: {
+        id: 'invite-1',
+        company_id: 'company-1',
+        email: 'hire@acme.dev',
+        role: 'Recruiter',
+        invited_by: 'user-1',
+        status: 'pending',
+        expires_at: new Date(Date.now() + 86400000).toISOString(),
+        accepted_at: null,
+        accepted_by: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      acceptToken: 'token-1',
     });
 
     const payload = { email: 'hire@acme.dev', role: 'Recruiter', expiresInDays: 7 };
@@ -299,11 +308,20 @@ describe('company route idempotency replay', () => {
     });
 
     createCompanyInviteMock.mockResolvedValue({
-      id: 'invite-2',
-      token: 'token-2',
-      email: 'ops@acme.dev',
-      role: 'Recruiter',
-      status: 'pending',
+      invite: {
+        id: 'invite-2',
+        company_id: 'company-1',
+        email: 'ops@acme.dev',
+        role: 'Recruiter',
+        invited_by: 'user-1',
+        status: 'pending',
+        expires_at: new Date(Date.now() + 86400000).toISOString(),
+        accepted_at: null,
+        accepted_by: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      acceptToken: 'token-2',
     });
 
     await postInvite(
@@ -334,7 +352,7 @@ describe('company route idempotency replay', () => {
         },
       },
     });
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',

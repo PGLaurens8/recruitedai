@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { requireUserAndCompanyMock } = vi.hoisted(() => ({
-  requireUserAndCompanyMock: vi.fn(),
+const { requireUserAndCompanyRoleMock } = vi.hoisted(() => ({
+  requireUserAndCompanyRoleMock: vi.fn(),
 }));
 
 vi.mock('@/server/api/auth', () => ({
-  requireUserAndCompany: requireUserAndCompanyMock,
+  requireUserAndCompanyRole: requireUserAndCompanyRoleMock,
 }));
 
 import { POST as postCandidateRestore } from './candidates/[id]/restore/route';
@@ -132,7 +132,7 @@ describe('restore route flows', () => {
       shouldFindDeletedRecord: true,
     });
 
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',
@@ -164,7 +164,7 @@ describe('restore route flows', () => {
       shouldFindDeletedRecord: false,
     });
 
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',

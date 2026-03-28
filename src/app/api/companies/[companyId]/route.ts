@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { requireUserAndCompany } from '@/server/api/auth';
+import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { writeAuditLog } from '@/server/api/audit';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 import { readIdempotencyKey, runIdempotent } from '@/server/api/idempotency';
@@ -29,7 +29,7 @@ export async function PATCH(
     }
 
     const canonicalBody = JSON.stringify(parsed.data);
-    const { supabase, userId } = await requireUserAndCompany(companyId);
+    const { supabase, userId } = await requireUserAndCompanyRole(['Admin', 'Developer'], companyId);
 
     const result = await runIdempotent({
       supabase,

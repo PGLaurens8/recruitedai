@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { requireUserAndCompanyMock } = vi.hoisted(() => ({
-  requireUserAndCompanyMock: vi.fn(),
+const { requireUserAndCompanyRoleMock } = vi.hoisted(() => ({
+  requireUserAndCompanyRoleMock: vi.fn(),
 }));
 
 vi.mock('@/server/api/auth', () => ({
-  requireUserAndCompany: requireUserAndCompanyMock,
+  requireUserAndCompanyRole: requireUserAndCompanyRoleMock,
 }));
 
 import { POST as postCandidates } from './candidates/route';
@@ -191,7 +191,7 @@ describe('create route idempotency replay', () => {
 
   it.each(cases)('replays $name without duplicate insert', async (testCase) => {
     const supabase = createSupabaseRouteMock(testCase.entityTable);
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',
@@ -212,7 +212,7 @@ describe('create route idempotency replay', () => {
 
   it.each(cases)('returns 409 when $name key is reused with different payload', async (testCase) => {
     const supabase = createSupabaseRouteMock(testCase.entityTable);
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',
@@ -249,7 +249,7 @@ describe('create route idempotency replay', () => {
       },
     });
 
-    requireUserAndCompanyMock.mockResolvedValue({
+    requireUserAndCompanyRoleMock.mockResolvedValue({
       supabase,
       companyId: 'company-1',
       userId: 'user-1',

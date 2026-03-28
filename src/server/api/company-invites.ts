@@ -1,3 +1,5 @@
+import { createHash, randomUUID } from 'node:crypto';
+
 import { type Role } from '@/lib/roles';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { writeAuditLog } from '@/server/api/audit';
@@ -9,7 +11,6 @@ export interface CompanyInviteRecord {
   email: string;
   role: Role;
   invited_by: string;
-  token: string;
   status: 'pending' | 'accepted' | 'revoked' | 'expired';
   expires_at: string;
   accepted_at: string | null;
@@ -17,6 +18,25 @@ export interface CompanyInviteRecord {
   created_at: string;
   updated_at: string;
 }
+
+interface CompanyInviteCreateResult {
+  invite: CompanyInviteRecord;
+  acceptToken: string;
+}
+
+const inviteSelectColumns = [
+  'id',
+  'company_id',
+  'email',
+  'role',
+  'invited_by',
+  'status',
+  'expires_at',
+  'accepted_at',
+  'accepted_by',
+  'created_at',
+  'updated_at',
+].join(',');
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -28,16 +48,20 @@ function buildExpiresAt(days: number) {
   return expires.toISOString();
 }
 
+function hashInviteToken(token: string) {
+  return createHash('sha256').update(token).digest('hex');
+}
+
 export async function listCompanyInvites(companyId: string) {
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from('company_invites')
-    .select('*')
+    .select(inviteSelectColumns)
     .eq('company_id', companyId)
     .order('created_at', { ascending: false });
 
   if (error == null) {
-    return (data || []) as CompanyInviteRecord[];
+    return ((data || []) as unknown) as CompanyInviteRecord[];
   }
 
   throw new ApiRouteError(500, 'INVITES_QUERY_FAILED', 'Could not load invites.', error);
@@ -49,7 +73,7 @@ export async function createCompanyInvite(
   email: string,
   role: Role,
   expiresInDays = 7
-) {
+): Promise<CompanyInviteCreateResult> {
   const admin = createSupabaseAdminClient();
   const normalizedEmail = normalizeEmail(email);
 
@@ -97,27 +121,31 @@ export async function createCompanyInvite(
     throw new ApiRouteError(500, 'INVITE_PENDING_CHECK_FAILED', 'Could not verify existing invites.', pendingError);
   }
 
-  const token = crypto.randomUUID();
-  const { data: invite, error: insertError } = await admin
+  const acceptToken = randomUUID();
+  const tokenHash = hashInviteToken(acceptToken);
+
+  const { data: inviteData, error: insertError } = await admin
     .from('company_invites')
     .insert({
       company_id: companyId,
       email: normalizedEmail,
       role,
       invited_by: actorUserId,
-      token,
+      token: randomUUID(),
+      token_hash: tokenHash,
       status: 'pending',
       expires_at: buildExpiresAt(expiresInDays),
     })
-    .select('*')
+    .select(inviteSelectColumns)
     .maybeSingle();
 
-  if (insertError == null) {
-    if (invite == null) {
-      throw new ApiRouteError(500, 'INVITE_CREATE_FAILED', 'Invite creation returned no record.');
-    }
-  } else {
+  if (insertError) {
     throw new ApiRouteError(500, 'INVITE_CREATE_FAILED', 'Could not create invite.', insertError);
+  }
+
+  const invite = (inviteData as unknown as CompanyInviteRecord | null);
+  if (invite == null) {
+    throw new ApiRouteError(500, 'INVITE_CREATE_FAILED', 'Invite creation returned no record.');
   }
 
   await writeAuditLog(admin, {
@@ -133,26 +161,30 @@ export async function createCompanyInvite(
     },
   });
 
-  return invite as CompanyInviteRecord;
+  return {
+    invite,
+    acceptToken,
+  };
 }
 
 export async function revokeCompanyInvite(actorUserId: string, companyId: string, inviteId: string) {
   const admin = createSupabaseAdminClient();
-  const { data, error } = await admin
+  const { data: revokeData, error } = await admin
     .from('company_invites')
     .update({ status: 'revoked', updated_at: new Date().toISOString() })
     .eq('company_id', companyId)
     .eq('id', inviteId)
     .eq('status', 'pending')
-    .select('*')
+    .select(inviteSelectColumns)
     .maybeSingle();
 
-  if (error == null) {
-    if (data == null) {
-      throw new ApiRouteError(404, 'INVITE_NOT_FOUND', 'Pending invite not found.');
-    }
-  } else {
+  if (error) {
     throw new ApiRouteError(500, 'INVITE_REVOKE_FAILED', 'Could not revoke invite.', error);
+  }
+
+  const invite = (revokeData as unknown as CompanyInviteRecord | null);
+  if (invite == null) {
+    throw new ApiRouteError(404, 'INVITE_NOT_FOUND', 'Pending invite not found.');
   }
 
   await writeAuditLog(admin, {
@@ -162,28 +194,36 @@ export async function revokeCompanyInvite(actorUserId: string, companyId: string
     targetType: 'company_invite',
     targetId: inviteId,
     metadata: {
-      inviteEmail: data.email,
-      inviteRole: data.role,
+      inviteEmail: invite.email,
+      inviteRole: invite.role,
     },
   });
 
-  return data as CompanyInviteRecord;
+  return invite;
 }
 
 export async function acceptCompanyInvite(userId: string, userEmail: string, token: string) {
   const admin = createSupabaseAdminClient();
-  const { data: invite, error: inviteError } = await admin
+  const normalizedToken = token.trim();
+  if (!normalizedToken) {
+    throw new ApiRouteError(400, 'INVITE_TOKEN_REQUIRED', 'Invite token is required.');
+  }
+
+  const tokenHash = hashInviteToken(normalizedToken);
+
+  const { data: inviteData, error: inviteError } = await admin
     .from('company_invites')
-    .select('*')
-    .eq('token', token)
+    .select(inviteSelectColumns)
+    .eq('token_hash', tokenHash)
     .maybeSingle();
 
-  if (inviteError == null) {
-    if (invite == null) {
-      throw new ApiRouteError(404, 'INVITE_NOT_FOUND', 'Invite not found.');
-    }
-  } else {
+  if (inviteError) {
     throw new ApiRouteError(500, 'INVITE_QUERY_FAILED', 'Could not load invite.', inviteError);
+  }
+
+  const invite = (inviteData as unknown as CompanyInviteRecord | null);
+  if (invite == null) {
+    throw new ApiRouteError(404, 'INVITE_NOT_FOUND', 'Invite not found.');
   }
 
   if (invite.status === 'pending') {

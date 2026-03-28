@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { requireUserAndCompany } from '@/server/api/auth';
+import { requireUserAndCompany, requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 import { readIdempotencyKey, runIdempotent } from '@/server/api/idempotency';
 
@@ -9,7 +9,7 @@ const createJobSchema = z.object({
   salary: z.string().optional(),
   company: z.string().optional(),
   location: z.string().optional(),
-  status: z.enum(['active', 'pending', 'closed']).optional(),
+  status: z.enum(['draft', 'active', 'pending', 'closed']).optional(),
   approval: z.enum(['approved', 'pending', 'rejected']).optional(),
   description: z.string().optional(),
 });
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   const requestId = getRequestId(request);
 
   try {
-    const { supabase, companyId, userId } = await requireUserAndCompany();
+    const { supabase, companyId, userId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Sales', 'Developer']);
     const rawBody = await request.text();
     const payload = createJobSchema.parse(JSON.parse(rawBody || '{}'));
     const canonicalBody = JSON.stringify(payload);
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
             salary: payload.salary || null,
             company: payload.company || null,
             location: payload.location || null,
-            status: payload.status || 'active',
+            status: payload.status || 'draft',
             approval: payload.approval || 'pending',
             description: payload.description || null,
             created_by: userId,

@@ -1,7 +1,7 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, Eye, Plus, Search, Star, X, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Check, Eye, Plus, Search, X, ArrowUp, ArrowDown, ArrowUpDown, Mic2 } from "lucide-react";
 import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '@/context/auth-context';
 import { useCurrentProfile, useJobs } from '@/lib/data/hooks';
@@ -21,6 +21,7 @@ const getStatusBadgeClass = (status: string) => {
     switch(status?.toLowerCase()) {
         case 'active': return 'bg-green-100 text-green-800 border-green-200';
         case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        case 'draft': return 'bg-slate-100 text-slate-800 border-slate-200';
         case 'closed': return 'bg-gray-100 text-gray-800 border-gray-200';
         default: return 'bg-secondary text-secondary-foreground';
     }
@@ -48,8 +49,8 @@ export default function JobsPage() {
     let sortableItems = [...jobs];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
-        const aValue = a[sortConfig.key!] || "";
-        const bValue = b[sortConfig.key!] || "";
+        const aValue = String(a[sortConfig.key!] || "");
+        const bValue = String(b[sortConfig.key!] || "");
         
         if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -92,16 +93,24 @@ export default function JobsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
               <h1 className="text-3xl font-bold tracking-tight">Job Management</h1>
               <p className="mt-1 text-muted-foreground">
               Manage job specifications and create AI-powered job postings.
               </p>
           </div>
-          <div className="flex gap-2">
-              <Button variant="outline"><Plus className="mr-2 h-4 w-4" /> Add Job Spec</Button>
-              <Button><Plus className="mr-2 h-4 w-4" /> Create Posting</Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+              <Button variant="outline" className="flex-1 sm:flex-none" asChild>
+                <Link href="/jobs/new">
+                  <Mic2 className="mr-2 h-4 w-4" /> AI Brief Builder
+                </Link>
+              </Button>
+              <Button className="flex-1 sm:flex-none" asChild>
+                <Link href="/jobs/new">
+                  <Plus className="mr-2 h-4 w-4" /> Create Posting
+                </Link>
+              </Button>
           </div>
       </div>
       

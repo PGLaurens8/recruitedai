@@ -1,4 +1,4 @@
-import { requireUserAndCompany } from '@/server/api/auth';
+import { requireUserAndCompany, requireUserAndCompanyRole } from '@/server/api/auth';
 import { writeAuditLog } from '@/server/api/audit';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 
@@ -48,7 +48,7 @@ export async function DELETE(request: Request, { params }: RouteContext) {
       throw new ApiRouteError(400, 'CANDIDATE_ID_REQUIRED', 'Candidate ID is required.');
     }
 
-    const { supabase, companyId, userId } = await requireUserAndCompany();
+    const { supabase, companyId, userId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Developer']);
     const { data, error } = await supabase
       .from('candidates')
       .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })

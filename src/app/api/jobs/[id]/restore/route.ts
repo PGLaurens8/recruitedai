@@ -1,4 +1,4 @@
-import { requireUserAndCompany } from '@/server/api/auth';
+import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { writeAuditLog } from '@/server/api/audit';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 
@@ -15,7 +15,7 @@ export async function POST(request: Request, { params }: RouteContext) {
       throw new ApiRouteError(400, 'JOB_ID_REQUIRED', 'Job ID is required.');
     }
 
-    const { supabase, companyId, userId } = await requireUserAndCompany();
+    const { supabase, companyId, userId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Sales', 'Developer']);
     const { data, error } = await supabase
       .from('jobs')
       .update({ deleted_at: null, updated_at: new Date().toISOString() })

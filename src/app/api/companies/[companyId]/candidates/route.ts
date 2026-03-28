@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { requireUserAndCompany } from '@/server/api/auth';
+import { requireUserAndCompany, requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 import { readIdempotencyKey, runIdempotent } from '@/server/api/idempotency';
 import { enforceRateLimit } from '@/server/api/rate-limit';
@@ -60,7 +60,7 @@ export async function POST(
     }
 
     const canonicalBody = JSON.stringify(parsed.data);
-    const { supabase, userId } = await requireUserAndCompany(companyId);
+    const { supabase, userId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Developer'], companyId);
     await enforceRateLimit(request, {
       scope: 'write:candidate-create',
       subject: userId,
