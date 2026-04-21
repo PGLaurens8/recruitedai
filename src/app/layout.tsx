@@ -21,7 +21,7 @@ const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-int
 const sourceCodePro = Source_Code_Pro({ subsets: ['latin'], display: 'swap', variable: '--font-source-code-pro' });
 
 function RootLayoutContent({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "/";
   const router = useRouter();
   const { isAuthenticated, isLoading, user } = useAuth();
 

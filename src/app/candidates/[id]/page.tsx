@@ -31,7 +31,7 @@ const screeningQuestions = [
 export default function CandidateDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const candidateId = params.id as string;
+    const candidateId = typeof params?.id === "string" ? params.id : "";
     const { toast } = useToast();
     const { user } = useAuth();
 

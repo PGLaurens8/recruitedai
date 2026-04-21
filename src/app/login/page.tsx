@@ -20,8 +20,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const sessionReason = searchParams.get("reason");
-  const resetStatus = searchParams.get("reset");
+  const sessionReason = searchParams?.get("reason");
+  const resetStatus = searchParams?.get("reset");
 
   const statusMessage = useMemo(() => {
     if (sessionReason === "session-expired") {

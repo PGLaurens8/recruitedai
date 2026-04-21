@@ -30,7 +30,7 @@ const ResumeSectionEditor = ({ title, children }: { title: string, children: Rea
 
 export default function ResumeEditorPage() {
   const params = useParams();
-  const resumeId = params.id; // 'new' or an actual ID
+  const resumeId = typeof params?.id === "string" ? params.id : "new"; // 'new' or an actual ID
 
   return (
     <div className="container mx-auto py-8">

@@ -3,7 +3,6 @@
 
 import { useState, useMemo, Suspense } from "react";
 import Link from 'next/link';
-import { useSearchParams } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,6 @@ const getStatusBadgeVariant = (status: string) => {
 };
 
 function CandidatesPageContent() {
-  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
   const [sortConfig, setSortConfig] = useState<{ key: CandidateKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });

@@ -13,7 +13,7 @@ import { getNavLinksForRole, isNavLinkActive } from '@/lib/nav-utils';
 import { useState } from 'react';
 
 export function Header() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "/";
   const { user, logout } = useAuth();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 

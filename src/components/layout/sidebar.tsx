@@ -18,7 +18,7 @@ import { getNavLinksForRole, isNavLinkActive } from '@/lib/nav-utils';
 
 
 export function Sidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "/";
   const { user, logout } = useAuth();
 
   if (!user) {
