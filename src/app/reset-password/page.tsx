@@ -9,8 +9,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { getSupabasePublicEnvError } from "@/lib/runtime-config";
 import { getRuntimeMode } from "@/lib/runtime-mode";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -19,6 +22,7 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const runtimeMode = getRuntimeMode();
+  const configError = runtimeMode === "supabase" ? getSupabasePublicEnvError() : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,11 +45,11 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (runtimeMode !== "supabase") {
+    if (runtimeMode !== "supabase" || configError) {
       toast({
         variant: "destructive",
-        title: "Unavailable in mock mode",
-        description: "Password reset is available only when Supabase runtime is enabled.",
+        title: "Password reset unavailable",
+        description: configError || "Password reset is available only when Supabase runtime is enabled.",
       });
       return;
     }
@@ -90,6 +94,13 @@ export default function ResetPasswordPage() {
           <CardDescription>Enter your new password below.</CardDescription>
         </CardHeader>
         <CardContent>
+          {configError && (
+            <Alert className="mb-4" variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Authentication is misconfigured</AlertTitle>
+              <AlertDescription>{configError}</AlertDescription>
+            </Alert>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">New password</Label>
@@ -115,7 +126,7 @@ export default function ResetPasswordPage() {
                 minLength={8}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="w-full" disabled={isSubmitting || !!configError}>
               {isSubmitting ? "Updating..." : "Update password"}
             </Button>
           </form>

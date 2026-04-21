@@ -14,14 +14,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Briefcase, User } from "lucide-react";
+import { Briefcase, User, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 
 type AccountType = 'personal' | 'company';
 
 export default function SignupPage() {
-  const { signup } = useAuth();
+  const { signup, authConfigError } = useAuth();
   const { toast } = useToast();
   const [accountType, setAccountType] = useState<AccountType>('personal');
   const [companyName, setCompanyName] = useState('');
@@ -36,16 +37,23 @@ export default function SignupPage() {
     setIsSubmitting(true);
     try {
       const fullName = `${firstName} ${lastName}`.trim();
-      await signup(email, password, fullName || undefined, {
+      const result = await signup(email, password, fullName || undefined, {
         accountType,
         companyName: accountType === 'company' ? companyName.trim() : undefined,
         firstName: firstName.trim() || undefined,
         lastName: lastName.trim() || undefined,
       });
-      toast({
-        title: 'Account created',
-        description: 'Your account has been created successfully.',
-      });
+      if (result.requiresEmailConfirmation) {
+        toast({
+          title: 'Confirm your email',
+          description: 'Your account was created. Open the confirmation email, then sign in.',
+        });
+      } else {
+        toast({
+          title: 'Account created',
+          description: 'Your account is ready and you have been signed in.',
+        });
+      }
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -68,6 +76,13 @@ export default function SignupPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
+                {authConfigError && (
+                  <Alert className="mb-4 border-destructive/50">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Authentication is misconfigured</AlertTitle>
+                    <AlertDescription>{authConfigError}</AlertDescription>
+                  </Alert>
+                )}
                 <form onSubmit={handleSubmit} className="grid gap-4">
                   <div className="grid gap-2">
                     <Label>Account Type</Label>
@@ -135,7 +150,7 @@ export default function SignupPage() {
                       <Label htmlFor="password">Password</Label>
                       <Input id="password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
                   </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  <Button type="submit" className="w-full" disabled={isSubmitting || !!authConfigError}>
                       {isSubmitting ? 'Creating account...' : 'Create an account'}
                   </Button>
                 </form>

@@ -4,6 +4,7 @@ import React, { createContext, useContext, ReactNode, useEffect, useMemo, useRef
 import { usePathname, useRouter } from "next/navigation";
 
 import { getRuntimeMode, isMockMode, isSupabaseMode } from "@/lib/runtime-mode";
+import { getSupabasePublicEnvError } from "@/lib/runtime-config";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getDefaultRouteForRole, isPublicPath } from "@/lib/rbac";
 import { normalizeRole, type Role } from "@/lib/roles";
@@ -32,10 +33,11 @@ interface AuthContextType {
     password: string,
     name?: string,
     metadata?: SignupMetadata
-  ) => Promise<void>;
+  ) => Promise<{ requiresEmailConfirmation: boolean }>;
   logout: () => Promise<void>;
   isLoading: boolean;
   runtimeMode: ReturnType<typeof getRuntimeMode>;
+  authConfigError: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -112,6 +114,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname() ?? "/";
   const runtimeMode = useMemo(() => getRuntimeMode(), []);
+  const authConfigError = useMemo(
+    () => (runtimeMode === "supabase" ? getSupabasePublicEnvError() : null),
+    [runtimeMode]
+  );
   const isSigningOutRef = useRef(false);
 
   useEffect(() => {
@@ -144,6 +150,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (isSupabaseMode()) {
+      if (authConfigError) {
+        console.error("Supabase runtime is misconfigured.", authConfigError);
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
       const supabase = createSupabaseBrowserClient();
 
       const bootstrap = async () => {
@@ -221,7 +234,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       router.push(`/login?${params.toString()}`);
     }
     return;
-  }, [pathname, router, runtimeMode]);
+  }, [authConfigError, pathname, router, runtimeMode]);
 
   const login = async (email: string, password: string) => {
     if (isMockMode()) {
@@ -241,6 +254,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (isSupabaseMode()) {
+      if (authConfigError) {
+        throw new Error(authConfigError);
+      }
+
       const supabase = createSupabaseBrowserClient();
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -280,18 +297,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       window.localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(nextUser));
       setUser(nextUser);
       handleRedirect(router, nextUser.role);
-      return;
+      return { requiresEmailConfirmation: false };
     }
 
     if (isSupabaseMode()) {
+      if (authConfigError) {
+        throw new Error(authConfigError);
+      }
+
+      const nextRole: Role = metadata?.accountType === "company" ? "Admin" : "Candidate";
       const supabase = createSupabaseBrowserClient();
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             name: name || email.split("@")[0],
-            role: "Recruiter",
+            role: nextRole,
             account_type: metadata?.accountType || "personal",
             company_name: metadata?.companyName || undefined,
             first_name: metadata?.firstName || undefined,
@@ -304,7 +326,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
 
-      return;
+      if (data.user == null) {
+        throw new Error("Sign up succeeded but no user was returned.");
+      }
+
+      if (data.session?.user) {
+        const nextUser = normalizeSupabaseUser(data.session.user, null);
+        setUser(nextUser);
+        handleRedirect(router, nextUser.role);
+        return { requiresEmailConfirmation: false };
+      }
+
+      return { requiresEmailConfirmation: true };
     }
 
     throw new Error("Unsupported runtime mode.");
@@ -320,6 +353,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (isSupabaseMode()) {
+      if (authConfigError) {
+        throw new Error(authConfigError);
+      }
+
       isSigningOutRef.current = true;
       try {
         const supabase = createSupabaseBrowserClient();
@@ -347,6 +384,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         isLoading,
         runtimeMode,
+        authConfigError,
       }}
     >
       {children}

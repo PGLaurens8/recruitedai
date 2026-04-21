@@ -64,6 +64,19 @@ export function getSupabasePublicEnv(env: NodeJS.ProcessEnv = process.env) {
   return { supabaseUrl, supabaseAnonKey };
 }
 
+export function getSupabasePublicEnvError(env: NodeJS.ProcessEnv = process.env) {
+  try {
+    getSupabasePublicEnv(env);
+    return null;
+  } catch (error) {
+    return error instanceof Error ? error.message : 'Supabase environment variables are missing.';
+  }
+}
+
+export function hasSupabasePublicEnv(env: NodeJS.ProcessEnv = process.env) {
+  return getSupabasePublicEnvError(env) == null;
+}
+
 export function getSupabaseServiceEnv(env: NodeJS.ProcessEnv = process.env) {
   const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;

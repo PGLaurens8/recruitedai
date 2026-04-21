@@ -8,23 +8,27 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { getSupabasePublicEnvError } from "@/lib/runtime-config";
 import { getRuntimeMode } from "@/lib/runtime-mode";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 export default function ForgotPasswordPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const runtimeMode = getRuntimeMode();
+  const configError = runtimeMode === "supabase" ? getSupabasePublicEnvError() : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (runtimeMode !== "supabase") {
+    if (runtimeMode !== "supabase" || configError) {
       toast({
         variant: "destructive",
-        title: "Unavailable in mock mode",
-        description: "Password reset is available only when Supabase runtime is enabled.",
+        title: "Password reset unavailable",
+        description: configError || "Password reset is available only when Supabase runtime is enabled.",
       });
       return;
     }
@@ -61,6 +65,13 @@ export default function ForgotPasswordPage() {
           <CardDescription>Enter your account email and we will send reset instructions.</CardDescription>
         </CardHeader>
         <CardContent>
+          {configError && (
+            <Alert className="mb-4" variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Authentication is misconfigured</AlertTitle>
+              <AlertDescription>{configError}</AlertDescription>
+            </Alert>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -74,7 +85,7 @@ export default function ForgotPasswordPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="w-full" disabled={isSubmitting || !!configError}>
               {isSubmitting ? "Sending..." : "Send reset link"}
             </Button>
           </form>

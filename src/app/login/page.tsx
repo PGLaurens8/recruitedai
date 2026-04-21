@@ -3,17 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Briefcase } from "lucide-react";
+import { AlertTriangle, Briefcase } from "lucide-react";
 
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 
 export default function LoginPage() {
-  const { login, runtimeMode } = useAuth();
+  const { login, runtimeMode, authConfigError } = useAuth();
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -74,6 +75,14 @@ export default function LoginPage() {
           <CardDescription>Log in to access your RecruitedAI dashboard.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {authConfigError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Authentication is misconfigured</AlertTitle>
+              <AlertDescription>{authConfigError}</AlertDescription>
+            </Alert>
+          )}
+
           {statusMessage && (
             <div className="rounded-md border bg-muted px-3 py-2 text-sm text-foreground">
               {statusMessage}
@@ -109,7 +118,7 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="w-full" disabled={isSubmitting || !!authConfigError}>
               {isSubmitting ? "Signing In..." : "Log In"}
             </Button>
           </form>
