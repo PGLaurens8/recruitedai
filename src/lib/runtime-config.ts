@@ -57,8 +57,16 @@ export function getSupabasePublicEnv(env: NodeJS.ProcessEnv = process.env) {
   const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase environment variables are missing.');
+  const missing: string[] = [];
+  if (!supabaseUrl) {
+    missing.push('NEXT_PUBLIC_SUPABASE_URL');
+  }
+  if (!supabaseAnonKey) {
+    missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  }
+
+  if (missing.length > 0) {
+    throw new Error(`Missing Supabase public env vars: ${missing.join(', ')}`);
   }
 
   return { supabaseUrl, supabaseAnonKey };
@@ -81,8 +89,16 @@ export function getSupabaseServiceEnv(env: NodeJS.ProcessEnv = process.env) {
   const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Supabase service-role environment variables are missing.');
+  const missing: string[] = [];
+  if (!supabaseUrl) {
+    missing.push('NEXT_PUBLIC_SUPABASE_URL');
+  }
+  if (!serviceRoleKey) {
+    missing.push('SUPABASE_SERVICE_ROLE_KEY');
+  }
+
+  if (missing.length > 0) {
+    throw new Error(`Missing Supabase server env vars: ${missing.join(', ')}`);
   }
 
   return { supabaseUrl, serviceRoleKey };
