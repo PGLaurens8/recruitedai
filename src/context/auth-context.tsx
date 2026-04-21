@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { getRuntimeMode, isMockMode, isSupabaseMode } from "@/lib/runtime-mode";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getDefaultRouteForRole, isPublicPath } from "@/lib/rbac";
-import { type Role } from "@/lib/roles";
+import { normalizeRole, type Role } from "@/lib/roles";
 
 export interface AppUser {
   id?: string;
@@ -51,7 +51,7 @@ function normalizeUser(partial: Partial<AppUser> & { email: string }): AppUser {
   return {
     id: partial.id,
     name: fallbackName,
-    role: partial.role || "Recruiter",
+    role: normalizeRole(partial.role),
     email: partial.email,
     companyId: fallbackCompanyId,
   };
@@ -98,10 +98,7 @@ function normalizeSupabaseUser(
       profile?.company_id ||
       (sessionUser.user_metadata?.company_id as string | undefined) ||
       sessionUser.id,
-    role:
-      (profile?.role as Role | undefined) ||
-      (sessionUser.user_metadata?.role as Role | undefined) ||
-      "Recruiter",
+    role: normalizeRole(profile?.role ?? sessionUser.user_metadata?.role),
   });
 }
 
@@ -150,29 +147,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const supabase = createSupabaseBrowserClient();
 
       const bootstrap = async () => {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
 
-        if (session?.user == null) {
-          setUser(null);
-          if (pathIsPublic === false) {
-            const params = new URLSearchParams({ redirectTo: pathname });
-            router.push(`/login?${params.toString()}`);
+          if (session?.user == null) {
+            setUser(null);
+            if (pathIsPublic === false) {
+              const params = new URLSearchParams({ redirectTo: pathname });
+              router.push(`/login?${params.toString()}`);
+            }
+
+            setIsLoading(false);
+            return;
           }
 
+          const profile = await loadSupabaseProfile(session.user.id);
+          const nextUser = normalizeSupabaseUser(session.user, profile);
+
+          setUser(nextUser);
+          if (pathIsPublic) {
+            handleRedirect(router, nextUser.role);
+          }
           setIsLoading(false);
-          return;
+        } catch (error) {
+          console.error("Failed to bootstrap Supabase session.", error);
+          setUser(null);
+          setIsLoading(false);
+          if (pathIsPublic === false) {
+            const params = new URLSearchParams({ redirectTo: pathname, reason: "session-expired" });
+            router.push(`/login?${params.toString()}`);
+          }
         }
-
-        const profile = await loadSupabaseProfile(session.user.id);
-        const nextUser = normalizeSupabaseUser(session.user, profile);
-
-        setUser(nextUser);
-        if (pathIsPublic) {
-          handleRedirect(router, nextUser.role);
-        }
-        setIsLoading(false);
       };
 
       void bootstrap();
@@ -193,10 +200,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
-        void loadSupabaseProfile(session.user.id).then((profile) => {
-          const nextUser = normalizeSupabaseUser(session.user, profile);
-          setUser(nextUser);
-        });
+        void loadSupabaseProfile(session.user.id)
+          .then((profile) => {
+            const nextUser = normalizeSupabaseUser(session.user, profile);
+            setUser(nextUser);
+          })
+          .catch((error) => {
+            console.error("Failed to refresh Supabase profile.", error);
+            setUser(normalizeSupabaseUser(session.user, null));
+          });
       });
 
       return () => subscription.unsubscribe();
