@@ -69,7 +69,8 @@ export function getSupabasePublicEnv(env: NodeJS.ProcessEnv = process.env) {
     throw new Error(`Missing Supabase public env vars: ${missing.join(', ')}`);
   }
 
-  return { supabaseUrl, supabaseAnonKey };
+  // The checks above guarantee these are defined; assert for TS.
+  return { supabaseUrl: supabaseUrl!, supabaseAnonKey: supabaseAnonKey! };
 }
 
 export function getSupabasePublicEnvError(env: NodeJS.ProcessEnv = process.env) {
@@ -101,5 +102,6 @@ export function getSupabaseServiceEnv(env: NodeJS.ProcessEnv = process.env) {
     throw new Error(`Missing Supabase server env vars: ${missing.join(', ')}`);
   }
 
-  return { supabaseUrl, serviceRoleKey };
+  // The checks above guarantee these are defined; assert for TS.
+  return { supabaseUrl: supabaseUrl!, serviceRoleKey: serviceRoleKey! };
 }
