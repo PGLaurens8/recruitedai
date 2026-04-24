@@ -47,7 +47,9 @@ export async function middleware(request: NextRequest) {
   let supabaseUrl: string;
   let supabaseAnonKey: string;
   try {
-    ({ supabaseUrl, supabaseAnonKey } = getSupabasePublicEnv());
+    const config = getSupabasePublicEnv();
+    supabaseUrl = config.supabaseUrl;
+    supabaseAnonKey = config.supabaseAnonKey;
   } catch {
     if (process.env.NODE_ENV === "production") {
       return new NextResponse(

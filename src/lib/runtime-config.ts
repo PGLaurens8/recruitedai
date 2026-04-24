@@ -53,7 +53,10 @@ export function validateRuntimeConfig(env: NodeJS.ProcessEnv = process.env): Run
   };
 }
 
-export function getSupabasePublicEnv(env: NodeJS.ProcessEnv = process.env) {
+export function getSupabasePublicEnv(env: NodeJS.ProcessEnv = process.env): {
+  supabaseUrl: string;
+  supabaseAnonKey: string;
+} {
   const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -70,10 +73,13 @@ export function getSupabasePublicEnv(env: NodeJS.ProcessEnv = process.env) {
   }
 
   // The checks above guarantee these are defined; assert for TS.
-  return { supabaseUrl: supabaseUrl!, supabaseAnonKey: supabaseAnonKey! };
+  return { 
+    supabaseUrl: supabaseUrl!, 
+    supabaseAnonKey: supabaseAnonKey! 
+  };
 }
 
-export function getSupabasePublicEnvError(env: NodeJS.ProcessEnv = process.env) {
+export function getSupabasePublicEnvError(env: NodeJS.ProcessEnv = process.env): string | null {
   try {
     getSupabasePublicEnv(env);
     return null;
@@ -82,11 +88,14 @@ export function getSupabasePublicEnvError(env: NodeJS.ProcessEnv = process.env) 
   }
 }
 
-export function hasSupabasePublicEnv(env: NodeJS.ProcessEnv = process.env) {
+export function hasSupabasePublicEnv(env: NodeJS.ProcessEnv = process.env): boolean {
   return getSupabasePublicEnvError(env) == null;
 }
 
-export function getSupabaseServiceEnv(env: NodeJS.ProcessEnv = process.env) {
+export function getSupabaseServiceEnv(env: NodeJS.ProcessEnv = process.env): {
+  supabaseUrl: string;
+  serviceRoleKey: string;
+} {
   const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -103,5 +112,8 @@ export function getSupabaseServiceEnv(env: NodeJS.ProcessEnv = process.env) {
   }
 
   // The checks above guarantee these are defined; assert for TS.
-  return { supabaseUrl: supabaseUrl!, serviceRoleKey: serviceRoleKey! };
+  return { 
+    supabaseUrl: supabaseUrl!, 
+    serviceRoleKey: serviceRoleKey! 
+  };
 }
