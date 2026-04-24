@@ -67,6 +67,26 @@ The active app runtime no longer depends on Firebase. Legacy Firebase files may 
 - **Accent:** Teal (#1AA3A3)
 - **Typography:** Inter (UI), Source Code Pro (Data).
 
+## 🛠 Developer Setup & Authentication
+
+### CLI Authentication
+If you need to switch the Google account used in the terminal (for Genkit or Google Cloud tools):
+
+1. **Switch Account:**
+   ```bash
+   gcloud auth login --no-launch-browser
+   ```
+2. **Update Application Default Credentials (ADC):**
+   ```bash
+   gcloud auth application-default login --no-launch-browser
+   ```
+
+### Gemini API Key
+For local AI development with Genkit, ensure your `.env` file has a valid key:
+```bash
+GOOGLE_GENAI_API_KEY=your_key_here
+```
+
 ## Security Checks
 
 Run repository secret-pattern scan before release:
