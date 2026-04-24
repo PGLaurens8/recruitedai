@@ -22,7 +22,7 @@ CareerCraft AI is a dual-purpose platform designed to serve both job seekers (Ca
 
 ## 🛠 Technical Stack
 - **Frontend:** Next.js 15, React, Tailwind CSS, ShadCN UI.
-- **AI Engine:** Genkit v1.x with `@genkit-ai/google-genai` (Gemini 1.5 Pro).
+- **AI Engine:** Genkit v1.x with `@genkit-ai/google-genai` (Gemini 2.5 Flash).
 - **Backend modes:** `supabase` (primary), `mock` (lightweight local/demo auth).
 - **Automation:** 12+ specialized AI Flows for text extraction, sourcing, and analysis.
 
@@ -67,18 +67,20 @@ The active app runtime no longer depends on Firebase. Legacy Firebase files may 
 - **Accent:** Teal (#1AA3A3)
 - **Typography:** Inter (UI), Source Code Pro (Data).
 
-## 🛠 Developer Setup & Authentication
+## 🛠 Developer Setup & AI Workflow
+
+### AI Usage: Prototyper vs. CLI
+- **App Prototyper (Chat):** Use this for building UI, connecting databases, and architecting new AI features. It has full context of your files and can apply code changes directly.
+- **Gemini/Genkit CLI:** Use this in the terminal for **testing specific flows** (`npm run genkit:dev`), batch processing data, or debugging raw model responses without UI overhead.
 
 ### Switching Google Accounts in CLI
-If you need to switch the Google account used in the terminal (e.g., from personal to your **Google Business Standard** account) to use Genkit or Google Cloud tools:
+If you need to switch the Google account used in the terminal (e.g., from personal to your **Google Business Standard** account) to leverage your business tier limits:
 
 1. **Log in with your Business Account:**
-   Run this and follow the link in a browser where your business account is active:
    ```bash
    gcloud auth login --no-launch-browser
    ```
 2. **Update Application Default Credentials (ADC):**
-   This ensures that the AI SDKs use your business account credentials:
    ```bash
    gcloud auth application-default login --no-launch-browser
    ```
