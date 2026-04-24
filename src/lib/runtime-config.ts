@@ -39,19 +39,19 @@ export function validateRuntimeConfig(): RuntimeValidationResult {
     errors.push('NEXT_PUBLIC_RUNTIME_MODE must be "supabase" in production environments.');
   }
 
+  const hasUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const hasKey = Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+
   if (mode === 'supabase' || (isProduction && !mode)) {
-    const hasUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
-    const hasKey = Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-    
     if (!hasUrl || !hasKey) {
       const missing = [];
       if (!hasUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
       if (!hasKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
       
-      const errorMessage = `Missing required Supabase variables: ${missing.join(', ')}.`;
+      const errorMessage = `Missing Supabase variables: ${missing.join(', ')}.`;
       
       if (isProduction) {
-        errors.push(errorMessage + " Ensure they are set in Vercel and trigger a REDEPLOY.");
+        errors.push(errorMessage + " These must be set in Vercel followed by a REDEPLOY.");
       } else {
         warnings.push(errorMessage);
       }
@@ -70,8 +70,7 @@ export function getSupabasePublicEnv(): {
   supabaseUrl: string;
   supabaseAnonKey: string;
 } {
-  // We use direct literals here. Next.js replaces these with strings during the build.
-  // If they are missing in the browser, it means the build was performed without them.
+  // Use direct literals for Next.js static replacement
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -81,8 +80,8 @@ export function getSupabasePublicEnv(): {
     if (!key) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
     
     throw new Error(
-      `Missing Supabase public env vars: ${missing.join(', ')}. ` +
-      `If you are on Vercel, ensure these are set in the dashboard and REDEPLOY the latest commit.`
+      `Supabase environment variables are missing (${missing.join(', ')}). ` +
+      `Ensure they are set in your provider (e.g. Vercel) and that you have triggered a NEW DEPLOYMENT after saving them.`
     );
   }
 

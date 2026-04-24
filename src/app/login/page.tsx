@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { AlertTriangle, Briefcase } from "lucide-react";
+import { AlertTriangle, Briefcase, RefreshCw } from "lucide-react";
 
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +47,8 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authConfigError) return;
+    
     setIsSubmitting(true);
     try {
       await login(email, password);
@@ -76,10 +78,20 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {authConfigError && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="bg-destructive/10 border-destructive/20">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Authentication is misconfigured</AlertTitle>
-              <AlertDescription>{authConfigError}</AlertDescription>
+              <AlertTitle>System Configuration Error</AlertTitle>
+              <AlertDescription className="text-xs space-y-2">
+                <p>{authConfigError}</p>
+                <div className="pt-2 border-t border-destructive/10">
+                  <p className="font-bold">Troubleshooting:</p>
+                  <ol className="list-decimal pl-4 mt-1 space-y-1">
+                    <li>Verify variables in your host (Vercel) settings.</li>
+                    <li>Ensure <strong>NEXT_PUBLIC_RUNTIME_MODE</strong> is "supabase".</li>
+                    <li><strong>Crucial:</strong> Trigger a manual "Redeploy" in Vercel to apply the changes.</li>
+                  </ol>
+                </div>
+              </AlertDescription>
             </Alert>
           )}
 
@@ -100,6 +112,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={!!authConfigError}
               />
             </div>
             <div className="space-y-2">
@@ -116,9 +129,11 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={!!authConfigError}
               />
             </div>
             <Button type="submit" className="w-full" disabled={isSubmitting || !!authConfigError}>
+              {isSubmitting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isSubmitting ? "Signing In..." : "Log In"}
             </Button>
           </form>
