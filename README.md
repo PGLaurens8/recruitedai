@@ -69,23 +69,28 @@ The active app runtime no longer depends on Firebase. Legacy Firebase files may 
 
 ## 🛠 Developer Setup & Authentication
 
-### CLI Authentication
-If you need to switch the Google account used in the terminal (for Genkit or Google Cloud tools):
+### Switching Google Accounts in CLI
+If you need to switch the Google account used in the terminal (e.g., from personal to your **Google Business Standard** account) to use Genkit or Google Cloud tools:
 
-1. **Switch Account:**
+1. **Log in with your Business Account:**
+   Run this and follow the link in a browser where your business account is active:
    ```bash
    gcloud auth login --no-launch-browser
    ```
 2. **Update Application Default Credentials (ADC):**
+   This ensures that the AI SDKs use your business account credentials:
    ```bash
    gcloud auth application-default login --no-launch-browser
    ```
 
 ### Gemini API Key
-For local AI development with Genkit, ensure your `.env` file has a valid key:
-```bash
-GOOGLE_GENAI_API_KEY=your_key_here
-```
+If you prefer using an API key from your business account's Google AI Studio:
+1. Go to [Google AI Studio](https://aistudio.google.com/).
+2. Create an API key under your business account.
+3. Update your `.env` file:
+   ```bash
+   GOOGLE_GENAI_API_KEY=your_business_account_key_here
+   ```
 
 ## Security Checks
 
