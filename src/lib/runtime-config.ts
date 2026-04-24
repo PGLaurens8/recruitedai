@@ -15,10 +15,10 @@ function parseRuntimeMode(value: string | undefined): RuntimeMode | null {
   return null;
 }
 
-export function validateRuntimeConfig(env: NodeJS.ProcessEnv = process.env): RuntimeValidationResult {
-  // Use literals for NEXT_PUBLIC vars to ensure Next.js static replacement in browser bundles
-  const modeVal = env === process.env ? process.env.NEXT_PUBLIC_RUNTIME_MODE : env.NEXT_PUBLIC_RUNTIME_MODE;
-  const nodeEnv = env === process.env ? process.env.NODE_ENV : env.NODE_ENV;
+export function validateRuntimeConfig(): RuntimeValidationResult {
+  // Use direct literals for NEXT_PUBLIC vars to ensure Next.js static replacement
+  const modeVal = process.env.NEXT_PUBLIC_RUNTIME_MODE;
+  const nodeEnv = process.env.NODE_ENV;
   
   const mode = parseRuntimeMode(modeVal);
   const isProduction = nodeEnv === 'production';
@@ -38,8 +38,8 @@ export function validateRuntimeConfig(env: NodeJS.ProcessEnv = process.env): Run
   }
 
   if (mode === 'supabase') {
-    const url = env === process.env ? process.env.NEXT_PUBLIC_SUPABASE_URL : env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = env === process.env ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY : env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     
     if (!url || !key) {
       if (isProduction) {
@@ -60,72 +60,56 @@ export function validateRuntimeConfig(env: NodeJS.ProcessEnv = process.env): Run
   };
 }
 
-export function getSupabasePublicEnv(env: NodeJS.ProcessEnv = process.env): {
+export function getSupabasePublicEnv(): {
   supabaseUrl: string;
   supabaseAnonKey: string;
 } {
-  // Prioritize literal access for client-side static replacement
-  let supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  let supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Prioritize direct literal access for client-side static replacement
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Fallback to argument for non-standard environments or tests
-  if (env !== process.env) {
-    supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
-    supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  }
-
-  const missing: string[] = [];
-  if (!supabaseUrl) {
-    missing.push('NEXT_PUBLIC_SUPABASE_URL');
-  }
-  if (!supabaseAnonKey) {
-    missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
-  }
-
-  if (missing.length > 0) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    const missing = [];
+    if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
+    if (!supabaseAnonKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
     throw new Error(`Missing Supabase public env vars: ${missing.join(', ')}`);
   }
 
   return { 
-    supabaseUrl: supabaseUrl!, 
-    supabaseAnonKey: supabaseAnonKey! 
+    supabaseUrl, 
+    supabaseAnonKey 
   };
 }
 
-export function getSupabasePublicEnvError(env: NodeJS.ProcessEnv = process.env): string | null {
+export function getSupabasePublicEnvError(): string | null {
   try {
-    getSupabasePublicEnv(env);
+    getSupabasePublicEnv();
     return null;
   } catch (error) {
     return error instanceof Error ? error.message : 'Supabase environment variables are missing.';
   }
 }
 
-export function hasSupabasePublicEnv(env: NodeJS.ProcessEnv = process.env): boolean {
-  return getSupabasePublicEnvError(env) == null;
+export function hasSupabasePublicEnv(): boolean {
+  return getSupabasePublicEnvError() == null;
 }
 
-export function getSupabaseServiceEnv(env: NodeJS.ProcessEnv = process.env): {
+export function getSupabaseServiceEnv(): {
   supabaseUrl: string;
   serviceRoleKey: string;
 } {
-  const supabaseUrl = env === process.env ? process.env.NEXT_PUBLIC_SUPABASE_URL : env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = env === process.env ? process.env.SUPABASE_SERVICE_ROLE_KEY : env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const missing: string[] = [];
-  if (!supabaseUrl) {
-    missing.push('NEXT_PUBLIC_SUPABASE_URL');
-  }
-  if (!serviceRoleKey) {
-    missing.push('SUPABASE_SERVICE_ROLE_KEY');
-  }
-
-  if (missing.length > 0) {
+  if (!supabaseUrl || !serviceRoleKey) {
+    const missing = [];
+    if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
+    if (!serviceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
     throw new Error(`Missing Supabase server env vars: ${missing.join(', ')}`);
   }
 
   return { 
-    supabaseUrl: supabaseUrl!, 
-    serviceRoleKey: serviceRoleKey! 
+    supabaseUrl, 
+    serviceRoleKey 
   };
 }

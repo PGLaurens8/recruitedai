@@ -7,9 +7,8 @@ let browserClient: ReturnType<typeof createBrowserClient> | null = null;
 
 export function createSupabaseBrowserClient() {
   if (!browserClient) {
-    const { supabaseUrl, supabaseAnonKey } = getSupabasePublicEnv();
-
-    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+    const config = getSupabasePublicEnv();
+    browserClient = createBrowserClient(config.supabaseUrl, config.supabaseAnonKey);
   }
 
   return browserClient;

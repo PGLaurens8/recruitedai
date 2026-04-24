@@ -44,12 +44,11 @@ export async function middleware(request: NextRequest) {
 
   const isPublic = isPublicPath(pathname);
 
-  let supabaseUrl: string;
-  let supabaseAnonKey: string;
+  // Declare variables that will hold the validated config
+  let config: ReturnType<typeof getSupabasePublicEnv>;
+  
   try {
-    const config = getSupabasePublicEnv();
-    supabaseUrl = config.supabaseUrl;
-    supabaseAnonKey = config.supabaseAnonKey;
+    config = getSupabasePublicEnv();
   } catch {
     if (process.env.NODE_ENV === "production") {
       return new NextResponse(
@@ -64,7 +63,7 @@ export async function middleware(request: NextRequest) {
     request,
   });
 
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createServerClient(config.supabaseUrl, config.supabaseAnonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();

@@ -4,9 +4,9 @@ import { getSupabasePublicEnv } from '@/lib/runtime-config';
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
-  const { supabaseUrl, supabaseAnonKey } = getSupabasePublicEnv();
+  const config = getSupabasePublicEnv();
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
+  return createServerClient(config.supabaseUrl, config.supabaseAnonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
