@@ -45,13 +45,15 @@ export default function LoginPage() {
     }
   }, [statusMessage, toast]);
 
+  const redirectTo = searchParams?.get("redirectTo") ?? undefined;
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (authConfigError) return;
-    
+
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      await login(email, password, redirectTo);
     } catch (error: any) {
       toast({
         variant: "destructive",

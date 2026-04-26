@@ -91,6 +91,7 @@ const navGroups: NavGroup[] = [
     title: 'System',
     roles: ['Admin', 'Developer'],
     links: [
+       { href: '/team', label: 'Team Management', icon: React.createElement(Users, { size: 18 }), roles: ['Admin', 'Developer'] },
        { href: '/settings', label: 'System Settings', icon: React.createElement(Settings, { size: 18 }), roles: ['Admin', 'Developer'] },
     ]
    }

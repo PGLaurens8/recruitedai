@@ -1,6 +1,6 @@
 import { type Role } from '@/lib/roles';
 
-export const publicPaths = ['/', '/login', '/signup', '/forgot-password', '/reset-password'] as const;
+export const publicPaths = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/invite'] as const;
 
 const rolePathRules: Array<{ prefix: string; roles: Role[] }> = [
   { prefix: '/dashboard/admin', roles: ['Admin', 'Developer', 'Recruiter', 'Sales'] },
@@ -21,6 +21,7 @@ const rolePathRules: Array<{ prefix: string; roles: Role[] }> = [
   { prefix: '/interview-prep', roles: ['Admin', 'Candidate', 'Recruiter', 'Developer'] },
   { prefix: '/reports', roles: ['Admin', 'Sales', 'Developer'] },
   { prefix: '/settings', roles: ['Admin', 'Developer'] },
+  { prefix: '/team', roles: ['Admin', 'Developer'] },
   { prefix: '/debug', roles: ['Admin', 'Developer'] },
 ];
 

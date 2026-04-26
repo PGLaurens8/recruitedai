@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import { useCandidates, useClients, useJobs } from "@/lib/data/hooks";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { UserPlus, Mic2, FilePlus2, Search } from "lucide-react";
 
 function formatAverageScore(values: number[]) {
@@ -64,50 +65,26 @@ export default function RecruiterDashboardPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Candidates</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">{isLoading ? "..." : metrics.totalCandidates}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Interviewing</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">{isLoading ? "..." : metrics.interviewingCandidates}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">{isLoading ? "..." : metrics.activeJobs}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Clients</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">{isLoading ? "..." : metrics.totalClients}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Average AI Score</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">{isLoading ? "..." : metrics.averageAiScore}</p>
-          </CardContent>
-        </Card>
+        {[
+          { label: "Candidates", value: metrics.totalCandidates },
+          { label: "Interviewing", value: metrics.interviewingCandidates },
+          { label: "Active Jobs", value: metrics.activeJobs },
+          { label: "Clients", value: metrics.totalClients },
+          { label: "Avg AI Score", value: metrics.averageAiScore },
+        ].map(({ label, value }) => (
+          <Card key={label}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">{label}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-9 w-16" />
+              ) : (
+                <p className="text-3xl font-semibold">{value}</p>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -147,7 +124,14 @@ export default function RecruiterDashboardPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading candidates...</p>
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-md border px-3 py-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                ))}
+              </div>
             ) : metrics.recentCandidates.length === 0 ? (
               <p className="text-sm text-muted-foreground">No candidate records yet.</p>
             ) : (

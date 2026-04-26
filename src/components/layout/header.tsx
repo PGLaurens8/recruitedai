@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, Briefcase, LogOut, User, HelpCircle } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
@@ -32,8 +33,15 @@ export function Header() {
 
   const accessibleGroups = getNavLinksForRole(user.role);
 
+  const avatarInitials = user.name
+    ?.split(' ')
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase() || 'U';
+
   return (
-    <header className="flex h-16 items-center justify-between gap-4 border-b bg-background px-4 sticky top-0 z-50 md:justify-end">
+    <header className="flex h-16 items-center justify-between gap-4 border-b bg-background px-4 sticky top-0 z-50">
         <div className="md:hidden">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetTrigger asChild>
@@ -98,6 +106,19 @@ export function Header() {
                     </div>
                 </SheetContent>
             </Sheet>
+        </div>
+
+        {/* Desktop: user info on the right */}
+        <div className="hidden md:flex items-center gap-3 ml-auto">
+            <div className="text-right">
+                <p className="text-sm font-medium leading-none">{user.name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{user.role}</p>
+            </div>
+            <Link href="/profile">
+                <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-transparent hover:ring-primary/30 transition-all">
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">{avatarInitials}</AvatarFallback>
+                </Avatar>
+            </Link>
         </div>
     </header>
   );

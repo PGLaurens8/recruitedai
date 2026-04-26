@@ -27,12 +27,13 @@ interface SignupMetadata {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: AppUser | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, redirectTo?: string) => Promise<void>;
   signup: (
     email: string,
     password: string,
     name?: string,
-    metadata?: SignupMetadata
+    metadata?: SignupMetadata,
+    redirectTo?: string
   ) => Promise<{ requiresEmailConfirmation: boolean }>;
   logout: () => Promise<void>;
   isLoading: boolean;
@@ -104,10 +105,6 @@ function normalizeSupabaseUser(
   });
 }
 
-function handleRedirect(router: ReturnType<typeof useRouter>, role: Role) {
-  router.push(getDefaultRouteForRole(role));
-}
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -119,20 +116,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [runtimeMode]
   );
   const isSigningOutRef = useRef(false);
+  const pendingRedirectReasonRef = useRef<string | null>(null);
 
+  // Effect 1: Bootstrap auth state and subscribe to changes — runs once on mount.
+  // Intentionally excludes `pathname` so navigations don't tear down and recreate
+  // the Supabase subscription or re-trigger the profile fetch.
   useEffect(() => {
-    const pathIsPublic = isPublicPath(pathname);
-
     if (isMockMode()) {
       const raw = window.localStorage.getItem(MOCK_STORAGE_KEY);
-
       if (raw) {
         try {
-          const nextUser = JSON.parse(raw) as AppUser;
-          setUser(nextUser);
-          if (pathIsPublic) {
-            handleRedirect(router, nextUser.role);
-          }
+          setUser(JSON.parse(raw) as AppUser);
         } catch {
           window.localStorage.removeItem(MOCK_STORAGE_KEY);
           setUser(null);
@@ -140,12 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setUser(null);
       }
-
       setIsLoading(false);
-      if (raw == null && pathIsPublic === false) {
-        const params = new URLSearchParams({ redirectTo: pathname });
-        router.push(`/login?${params.toString()}`);
-      }
       return;
     }
 
@@ -161,37 +150,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const bootstrap = async () => {
         try {
+          // Use getUser() (server-validated) rather than getSession() (local cache only).
           const {
-            data: { session },
-          } = await supabase.auth.getSession();
+            data: { user: authUser },
+          } = await supabase.auth.getUser();
 
-          if (session?.user == null) {
+          if (authUser == null) {
             setUser(null);
-            if (pathIsPublic === false) {
-              const params = new URLSearchParams({ redirectTo: pathname });
-              router.push(`/login?${params.toString()}`);
-            }
-
             setIsLoading(false);
             return;
           }
 
-          const profile = await loadSupabaseProfile(session.user.id);
-          const nextUser = normalizeSupabaseUser(session.user, profile);
-
-          setUser(nextUser);
-          if (pathIsPublic) {
-            handleRedirect(router, nextUser.role);
-          }
+          const profile = await loadSupabaseProfile(authUser.id);
+          setUser(normalizeSupabaseUser(authUser, profile));
           setIsLoading(false);
         } catch (error) {
           console.error("Failed to bootstrap Supabase session.", error);
           setUser(null);
           setIsLoading(false);
-          if (pathIsPublic === false) {
-            const params = new URLSearchParams({ redirectTo: pathname, reason: "session-expired" });
-            router.push(`/login?${params.toString()}`);
-          }
         }
       };
 
@@ -201,22 +177,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((event, session) => {
         if (session?.user == null) {
-          setUser(null);
-          if (isPublicPath(pathname) === false && isSigningOutRef.current === false) {
-            const reason = event === "SIGNED_OUT" ? null : "session-expired";
-            const params = new URLSearchParams({ redirectTo: pathname });
-            if (reason) {
-              params.set("reason", reason);
-            }
-            router.push(`/login?${params.toString()}`);
+          if (event !== "SIGNED_OUT" && !isSigningOutRef.current) {
+            pendingRedirectReasonRef.current = "session-expired";
           }
+          setUser(null);
           return;
         }
 
         void loadSupabaseProfile(session.user.id)
           .then((profile) => {
-            const nextUser = normalizeSupabaseUser(session.user, profile);
-            setUser(nextUser);
+            setUser(normalizeSupabaseUser(session.user, profile));
           })
           .catch((error) => {
             console.error("Failed to refresh Supabase profile.", error);
@@ -229,14 +199,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setUser(null);
     setIsLoading(false);
-    if (pathIsPublic === false) {
+  }, [authConfigError]);
+
+  // Effect 2: Handle redirects based on current auth state and path.
+  // Separated from Effect 1 so navigations don't restart the subscription.
+  useEffect(() => {
+    if (isLoading) return;
+
+    const pathIsPublic = isPublicPath(pathname);
+
+    if (user != null) {
+      if (pathIsPublic) {
+        router.push(getDefaultRouteForRole(user.role));
+      }
+    } else if (!pathIsPublic && !isSigningOutRef.current) {
       const params = new URLSearchParams({ redirectTo: pathname });
+      const reason = pendingRedirectReasonRef.current;
+      if (reason) {
+        params.set("reason", reason);
+        pendingRedirectReasonRef.current = null;
+      }
       router.push(`/login?${params.toString()}`);
     }
-    return;
-  }, [authConfigError, pathname, router, runtimeMode]);
+  }, [isLoading, user, pathname, router]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, redirectTo?: string) => {
     if (isMockMode()) {
       const isDemoLogin = email.trim().toLowerCase() === MOCK_DEMO_EMAIL && password === MOCK_DEMO_PASSWORD;
       const nextUser = normalizeUser({
@@ -249,7 +236,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       window.localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(nextUser));
       setUser(nextUser);
-      handleRedirect(router, nextUser.role);
+      router.push(redirectTo || getDefaultRouteForRole(nextUser.role));
       return;
     }
 
@@ -272,7 +259,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const profile = await loadSupabaseProfile(data.user.id);
       const nextUser = normalizeSupabaseUser(data.user, profile);
       setUser(nextUser);
-      handleRedirect(router, nextUser.role);
+      router.push(redirectTo || getDefaultRouteForRole(nextUser.role));
       return;
     }
 
@@ -283,7 +270,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     email: string,
     password: string,
     name?: string,
-    metadata?: SignupMetadata
+    metadata?: SignupMetadata,
+    redirectTo?: string
   ) => {
     if (isMockMode()) {
       const nextUser = normalizeUser({
@@ -296,7 +284,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       window.localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(nextUser));
       setUser(nextUser);
-      handleRedirect(router, nextUser.role);
+      router.push(redirectTo || getDefaultRouteForRole(nextUser.role));
       return { requiresEmailConfirmation: false };
     }
 
@@ -333,7 +321,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (data.session?.user) {
         const nextUser = normalizeSupabaseUser(data.session.user, null);
         setUser(nextUser);
-        handleRedirect(router, nextUser.role);
+        router.push(redirectTo || getDefaultRouteForRole(nextUser.role));
         return { requiresEmailConfirmation: false };
       }
 
@@ -344,9 +332,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    setUser(null);
-
     if (isMockMode()) {
+      setUser(null);
       window.localStorage.removeItem(MOCK_STORAGE_KEY);
       router.push("/");
       return;
@@ -357,7 +344,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(authConfigError);
       }
 
+      // Set ref before setUser so Effect 2 sees it and skips the login redirect.
       isSigningOutRef.current = true;
+      setUser(null);
       try {
         const supabase = createSupabaseBrowserClient();
         const { error } = await supabase.auth.signOut();

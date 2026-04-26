@@ -6,12 +6,22 @@ import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowDown, ArrowUp, ArrowUpDown, Eye, FilePenLine, Plus, Search, Star, Trash2, Upload } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ArrowDown, ArrowUp, ArrowUpDown, Eye, Plus, Search, Star, Trash2, Upload } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/context/auth-context";
 import { removeCandidate, useCandidates, useCurrentProfile } from "@/lib/data/hooks";
@@ -40,6 +50,9 @@ function CandidatesPageContent() {
   const { user } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
   const [sortConfig, setSortConfig] = useState<{ key: CandidateKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
@@ -47,23 +60,34 @@ function CandidatesPageContent() {
 
   const sortedCandidates = useMemo(() => {
     if (!candidates) return [];
-    let sortableItems = [...candidates];
+    let items = [...candidates];
+
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      items = items.filter(
+        (c) =>
+          c.name?.toLowerCase().includes(term) ||
+          c.email?.toLowerCase().includes(term) ||
+          c.currentJob?.toLowerCase().includes(term) ||
+          c.currentCompany?.toLowerCase().includes(term)
+      );
+    }
+
+    if (statusFilter !== "all") {
+      items = items.filter((c) => c.status?.toLowerCase() === statusFilter);
+    }
+
     if (sortConfig.key) {
-      sortableItems.sort((a, b) => {
+      items.sort((a, b) => {
         const aValue = a[sortConfig.key!] || "";
         const bValue = b[sortConfig.key!] || "";
-
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
-    return sortableItems;
-  }, [candidates, sortConfig]);
+    return items;
+  }, [candidates, sortConfig, searchTerm, statusFilter]);
 
   const requestSort = (key: CandidateKey) => {
     let direction: 'asc' | 'desc' = 'desc';
@@ -87,21 +111,17 @@ function CandidatesPageContent() {
     );
   };
 
-  const handleDelete = (candidateId: string) => {
-    if (!companyId || !confirm("Are you sure you want to delete this candidate?")) return;
-    void removeCandidate(companyId, candidateId).then(() => {
-      setRefreshKey((current) => current + 1);
-    });
+  const confirmDelete = (candidateId: string) => {
+    setPendingDeleteId(candidateId);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12">
-        <Spinner size={48} className="text-primary mb-4" />
-        <p className="text-muted-foreground">Loading candidates...</p>
-      </div>
-    );
-  }
+  const handleDelete = () => {
+    if (!companyId || !pendingDeleteId) return;
+    void removeCandidate(companyId, pendingDeleteId).then(() => {
+      setRefreshKey((current) => current + 1);
+    });
+    setPendingDeleteId(null);
+  };
 
   return (
     <div className="space-y-8">
@@ -112,66 +132,82 @@ function CandidatesPageContent() {
         </p>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by name..." className="pl-9 w-64" />
+            <Input
+              placeholder="Search candidates..."
+              className="pl-9 w-64"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <Select>
-            <SelectTrigger className="w-[180px]">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="sourced">Sourced</SelectItem>
               <SelectItem value="applied">Applied</SelectItem>
               <SelectItem value="interviewing">Interviewing</SelectItem>
               <SelectItem value="offer">Offer</SelectItem>
               <SelectItem value="hired">Hired</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline"><Upload className="mr-2 h-4 w-4" /> Bulk Import</Button>
-          <Button asChild><Link href="/ai-parser"><Plus className="mr-2 h-4 w-4" /> Add Candidate</Link></Button>
+          <Button asChild>
+            <Link href="/ai-parser"><Plus className="mr-2 h-4 w-4" /> Add Candidate</Link>
+          </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>All Candidates ({sortedCandidates.length})</CardTitle>
+          <CardTitle>
+            {isLoading ? "Candidates" : `All Candidates (${sortedCandidates.length})`}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[50px]">
-                  <Checkbox />
-                </TableHead>
                 <SortableTableHeader sortKey="name">Candidate</SortableTableHeader>
                 <SortableTableHeader sortKey="status">Status</SortableTableHeader>
                 <SortableTableHeader sortKey="aiScore">AI Score</SortableTableHeader>
                 <SortableTableHeader sortKey="currentJob">Current Job / Company</SortableTableHeader>
-                <TableHead className="w-[120px] text-left pl-4">Actions</TableHead>
+                <TableHead className="w-[100px] text-left pl-4">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedCandidates.length === 0 ? (
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><div className="flex items-center gap-3"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-1"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-24" /></div></div></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-16" /></TableCell>
+                  </TableRow>
+                ))
+              ) : sortedCandidates.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                    No candidates found. Use the Smart Parser to add your first candidate.
+                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                    {searchTerm || statusFilter !== "all"
+                      ? "No candidates match your filters."
+                      : "No candidates yet. Use the Smart Parser to add your first candidate."}
                   </TableCell>
                 </TableRow>
               ) : (
                 sortedCandidates.map((candidate) => (
                   <TableRow key={candidate.id}>
                     <TableCell>
-                      <Checkbox />
-                    </TableCell>
-                    <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarImage src={candidate.avatar} data-ai-hint="person portrait"/>
+                          <AvatarImage src={candidate.avatar} data-ai-hint="person portrait" />
                           <AvatarFallback>{candidate.name?.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                         </Avatar>
                         <div>
@@ -184,21 +220,25 @@ function CandidatesPageContent() {
                       <Badge variant="outline" className={getStatusBadgeVariant(candidate.status)}>{candidate.status}</Badge>
                     </TableCell>
                     <TableCell>
+                      {candidate.aiScore != null ? (
+                        <div className="flex items-center gap-1">
+                          <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />
+                          <span className="font-semibold">{candidate.aiScore}%</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">N/A</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <p className="font-medium">{candidate.currentJob || "—"}</p>
+                      <p className="text-sm text-muted-foreground">{candidate.currentCompany || ""}</p>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />
-                        <span className="font-semibold">{candidate.aiScore || 0}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium">{candidate.currentJob || "N/A"}</p>
-                      <p className="text-sm text-muted-foreground">{candidate.currentCompany || "N/A"}</p>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
                         <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
                           <Link href={`/candidates/${candidate.id}`}><Eye className="h-4 w-4" /></Link>
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(candidate.id)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => confirmDelete(candidate.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -210,14 +250,31 @@ function CandidatesPageContent() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={pendingDeleteId !== null} onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Candidate</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this candidate from your pipeline. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
 export default function CandidatesPage() {
-    return (
-        <Suspense fallback={<div>Loading...</div>}>
-            <CandidatesPageContent />
-        </Suspense>
-    )
+  return (
+    <Suspense fallback={<div className="flex justify-center p-12"><Spinner size={48} /></div>}>
+      <CandidatesPageContent />
+    </Suspense>
+  );
 }

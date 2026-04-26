@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,9 +22,11 @@ import { useToast } from '@/hooks/use-toast';
 
 type AccountType = 'personal' | 'company';
 
-export default function SignupPage() {
+function SignupForm() {
   const { signup, authConfigError } = useAuth();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams?.get('redirectTo') ?? undefined;
   const [accountType, setAccountType] = useState<AccountType>('personal');
   const [companyName, setCompanyName] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -42,7 +45,7 @@ export default function SignupPage() {
         companyName: accountType === 'company' ? companyName.trim() : undefined,
         firstName: firstName.trim() || undefined,
         lastName: lastName.trim() || undefined,
-      });
+      }, redirectTo);
       if (result.requiresEmailConfirmation) {
         toast({
           title: 'Confirm your email',
@@ -156,7 +159,7 @@ export default function SignupPage() {
                 </form>
                 <div className="mt-4 text-center text-sm">
                   Already have an account?{" "}
-                  <Link href="/" className="underline">
+                  <Link href="/login" className="underline">
                       Sign in
                   </Link>
                 </div>
@@ -170,4 +173,12 @@ export default function SignupPage() {
       </div>
     </div>
   )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
+  );
 }

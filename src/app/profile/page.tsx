@@ -110,14 +110,13 @@ export default function ProfilePage() {
             <Card className="lg:col-span-1">
               <CardHeader className="items-center text-center">
                 <Avatar className="h-24 w-24 mb-4">
-                  <AvatarImage src={`https://placehold.co/128x128.png`} data-ai-hint="profile picture" />
                   <AvatarFallback className="text-3xl">{avatarFallback}</AvatarFallback>
                 </Avatar>
                 <CardTitle>{user.name}</CardTitle>
                 <Badge variant="secondary" className="capitalize mt-1">{user.role}</Badge>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground text-center">
-                <p>Member since Feb 2026</p>
+                <p>{user.email}</p>
               </CardContent>
             </Card>
             <Card className="lg:col-span-2">

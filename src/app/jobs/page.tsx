@@ -4,13 +4,11 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, Eye, Plus, Search, X, ArrowUp, ArrowDown, ArrowUpDown, Mic2 } from "lucide-react";
-import { Spinner } from '@/components/ui/spinner';
+import { Eye, Plus, Search, ArrowUp, ArrowDown, ArrowUpDown, Mic2 } from "lucide-react";
 import { useAuth } from '@/context/auth-context';
 import { useCurrentProfile, useJobs } from '@/lib/data/hooks';
 import type { JobRecord } from '@/lib/data/types';
@@ -82,120 +80,98 @@ export default function JobsPage() {
     );
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12">
-        <Spinner size={48} className="text-primary mb-4" />
-        <p className="text-muted-foreground">Loading job data...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-              <h1 className="text-3xl font-bold tracking-tight">Job Management</h1>
-              <p className="mt-1 text-muted-foreground">
-              Manage job specifications and create AI-powered job postings.
-              </p>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-              <Button variant="outline" className="flex-1 sm:flex-none" asChild>
-                <Link href="/jobs/new">
-                  <Mic2 className="mr-2 h-4 w-4" /> AI Brief Builder
-                </Link>
-              </Button>
-              <Button className="flex-1 sm:flex-none" asChild>
-                <Link href="/jobs/new">
-                  <Plus className="mr-2 h-4 w-4" /> Create Posting
-                </Link>
-              </Button>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Job Management</h1>
+          <p className="mt-1 text-muted-foreground">
+            Manage and create AI-powered job postings.
+          </p>
+        </div>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="flex-1 sm:flex-none" asChild>
+            <Link href="/jobs/new">
+              <Mic2 className="mr-2 h-4 w-4" /> AI Brief Builder
+            </Link>
+          </Button>
+          <Button className="flex-1 sm:flex-none" asChild>
+            <Link href="/jobs/new">
+              <Plus className="mr-2 h-4 w-4" /> New Job
+            </Link>
+          </Button>
+        </div>
       </div>
-      
-      <Tabs defaultValue="postings" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="specifications">Job Specifications</TabsTrigger>
-            <TabsTrigger value="postings">Job Postings</TabsTrigger>
-        </TabsList>
 
-        <TabsContent value="postings" className="mt-6">
-            <Card>
-                <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                        <CardTitle>All Job Postings ({sortedJobs.length})</CardTitle>
-                        <CardDescription>
-                            View and manage all active, pending, and closed job postings.
-                        </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Search postings..." className="pl-9 w-full md:w-64" />
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                            <SortableTableHeader sortKey="title">Job Details</SortableTableHeader>
-                            <SortableTableHeader sortKey="status">Status</SortableTableHeader>
-                            <SortableTableHeader sortKey="approval">Approval</SortableTableHeader>
-                            <SortableTableHeader sortKey="candidates">Candidates</SortableTableHeader>
-                            <TableHead className="w-[120px]">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sortedJobs.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">No job postings found.</TableCell>
-                                </TableRow>
-                            ) : (
-                                sortedJobs.map((job) => (
-                                <TableRow key={job.id}>
-                                    <TableCell>
-                                    <p className="font-medium">{job.title}</p>
-                                    <p className="text-sm text-green-600 font-semibold">{job.salary}</p>
-                                    <p className="text-xs text-muted-foreground">{job.location}</p>
-                                    </TableCell>
-                                    <TableCell>
-                                    <Badge variant="outline" className={getStatusBadgeClass(job.status) + " capitalize"}>{job.status}</Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                    <Badge variant="outline" className={getApprovalBadgeClass(job.approval) + " capitalize"}>{job.approval}</Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                    <p className="font-medium">{job.candidates || 0}</p>
-                                    <p className="text-sm text-muted-foreground">applied</p>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                            {job.approval === 'pending' && (
-                                                <>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:text-green-700">
-                                                        <Check className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700">
-                                                        <X className="h-4 w-4" />
-                                                    </Button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-        </TabsContent>
-      </Tabs>
+      <Card>
+        <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <CardTitle>{isLoading ? "Job Postings" : `All Job Postings (${sortedJobs.length})`}</CardTitle>
+            <CardDescription>View and manage all active, pending, and closed job postings.</CardDescription>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search postings..." className="pl-9 w-full md:w-64" />
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <SortableTableHeader sortKey="title">Job Details</SortableTableHeader>
+                <SortableTableHeader sortKey="status">Status</SortableTableHeader>
+                <SortableTableHeader sortKey="approval">Approval</SortableTableHeader>
+                <SortableTableHeader sortKey="candidates">Candidates</SortableTableHeader>
+                <TableHead className="w-[80px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8" /></TableCell>
+                  </TableRow>
+                ))
+              ) : sortedJobs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                    No job postings yet. Create your first posting above.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                sortedJobs.map((job) => (
+                  <TableRow key={job.id}>
+                    <TableCell>
+                      <p className="font-medium">{job.title}</p>
+                      {job.salary && <p className="text-sm text-green-600 font-semibold">{job.salary}</p>}
+                      {job.location && <p className="text-xs text-muted-foreground">{job.location}</p>}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={getStatusBadgeClass(job.status) + " capitalize"}>{job.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={getApprovalBadgeClass(job.approval) + " capitalize"}>{job.approval}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <p className="font-medium">{job.candidates ?? 0}</p>
+                      <p className="text-sm text-muted-foreground">applied</p>
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                        <Link href={`/jobs/${job.id}`}><Eye className="h-4 w-4" /></Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

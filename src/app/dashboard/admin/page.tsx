@@ -1,202 +1,135 @@
-import { Badge } from "@/components/ui/badge";
+"use client";
+
+import { useMemo } from "react";
+import Link from "next/link";
+import { useAuth } from "@/context/auth-context";
+import { useCandidates, useClients, useJobs } from "@/lib/data/hooks";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users,
   Briefcase,
   Building,
   Star,
-  Clock,
-  CheckCircle,
-  Mail,
-  TrendingUp,
   UserPlus,
-  FilePlus,
-  Send,
+  Mic2,
   Contact,
-  Mic2
 } from "lucide-react";
-import Link from "next/link";
-
-const statCards = [
-  {
-    title: "Active Candidates",
-    value: "1,247",
-    change: "+12%",
-    icon: <Users className="h-5 w-5 text-blue-500" />,
-    iconBg: "bg-blue-100",
-  },
-  {
-    title: "Open Positions",
-    value: "89",
-    change: "+8%",
-    icon: <Briefcase className="h-5 w-5 text-green-500" />,
-    iconBg: "bg-green-100",
-  },
-  {
-    title: "Active Clients",
-    value: "156",
-    change: "+15%",
-    icon: <Contact className="h-5 w-5 text-purple-500" />,
-    iconBg: "bg-purple-100",
-  },
-  {
-    title: "Placements This Month",
-    value: "23",
-    change: "+25%",
-    icon: <TrendingUp className="h-5 w-5 text-orange-500" />,
-    iconBg: "bg-orange-100",
-  },
-];
-
-const matchingPipeline = [
-  {
-    title: "Senior Developer - TechCorp",
-    match: 98,
-    color: "bg-green-500",
-  },
-  {
-    title: "Marketing Manager - StartupXYZ",
-    match: 85,
-    color: "bg-blue-500",
-  },
-  {
-    title: "Data Scientist - BigTech",
-    match: 78,
-    color: "bg-purple-500",
-  },
-  {
-    title: "DevOps Engineer - CloudTech",
-    match: 72,
-    color: "bg-orange-500",
-  },
-];
-
-const recentActivity = [
-    {
-        icon: <Star className="h-5 w-5 text-yellow-500" />,
-        title: "High match found for Senior Developer",
-        description: "Candidate: Sarah Johnson",
-        time: "2 hours ago",
-        match: 92
-    },
-    {
-        icon: <CheckCircle className="h-5 w-5 text-green-500" />,
-        title: "Job posting approved",
-        description: "Marketing Manager at TechCorp",
-        time: "4 hours ago",
-    },
-    {
-        icon: <Mail className="h-5 w-5 text-blue-500" />,
-        title: "Automated follow-up sent",
-        description: "Candidate: Mike Chen",
-        time: "6 hours ago",
-    },
-    {
-        icon: <Star className="h-5 w-5 text-yellow-500" />,
-        title: "New candidate uploaded",
-        description: "Candidate: Alex Rodriguez",
-        time: "8 hours ago",
-        match: 87
-    }
-]
 
 export default function AdminDashboardPage() {
+  const { user } = useAuth();
+  const companyId = user?.companyId;
+
+  const candidatesState = useCandidates(companyId);
+  const jobsState = useJobs(companyId);
+  const clientsState = useClients(companyId);
+
+  const isLoading = candidatesState.isLoading || jobsState.isLoading || clientsState.isLoading;
+
+  const metrics = useMemo(() => {
+    const candidates = candidatesState.data || [];
+    const jobs = jobsState.data || [];
+    const clients = clientsState.data || [];
+    return {
+      totalCandidates: candidates.length,
+      activeJobs: jobs.filter((j) => String(j.status).toLowerCase() === "active").length,
+      totalClients: clients.length,
+      interviewing: candidates.filter((c) => c.status === "Interviewing").length,
+      recentCandidates: [...candidates]
+        .sort((a, b) => (a.name < b.name ? -1 : 1))
+        .slice(0, 5),
+    };
+  }, [candidatesState.data, jobsState.data, clientsState.data]);
+
+  const statCards = [
+    { title: "Total Candidates", value: metrics.totalCandidates, icon: <Users className="h-5 w-5 text-blue-500" />, iconBg: "bg-blue-100" },
+    { title: "Active Jobs", value: metrics.activeJobs, icon: <Briefcase className="h-5 w-5 text-green-500" />, iconBg: "bg-green-100" },
+    { title: "Active Clients", value: metrics.totalClients, icon: <Contact className="h-5 w-5 text-purple-500" />, iconBg: "bg-purple-100" },
+    { title: "Interviewing", value: metrics.interviewing, icon: <Star className="h-5 w-5 text-orange-500" />, iconBg: "bg-orange-100" },
+  ];
+
   return (
     <div className="space-y-8">
-      {/* Top Stats Cards */}
+      <div>
+        <h1 className="text-3xl font-bold">Agency Overview</h1>
+        <p className="text-muted-foreground">Live metrics for your recruitment agency.</p>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => (
           <Card key={card.title}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
               <div className={`flex items-center justify-center h-8 w-8 rounded-full ${card.iconBg}`}>
-                  {card.icon}
+                {card.icon}
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{card.value}</div>
-              <p className="text-xs text-green-500">{card.change}</p>
+              {isLoading ? (
+                <Skeleton className="h-9 w-16" />
+              ) : (
+                <div className="text-3xl font-bold">{card.value}</div>
+              )}
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* AI Matching Pipeline */}
-        <Card className="lg:col-span-2">
+      <div className="grid lg:grid-cols-2 gap-8">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <Star className="h-5 w-5 mr-2 text-primary" />
-              AI Matching Pipeline
-            </CardTitle>
+            <CardTitle>Recent Candidates</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {matchingPipeline.map((item) => (
-              <div key={item.title}>
-                <div className="flex justify-between items-center mb-1">
-                  <p className="text-sm font-medium">{item.title}</p>
-                  <span className="text-sm font-semibold text-primary">{item.match}% Match</span>
-                </div>
-                <Progress value={item.match} className="h-2" indicatorClassName={item.color} />
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-md border px-3 py-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                ))}
               </div>
-            ))}
+            ) : metrics.recentCandidates.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No candidates yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {metrics.recentCandidates.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                    <Link href={`/candidates/${c.id}`} className="font-medium hover:underline text-sm">{c.name}</Link>
+                    <span className="text-sm text-muted-foreground">{c.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
-           <CardFooter>
+          <CardFooter>
             <Button variant="outline" className="w-full" asChild>
-              <Link href="/candidates?sortBy=aiScore&order=desc">View All Matches</Link>
+              <Link href="/candidates">View All Candidates</Link>
             </Button>
           </CardFooter>
         </Card>
 
-        {/* Recent Activity */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <Clock className="h-5 w-5 mr-2 text-primary" />
-              Recent Activity
-            </CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {recentActivity.map((activity, index) => (
-                <div key={`${activity.title}-${index}`} className="flex items-start space-x-4">
-                    <div className="p-2 bg-muted rounded-full mt-1">
-                        {activity.icon}
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium">{activity.title}</p>
-                        <p className="text-sm text-muted-foreground">{activity.description}</p>
-                        {activity.match && <Badge variant="secondary" className="my-1"> {activity.match}% match </Badge>}
-                        <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
-                    </div>
-                </div>
-            ))}
+          <CardContent className="grid gap-3">
+            <Button className="w-full justify-start" variant="outline" asChild>
+              <Link href="/ai-parser"><UserPlus className="mr-2 h-4 w-4" /> Add Candidate via Smart Parser</Link>
+            </Button>
+            <Button className="w-full justify-start" variant="outline" asChild>
+              <Link href="/jobs/new"><Mic2 className="mr-2 h-4 w-4" /> AI Brief Builder</Link>
+            </Button>
+            <Button className="w-full justify-start" variant="outline" asChild>
+              <Link href="/clients"><Building className="mr-2 h-4 w-4" /> Manage Clients</Link>
+            </Button>
+            <Button className="w-full justify-start" variant="outline" asChild>
+              <Link href="/team"><Users className="mr-2 h-4 w-4" /> Team Management</Link>
+            </Button>
           </CardContent>
         </Card>
-      </div>
-
-       {/* Quick Actions */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <Button size="lg" className="w-full" asChild>
-              <Link href="/candidates">
-                <UserPlus className="mr-2 h-5 w-5"/> Add Candidate
-              </Link>
-            </Button>
-            <Button size="lg" variant="secondary" className="w-full" asChild>
-              <Link href="/jobs/new">
-                <Mic2 className="mr-2 h-5 w-5"/> AI Brief Builder
-              </Link>
-            </Button>
-            <Button size="lg" variant="secondary" className="w-full" asChild>
-              <Link href="/clients">
-                <Building className="mr-2 h-5 w-5"/> Add Client
-              </Link>
-            </Button>
-            <Button size="lg" variant="secondary" className="w-full"><Send className="mr-2 h-5 w-5"/> Send Message</Button>
-        </div>
       </div>
     </div>
   );

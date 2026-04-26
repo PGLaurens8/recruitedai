@@ -131,7 +131,6 @@ export async function createCompanyInvite(
       email: normalizedEmail,
       role,
       invited_by: actorUserId,
-      token: randomUUID(),
       token_hash: tokenHash,
       status: 'pending',
       expires_at: buildExpiresAt(expiresInDays),
