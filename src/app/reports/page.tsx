@@ -23,8 +23,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
-import { Users, Briefcase, DollarSign, Target, TrendingUp, UserCheck, Percent, Download, Calendar as CalendarIcon } from "lucide-react"
+import { Users, Briefcase, DollarSign, Target, TrendingUp, UserCheck, Percent, Download, Calendar as CalendarIcon, FlaskConical } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
@@ -214,6 +215,14 @@ export default function ReportsPage() {
           Track performance, monitor pipelines, and gain valuable insights.
         </p>
       </div>
+
+      <Alert className="border-amber-200 bg-amber-50">
+        <FlaskConical className="h-4 w-4 text-amber-600" />
+        <AlertTitle className="text-amber-800">Sample Data</AlertTitle>
+        <AlertDescription className="text-amber-700">
+          The charts and figures on this page use illustrative sample data. Live analytics connected to your actual pipeline are coming in a future update.
+        </AlertDescription>
+      </Alert>
 
       <Tabs defaultValue="recruiter" className="w-full">
         <TabsList className="grid w-full grid-cols-3">

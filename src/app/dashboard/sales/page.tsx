@@ -5,6 +5,10 @@ import { useMemo } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useCandidates, useClients, useJobs } from "@/lib/data/hooks";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Building, Users } from "lucide-react";
 
 export default function SalesDashboardPage() {
   const { user } = useAuth();
@@ -52,74 +56,80 @@ export default function SalesDashboardPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        {[
+          { label: "Clients", value: metrics.totalClients },
+          { label: "Active Clients", value: metrics.activeClients },
+          { label: "Active Jobs", value: metrics.activeJobs },
+          { label: "Pending Approvals", value: metrics.pendingApprovals },
+          { label: "Pipeline Candidates", value: metrics.activePipelineCandidates },
+        ].map(({ label, value }) => (
+          <Card key={label}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">{label}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-9 w-16" />
+              ) : (
+                <p className="text-3xl font-semibold">{value}</p>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Clients</CardTitle>
+          <CardHeader>
+            <CardTitle>Recent Clients</CardTitle>
+            <CardDescription>Most recently loaded client records.</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold">{isLoading ? "..." : metrics.totalClients}</p>
+            {isLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-md border px-3 py-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                ))}
+              </div>
+            ) : metrics.recentClients.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No client records yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {metrics.recentClients.map((client) => (
+                  <div key={client.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                    <span className="font-medium">{client.name}</span>
+                    <span className="text-sm text-muted-foreground">{client.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Clients</CardTitle>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common tasks for sales operations.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">{isLoading ? "..." : metrics.activeClients}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">{isLoading ? "..." : metrics.activeJobs}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">{isLoading ? "..." : metrics.pendingApprovals}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pipeline Candidates</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-semibold">{isLoading ? "..." : metrics.activePipelineCandidates}</p>
+          <CardContent className="grid gap-3">
+            <Button className="w-full justify-start" variant="outline" asChild>
+              <Link href="/clients"><Building className="mr-2 h-4 w-4" /> Manage Clients</Link>
+            </Button>
+            <Button className="w-full justify-start" variant="outline" asChild>
+              <Link href="/jobs"><Users className="mr-2 h-4 w-4" /> View Job Board</Link>
+            </Button>
+            <Button className="w-full justify-start" variant="outline" asChild>
+              <Link href="/company-finder"><Users className="mr-2 h-4 w-4" /> Smart Lead Finder</Link>
+            </Button>
+            <Button className="w-full justify-start" variant="outline" asChild>
+              <Link href="/reports"><Users className="mr-2 h-4 w-4" /> View Reports</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Clients</CardTitle>
-          <CardDescription>Most recently loaded client records.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading clients...</p>
-          ) : metrics.recentClients.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No client records yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {metrics.recentClients.map((client) => (
-                <div key={client.id} className="flex items-center justify-between rounded-md border px-3 py-2">
-                  <span className="font-medium">{client.name}</span>
-                  <span className="text-sm text-muted-foreground">{client.status}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

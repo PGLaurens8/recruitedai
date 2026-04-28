@@ -19,12 +19,16 @@ export async function GET(request: Request) {
 
   try {
     const { supabase, companyId } = await requireUserAndCompany();
+    const url = new URL(request.url);
+    const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '200', 10) || 200, 500);
+    const offset = parseInt(url.searchParams.get('offset') ?? '0', 10) || 0;
     const { data, error } = await supabase
       .from('jobs')
-      .select('*')
+      .select('id,company_id,title,salary,company,location,status,approval,candidates_count,ai_matches,created_at,updated_at')
       .eq('company_id', companyId)
       .is('deleted_at', null)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       throw new ApiRouteError(500, 'JOBS_QUERY_FAILED', 'Could not load jobs.', error);

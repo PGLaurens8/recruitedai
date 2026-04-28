@@ -2,8 +2,12 @@ import { createHash } from 'node:crypto';
 
 import { ApiRouteError } from '@/server/api/http';
 
+// Structural interface — requires only the table query capability idempotency needs.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface SupabaseLike { from(relation: string): any }
+
 interface IdempotencyOptions<T> {
-  supabase: any;
+  supabase: SupabaseLike;
   companyId: string;
   actorUserId: string;
   scope: string;

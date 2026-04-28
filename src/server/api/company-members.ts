@@ -202,12 +202,12 @@ export async function removeCompanyMember(actorId: string, companyId: string, me
     .eq('id', memberId);
 
   if (profileUpdateError) {
-    await admin.from('companies').delete().eq('id', personalCompany.id);
+    const { error: cleanupError } = await admin.from('companies').delete().eq('id', personalCompany.id);
     throw new ApiRouteError(
       500,
       'MEMBER_REMOVE_FAILED',
       'Could not move member to personal workspace.',
-      profileUpdateError
+      { profileUpdateError, cleanupError: cleanupError ?? null, orphanedCompanyId: cleanupError ? personalCompany.id : null }
     );
   }
 

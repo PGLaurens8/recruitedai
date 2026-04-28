@@ -91,15 +91,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
+  // API routes enforce their own RBAC — skip the role DB query for them.
+  if (pathname.startsWith("/api/")) {
+    return response;
+  }
 
-  const role = toAppRole(
-    (profile?.role as string | undefined) || (user.user_metadata?.role as string | undefined)
-  );
+  // Use app_metadata.role if set by a server-side Supabase hook (tamper-proof).
+  // Fall back to a DB lookup only when it hasn't been populated yet.
+  let roleValue = user.app_metadata?.role as string | undefined;
+  if (!roleValue) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    roleValue = profile?.role as string | undefined;
+  }
+
+  const role = toAppRole(roleValue || (user.user_metadata?.role as string | undefined));
 
   if (isPublic) {
     const redirectUrl = request.nextUrl.clone();

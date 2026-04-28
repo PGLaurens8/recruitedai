@@ -116,7 +116,7 @@ export default function SettingsPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="general" className="flex items-center gap-2"><Settings size={16} /> General</TabsTrigger>
-          {user.role === 'Developer' && (
+          {(user.role === 'Developer' || user.role === 'Admin') && (
             <TabsTrigger value="developer" className="flex items-center gap-2"><Code size={16} /> Developer</TabsTrigger>
           )}
         </TabsList>
@@ -146,7 +146,7 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {user.role === 'Developer' && (
+        {(user.role === 'Developer' || user.role === 'Admin') && (
           <TabsContent value="developer" className="mt-6 space-y-8">
             {/* Database Seeding Section */}
             <Card className="border-primary/50 shadow-md">

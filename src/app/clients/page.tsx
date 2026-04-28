@@ -5,12 +5,22 @@ import { useState, useMemo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Building, Eye, FilePenLine, MoreHorizontal, Plus, Search, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
-import { Spinner } from '@/components/ui/spinner';
+import { Building, MoreHorizontal, Plus, Search, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { useAuth } from '@/context/auth-context';
 import { removeClient, useClients, useCurrentProfile } from '@/lib/data/hooks';
 import type { ClientRecord } from '@/lib/data/types';
@@ -35,6 +45,8 @@ const getStatusBadgeVariant = (status: string) => {
 export default function ClientsPage() {
   const { user } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: ClientKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
   const { data: profile } = useCurrentProfile(user);
@@ -44,6 +56,15 @@ export default function ClientsPage() {
   const sortedClients = useMemo(() => {
     if (!clients) return [];
     let sortableItems = [...clients];
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      sortableItems = sortableItems.filter(
+        (c) =>
+          c.name?.toLowerCase().includes(term) ||
+          c.contactName?.toLowerCase().includes(term) ||
+          c.contactEmail?.toLowerCase().includes(term)
+      );
+    }
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
         const aValue = a[sortConfig.key!] || "";
@@ -55,7 +76,7 @@ export default function ClientsPage() {
       });
     }
     return sortableItems;
-  }, [clients, sortConfig]);
+  }, [clients, sortConfig, searchTerm]);
 
   const requestSort = (key: ClientKey) => {
     let direction: 'asc' | 'desc' = 'desc';
@@ -79,21 +100,15 @@ export default function ClientsPage() {
     );
   };
 
-  const handleDelete = (clientId: string) => {
-    if (!companyId || !confirm("Are you sure you want to delete this client?")) return;
-    void removeClient(companyId, clientId).then(() => {
+  const confirmDelete = (clientId: string) => setPendingDeleteId(clientId);
+
+  const handleDelete = () => {
+    if (!companyId || !pendingDeleteId) return;
+    void removeClient(companyId, pendingDeleteId).then(() => {
       setRefreshKey((current) => current + 1);
     });
+    setPendingDeleteId(null);
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12">
-        <Spinner size={48} className="text-primary mb-4" />
-        <p className="text-muted-foreground">Loading clients...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8">
@@ -108,7 +123,12 @@ export default function ClientsPage() {
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by client name..." className="pl-9 w-64" />
+            <Input
+              placeholder="Search clients..."
+              className="pl-9 w-64"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -118,10 +138,10 @@ export default function ClientsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Clients ({sortedClients.length})</CardTitle>
+          <CardTitle>{isLoading ? "Clients" : `All Clients (${sortedClients.length})`}</CardTitle>
           <CardDescription>A list of all clients in your system.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
@@ -133,9 +153,21 @@ export default function ClientsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedClients.length === 0 ? (
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><div className="flex items-center gap-3"><Skeleton className="h-9 w-9 rounded-md" /><Skeleton className="h-4 w-28" /></div></TableCell>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                    <TableCell className="text-center"><Skeleton className="h-4 w-6 mx-auto" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                  </TableRow>
+                ))
+              ) : sortedClients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">No clients found.</TableCell>
+                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                    {searchTerm ? "No clients match your search." : "No clients found."}
+                  </TableCell>
                 </TableRow>
               ) : (
                 sortedClients.map((client) => (
@@ -169,8 +201,7 @@ export default function ClientsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem><Eye className="mr-2 h-4 w-4" /> View Details</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(client.id)}>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => confirmDelete(client.id)}>
                             <Trash2 className="mr-2 h-4 w-4" /> Delete Client
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -183,6 +214,23 @@ export default function ClientsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={pendingDeleteId !== null} onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this client from your system. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

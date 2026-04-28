@@ -139,6 +139,9 @@ export async function createCompanyInvite(
     .maybeSingle();
 
   if (insertError) {
+    if (insertError.code === '23505') {
+      throw new ApiRouteError(409, 'INVITE_ALREADY_PENDING', 'A pending invite already exists for this email.');
+    }
     throw new ApiRouteError(500, 'INVITE_CREATE_FAILED', 'Could not create invite.', insertError);
   }
 
