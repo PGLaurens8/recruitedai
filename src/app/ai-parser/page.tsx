@@ -320,6 +320,18 @@ export default function AiParserPage() {
         </div>
       </div>
 
+      <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-4">
+        <Switch
+          id="skills-first-mode"
+          checked={skillsFirstMode}
+          onCheckedChange={setSkillsFirstMode}
+          disabled={isMatching}
+        />
+        <Label htmlFor="skills-first-mode" className="cursor-pointer text-sm font-medium">
+          Skills-First Mode — weight demonstrated experience over formal education credentials
+        </Label>
+      </div>
+
       {!companyInfo && (
         <Alert className="bg-primary/5 border-primary/20">
           <Building className="h-4 w-4" />
@@ -421,18 +433,6 @@ export default function AiParserPage() {
               </Tabs>
           </CardContent>
         </Card>
-      </div>
-
-      <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-4">
-        <Switch
-          id="skills-first-mode"
-          checked={skillsFirstMode}
-          onCheckedChange={setSkillsFirstMode}
-          disabled={isMatching}
-        />
-        <Label htmlFor="skills-first-mode" className="cursor-pointer text-sm font-medium">
-          Skills-First Mode — weight demonstrated experience over formal education credentials
-        </Label>
       </div>
 
       {error && (

@@ -55,14 +55,19 @@ export default function CandidateDetailPage() {
         }
     }, [candidate]);
     
-    const { completionPercentage, averageScore } = useMemo(() => {
+    const { completionPercentage, averageScore, hasNotes, hasScores } = useMemo(() => {
         const answeredNotes = Object.values(notes).filter(note => note && note.trim() !== '');
         const completion = (answeredNotes.length / screeningQuestions.length) * 100;
 
         const validScores = Object.values(scores).filter((score): score is number => score !== null);
         const avg = validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : 0;
-        
-        return { completionPercentage: completion, averageScore: avg };
+
+        return {
+            completionPercentage: completion,
+            averageScore: avg,
+            hasNotes: answeredNotes.length > 0,
+            hasScores: validScores.length > 0,
+        };
     }, [notes, scores]);
 
     const handleNoteChange = (question: string, value: string) => {
@@ -188,9 +193,15 @@ export default function CandidateDetailPage() {
                         <Percent className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{completionPercentage.toFixed(0)}%</div>
-                        <p className="text-xs text-muted-foreground">{Object.values(notes).filter(n => n?.trim()).length} of {screeningQuestions.length} questions noted</p>
-                        <Progress value={completionPercentage} className="mt-2 h-2" indicatorClassName={progressColor} />
+                        {hasNotes ? (
+                            <>
+                                <div className="text-2xl font-bold">{completionPercentage.toFixed(0)}%</div>
+                                <p className="text-xs text-muted-foreground">{Object.values(notes).filter(n => n?.trim()).length} of {screeningQuestions.length} questions noted</p>
+                                <Progress value={completionPercentage} className="mt-2 h-2" indicatorClassName={progressColor} />
+                            </>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">Screening not yet started</p>
+                        )}
                     </CardContent>
                 </Card>
                  <Card>
@@ -199,8 +210,14 @@ export default function CandidateDetailPage() {
                         <Star className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{averageScore.toFixed(1)} / 10</div>
-                         <p className="text-xs text-muted-foreground">Based on {Object.values(scores).filter(s => s !== null).length} scored questions</p>
+                        {hasScores ? (
+                            <>
+                                <div className="text-2xl font-bold">{averageScore.toFixed(1)} / 10</div>
+                                <p className="text-xs text-muted-foreground">Based on {Object.values(scores).filter(s => s !== null).length} scored questions</p>
+                            </>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">No scores recorded yet</p>
+                        )}
                     </CardContent>
                 </Card>
             </div>

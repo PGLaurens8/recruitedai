@@ -15,15 +15,32 @@ function parseRuntimeMode(value: string | undefined): RuntimeMode | null {
   return null;
 }
 
+interface RuntimeEnv {
+  NODE_ENV?: string;
+  NEXT_PUBLIC_RUNTIME_MODE?: string;
+  NEXT_PUBLIC_SUPABASE_URL?: string;
+  NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
+}
+
 /**
  * Validates the runtime configuration using strict literal references.
- * In Next.js, NEXT_PUBLIC_ variables must be accessed as full literals 
+ * In Next.js, NEXT_PUBLIC_ variables must be accessed as full literals
  * (e.g., process.env.NEXT_PUBLIC_VAR) for reliable static replacement in the browser.
+ *
+ * Pass an explicit `env` object (e.g. in tests) to validate against it instead
+ * of process.env. When provided, only that object is consulted.
  */
-export function validateRuntimeConfig(): RuntimeValidationResult {
-  const mode = parseRuntimeMode(process.env.NEXT_PUBLIC_RUNTIME_MODE);
-  const isProduction = process.env.NODE_ENV === 'production';
-  
+export function validateRuntimeConfig(env?: RuntimeEnv): RuntimeValidationResult {
+  const source: RuntimeEnv = env ?? {
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_RUNTIME_MODE: process.env.NEXT_PUBLIC_RUNTIME_MODE,
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  };
+
+  const mode = parseRuntimeMode(source.NEXT_PUBLIC_RUNTIME_MODE);
+  const isProduction = source.NODE_ENV === 'production';
+
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -39,8 +56,8 @@ export function validateRuntimeConfig(): RuntimeValidationResult {
     errors.push('NEXT_PUBLIC_RUNTIME_MODE must be "supabase" in production environments.');
   }
 
-  const hasUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const hasKey = Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  const hasUrl = Boolean(source.NEXT_PUBLIC_SUPABASE_URL);
+  const hasKey = Boolean(source.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   if (mode === 'supabase' || (isProduction && !mode)) {
     if (!hasUrl || !hasKey) {
