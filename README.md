@@ -1,105 +1,143 @@
-# CareerCraft AI (RecruitedAI)
+# RecruitedAI
 
-AI-Powered Recruiting & Career Tools platform built with Next.js, Genkit, and environment-selectable backend modes.
+> **AI-powered CV screening and recruitment tools that understand skills — not just keywords.**
 
-## 🚀 Overview
-CareerCraft AI is a dual-purpose platform designed to serve both job seekers (Candidates) and recruitment professionals (Recruiters/Agencies). It leverages Gemini 1.5 Pro to automate the recruitment cycle.
+RecruitedAI is a dual-purpose recruitment platform for **independent recruiters, agencies, and job seekers** who need faster, smarter, and fairer candidate screening. Built with Next.js 15, Supabase, and Gemini AI via Genkit.
 
-## ✨ Core Features
+🚀 **[Live App](https://recruitedai.vercel.app)** · 📋 **[Request Demo Access](mailto:pglaurens@outlook.com)**
 
-### For Candidates
-- **Master Resume Builder:** AI-driven reformatting and gap analysis for core resumes.
-- **Targeted Resume AI:** Real-time tailoring of resumes to specific job descriptions.
-- **Interview Prep:** Voice-enabled mock interviews with AI coaching and scoring.
-- **Online Presence:** Shareable Online Resumes and LinkTree-style bio pages.
+---
+
+## The Problem It Solves
+
+Recruiters screening 80+ CVs for a single role spend most of their time on a broken process:
+
+- ATS keyword matching surfaces keyword-stuffers and misses qualified candidates who describe their experience differently
+- Scoring systems feel like a black box — no explanation for why a candidate ranked where they did
+- Manual review at volume is brutal — 10–15 seconds per CV means good people get missed
+- Most AI tools on the market are just ChatGPT wrappers over the same keyword logic
+
+RecruitedAI addresses this with genuine AI understanding of skills, experience, and context — and shows you *why* each candidate ranked where they did.
+
+---
+
+## Core Features
 
 ### For Recruiters & Agencies
-- **Smart Parser & Match:** High-precision extraction of candidate metrics (notice period, salary, hardware specs).
-- **Agency Branding:** Generate professional Branded CV PDFs with custom logos for client submission.
-- **Interview Analysis:** Automated extraction of structured Q&A from raw interview transcripts.
-- **Smart Lead Finder:** AI sourcing for companies hiring and decision-maker contact details.
-- **Reporting:** Performance analytics for placements and sales pipelines.
 
-## 🛠 Technical Stack
-- **Frontend:** Next.js 15, React, Tailwind CSS, ShadCN UI.
-- **AI Engine:** Genkit v1.x with `@genkit-ai/google-genai` (Gemini 2.5 Flash).
-- **Backend modes:** `supabase` (primary), `mock` (lightweight local/demo auth).
-- **Automation:** 12+ specialized AI Flows for text extraction, sourcing, and analysis.
+- **Smart CV Parser & Scorer** — AI extraction and scoring of candidate skills, experience, and seniority against a specific job description. Ranks candidates with plain-language explanations, not just a number
+- **Skills-First Screening** — evaluates demonstrated skills and real-world experience; treats education as one signal among many rather than a gate. Built for skills-based hiring
+- **Branded CV Generator** — produce professional PDF CVs with agency branding for client submission
+- **Interview Transcript Analysis** — automated extraction of structured Q&A and candidate insights from raw interview transcripts
+- **Smart Lead Finder** — AI-powered sourcing for companies actively hiring and decision-maker contact details
+- **Pipeline Reporting** — placement performance analytics and sales pipeline tracking
 
-## Runtime Modes
+### For Candidates
 
-Note: changing any `NEXT_PUBLIC_*` environment variable requires restarting the dev server/process or **triggering a Redeploy in Vercel** to rebuild client bundles with the new values.
+- **Master Resume Builder** — AI-driven reformatting, gap analysis, and professional restructuring of your core CV
+- **Targeted Resume Tailoring** — real-time tailoring of your CV to a specific job description, maximising relevance without keyword stuffing
+- **Interview Preparation** — voice-enabled mock interviews with AI coaching and scoring
+- **Online Presence** — shareable online resume and professional bio page
 
-Set `NEXT_PUBLIC_RUNTIME_MODE` to one of:
+---
 
-- `supabase`: uses Supabase Auth and Postgres-backed app data.
-- `mock`: uses local browser storage for demo auth and demo data.
+## Tech Stack
 
-### Supabase env vars
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 15, React 18, Tailwind CSS, ShadCN UI, Radix UI |
+| AI Engine | Genkit 1.0 · Gemini via `@genkit-ai/google-genai` |
+| Backend / Database | Supabase (PostgreSQL, Auth, RLS) |
+| API Layer | Next.js API Routes · `src/server/api/` |
+| Auth | Supabase SSR Auth with role-based access control |
+| Rate Limiting | Upstash Redis |
+| Document Generation | docx · jsPDF · html2canvas |
+| Testing | Vitest (unit) · Playwright (e2e) |
+| CI/CD | GitHub Actions · Vercel (69+ production deployments) |
+| Validation | Zod |
 
-When `NEXT_PUBLIC_RUNTIME_MODE=supabase`, define:
+---
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+## User Roles & Access
 
-## Vercel Setup
+| Role | Access |
+|---|---|
+| **Candidate** | Personal career tools — CV builder, tailoring, interview prep, online profile |
+| **Recruiter** | Full screening suite — CV scoring, branded PDFs, transcript analysis, lead finder |
+| **Agency Admin** | Multi-seat management, team reporting, branding configuration |
+| **Admin / Developer** | Full system access, AI model configuration, seed data management |
 
-Recommended: create two Vercel projects from the same repo.
+---
 
-- Demo project:
-  - `NEXT_PUBLIC_RUNTIME_MODE=mock`
-- Supabase project:
-  - `NEXT_PUBLIC_RUNTIME_MODE=supabase`
-  - `NEXT_PUBLIC_SUPABASE_URL=...`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY=...`
+## Architecture
 
-The active app runtime no longer depends on Firebase. Legacy Firebase files may still exist in the repo during cleanup, but the supported deployment modes are `mock` and `supabase`.
+- **Multi-tenant** — agencies and their recruiters operate in isolated data contexts
+- **RBAC middleware** — role-based access enforced at both API and UI layer
+- **AI Flows** — 12+ specialised Genkit AI flows for extraction, scoring, sourcing, and analysis
+- **Supabase RLS** — row-level security policies ensure data isolation across tenants
 
-## 🔐 User Roles
-- **Candidate:** Personal career management.
-- **Recruiter:** Candidate sourcing and analysis.
-- **Sales:** Client management and revenue tracking.
-- **Admin/Developer:** Full system access and AI Model Registry management.
+---
 
-## 🎨 Design System
-- **Primary Color:** Professional Blue (#2289C3)
-- **Background:** Light Blue Gray (#F0F4F7)
-- **Accent:** Teal (#1AA3A3)
-- **Typography:** Inter (UI), Source Code Pro (Data).
+## Roadmap
 
-## 🛠 Developer Setup & AI Workflow
+**In progress / planned:**
 
-### AI Usage: Prototyper vs. CLI
-- **App Prototyper (Chat):** Use this for building UI, connecting databases, and architecting new AI features. It has full context of your files and can apply code changes directly.
-- **Gemini/Genkit CLI:** Use this in the terminal for **testing specific flows** (`npm run genkit:dev`), batch processing data, or debugging raw model responses without UI overhead.
+- [ ] Semantic CV search using vector embeddings (RAG pipeline with PGVector)
+- [ ] Explainable scoring breakdown — per-skill match/gap visibility
+- [ ] Skills vs degree weighting toggle — explicit skills-first mode for companies moving away from degree requirements
+- [ ] ATS-agnostic bulk import — CSV/export compatibility with major ATS platforms
+- [ ] Candidate feedback loop — recruiter accept/reject signals feed back into scoring model
 
-### Switching Google Accounts in CLI
-If you need to switch the Google account used in the terminal (e.g., from personal to your **Google Business Standard** account) to leverage your business tier limits:
+---
 
-1. **Log in with your Business Account:**
-   ```bash
-   gcloud auth login --no-launch-browser
-   ```
-2. **Update Application Default Credentials (ADC):**
-   ```bash
-   gcloud auth application-default login --no-launch-browser
-   ```
+## Why No ATS Integration (Yet)?
 
-### Gemini API Key
-If you prefer using an API key from your business account's Google AI Studio:
-1. Go to [Google AI Studio](https://aistudio.google.com/).
-2. Create an API key under your business account.
-3. Update your `.env` file:
-   ```bash
-   GOOGLE_GENAI_API_KEY=your_business_account_key_here
-   ```
+RecruitedAI is intentionally standalone. Recruiters export CVs from their existing ATS, run them through RecruitedAI for intelligent screening, and take the ranked results back. No IT approval. No 6-month procurement process. No integration required.
 
-## Security Checks
+This works alongside Workday, Greenhouse, Lever, Zoho Recruit, Bullhorn, or a spreadsheet — whatever you already use.
 
-Run repository secret-pattern scan before release:
+---
+
+## Status
+
+RecruitedAI is in **active development** and available for **beta testing**.
+
+If you're a recruiter, hiring manager, or agency owner and want early access in exchange for honest feedback — reach out directly.
+
+📩 **pglaurens@outlook.com**
+🔗 **[linkedin.com/in/pg-laurens-87783b199](https://linkedin.com/in/pg-laurens-87783b199)**
+
+---
+
+## Local Development
 
 ```bash
-npm run security:secrets
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Add your Supabase and Gemini API keys
+
+# Run development server
+npm run dev
+# App runs on http://localhost:9002
+
+# Run AI flows (separate terminal)
+npm run genkit:dev
+
+# Run unit tests
+npm test
+
+# Run e2e tests
+npm run test:e2e:smoke
 ```
 
-The command exits non-zero only when likely secret patterns are found. It intentionally ignores local `.env*` files and focuses on tracked source/docs.
+---
+
+## Built By
+
+**PG Laurens** — Senior Data & AI Engineer, South Africa
+15+ years across data engineering, AI integration, and SaaS product development.
+
+Currently also building: [Altivo](https://altivo.co.za) · Adminless · QuantEasy
