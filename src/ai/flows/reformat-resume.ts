@@ -16,7 +16,7 @@ const ReformatResumeInputSchema = z.object({
   resumeDataUri: z
     .string()
     .describe(
-      "The resume file (Word or PDF) as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "The resume file (Word or PDF), provided either as a Base64 data URI ('data:<mimetype>;base64,<encoded_data>') or as an https:// URL to the stored file. Both formats are handled natively."
     ),
 });
 export type ReformatResumeInput = z.infer<typeof ReformatResumeInputSchema>;

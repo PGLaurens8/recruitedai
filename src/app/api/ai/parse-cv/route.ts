@@ -7,7 +7,15 @@ import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/ap
 import { enforceRateLimit } from '@/server/api/rate-limit';
 
 const parseCvSchema = z.object({
-  resumeDataUri: z.string().min(1).max(8_000_000),
+  // Accepts either a Base64 data URI (fallback) or an https URL to a stored file.
+  resumeDataUri: z
+    .string()
+    .min(1)
+    .max(8_000_000)
+    .refine(
+      (value) => value.startsWith('data:') || value.startsWith('https://') || value.startsWith('http://'),
+      { message: 'resumeDataUri must be a Base64 data URI or an http(s) URL.' }
+    ),
 });
 
 export async function POST(request: Request) {

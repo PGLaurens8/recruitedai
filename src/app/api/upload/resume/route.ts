@@ -8,8 +8,9 @@ const ALLOWED_MIME_TYPES = new Set([
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
 ]);
-const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx'];
+const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt'];
 
 function hasAllowedExtension(fileName: string): boolean {
   const lower = fileName.toLowerCase();
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
 
     const isAllowedType = ALLOWED_MIME_TYPES.has(file.type) || hasAllowedExtension(file.name);
     if (!isAllowedType) {
-      throw new ApiRouteError(415, 'UNSUPPORTED_FILE_TYPE', 'Only PDF or DOCX files are allowed.');
+      throw new ApiRouteError(415, 'UNSUPPORTED_FILE_TYPE', 'Only PDF, DOCX, or TXT files are allowed.');
     }
 
     const { url, path } = await uploadResume(

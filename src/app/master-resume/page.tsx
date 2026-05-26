@@ -68,15 +68,14 @@ export default function MasterResumePage() {
   }, [storedResume]);
 
 
-  const handleFileUpload = async (file: File) => {
+  const handleResumeUpload = async (resumeDataUri: string) => {
     setIsLoading(true);
     setAiOutput(null);
     setError(null);
-    
+
     const currentTimestamp = new Date().toLocaleString();
-    
+
     try {
-      const resumeDataUri = await fileToDataURI(file);
       const parseResult = await postJson<{
         reformatted: ReformatResumeOutput;
       }>("/api/ai/parse-cv", { resumeDataUri });
@@ -344,7 +343,7 @@ export default function MasterResumePage() {
       <FileUploadCard
         title="Upload Your Resume"
         description="Supports PDF and TXT files. The AI will reformat it into a professional template."
-        onFileUpload={handleFileUpload}
+        onFileSelect={handleResumeUpload}
         ctaText={isLoading ? "Processing..." : "Reformat Resume"}
         icon={<UploadCloud className="h-10 w-10 text-primary mb-2" />}
         acceptedFileTypes=".pdf,.txt,application/pdf,text/plain" 

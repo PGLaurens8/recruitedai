@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
-import { postJson } from "@/lib/api-client";
+import { postJson, postFormData } from "@/lib/api-client";
 import { fileToDataURI, textToDataURI } from "@/lib/file-utils";
 import type { ReformatResumeOutput } from "@/ai/flows/reformat-resume";
 import type { ExtractCVDataOutput } from "@/ai/flows/extract-cv-data";
@@ -140,12 +140,21 @@ export default function AiParserPage() {
       setAssessmentOutput(null);
 
       try {
-        const resumeDataUri = await fileToDataURI(file);
-        
+        let resumeSource: string;
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          const uploaded = await postFormData<{ url: string; path: string }>("/api/upload/resume", formData);
+          resumeSource = uploaded.url;
+        } catch {
+          // Fall back to a Base64 data URI if storage upload is unavailable.
+          resumeSource = await fileToDataURI(file);
+        }
+
         const result = await postJson<{
           reformatted: ReformatResumeOutput;
           extracted: ExtractCVDataOutput;
-        }>("/api/ai/parse-cv", { resumeDataUri });
+        }>("/api/ai/parse-cv", { resumeDataUri: resumeSource });
 
         setParsedResume({
           ...result.reformatted,
