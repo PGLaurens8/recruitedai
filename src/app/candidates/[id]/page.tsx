@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { postJson } from '@/lib/api-client';
-import { ArrowLeft, Upload, Mail, Briefcase, Sparkles, Save, Star, Percent, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Upload, Mail, Briefcase, Sparkles, Save, Star, Percent, AlertTriangle, Brain, Clock, GraduationCap, Award } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { saveCandidateInterview, useCandidate, useCurrentProfile } from '@/lib/data/hooks';
 
@@ -203,6 +204,73 @@ export default function CandidateDetailPage() {
                     </CardContent>
                 </Card>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Brain className="h-5 w-5 text-primary" /> Profile Intelligence</CardTitle>
+                    <CardDescription>Enriched data extracted from the candidate's CV.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex flex-wrap items-center gap-4">
+                        {candidate.yearsOfExperience != null && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium">{candidate.yearsOfExperience} years of experience</span>
+                            </div>
+                        )}
+                        {candidate.hasDegreeLevelEducation != null && (
+                            candidate.hasDegreeLevelEducation ? (
+                                <Badge variant="outline" className="border-green-600/40 bg-green-500/10 text-green-700 dark:text-green-400">Degree Qualified</Badge>
+                            ) : (
+                                <Badge variant="outline" className="border-amber-600/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">Skills-Based Profile</Badge>
+                            )
+                        )}
+                    </div>
+
+                    {candidate.skills && candidate.skills.length > 0 && (
+                        <div>
+                            <h4 className="mb-2 text-sm font-semibold">Skills</h4>
+                            <div className="flex flex-wrap gap-2">
+                                {candidate.skills.map((skill, index) => (
+                                    <Badge key={`${skill}-${index}`} variant="secondary">{skill}</Badge>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {candidate.education && candidate.education.length > 0 && (
+                        <div>
+                            <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold"><GraduationCap className="h-4 w-4 text-muted-foreground" /> Education</h4>
+                            <ul className="space-y-1">
+                                {candidate.education.map((entry, index) => (
+                                    <li key={index} className="text-sm text-muted-foreground">
+                                        {entry.degree} — {entry.institution}{entry.year ? ` (${entry.year})` : ""}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {candidate.certifications && candidate.certifications.length > 0 && (
+                        <div>
+                            <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Award className="h-4 w-4 text-muted-foreground" /> Certifications</h4>
+                            <ul className="list-disc space-y-1 pl-5">
+                                {candidate.certifications.map((cert, index) => (
+                                    <li key={index} className="text-sm text-muted-foreground">{cert}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {candidate.yearsOfExperience == null
+                        && candidate.hasDegreeLevelEducation == null
+                        && !(candidate.skills && candidate.skills.length > 0)
+                        && !(candidate.education && candidate.education.length > 0)
+                        && !(candidate.certifications && candidate.certifications.length > 0) && (
+                        <p className="text-sm text-muted-foreground">No enriched profile data available yet. Re-parse this candidate's CV to populate this section.</p>
+                    )}
+                </CardContent>
+            </Card>
 
              <Card>
                 <CardHeader>

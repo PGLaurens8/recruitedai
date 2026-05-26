@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Upload,
@@ -58,7 +60,8 @@ export default function AiParserPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [jobSpecFile, setJobSpecFile] = useState<File | null>(null);
   const [jobSpecText, setJobSpecText] = useState('');
-  
+  const [skillsFirstMode, setSkillsFirstMode] = useState(false);
+
   const [parsedResume, setParsedResume] = useState<ParsedResume | null>(null);
   const [assessmentOutput, setAssessmentOutput] = useState<AssessJobMatchOutput | null>(null);
 
@@ -197,6 +200,7 @@ export default function AiParserPage() {
         masterResumeDataUri,
         jobSpecDataUri,
         jobSpecText: jobSpecText.trim() || undefined,
+        skillsFirstMode,
       };
 
       const result = await postJson<AssessJobMatchOutput>("/api/ai/match-job", input);
@@ -410,6 +414,18 @@ export default function AiParserPage() {
         </Card>
       </div>
 
+      <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-4">
+        <Switch
+          id="skills-first-mode"
+          checked={skillsFirstMode}
+          onCheckedChange={setSkillsFirstMode}
+          disabled={isMatching}
+        />
+        <Label htmlFor="skills-first-mode" className="cursor-pointer text-sm font-medium">
+          Skills-First Mode — weight demonstrated experience over formal education credentials
+        </Label>
+      </div>
+
       {error && (
           <Alert variant="destructive" className="mt-8">
               <AlertTriangle className="h-4 w-4" />
@@ -592,6 +608,9 @@ export default function AiParserPage() {
                   </div>
                 </div>
                 <p className="text-lg font-semibold text-foreground/90">{assessmentOutput.summary}</p>
+                {assessmentOutput.educationNote && (
+                  <p className="mt-2 text-sm italic text-muted-foreground">{assessmentOutput.educationNote}</p>
+                )}
               </div>
               <Separator />
               <div className="grid md:grid-cols-2 gap-6">
@@ -606,6 +625,43 @@ export default function AiParserPage() {
                   content={assessmentOutput.areasForImprovement.length > 0 ? assessmentOutput.areasForImprovement : "No specific areas for improvement identified."}
                 />
               </div>
+
+              <div>
+                <h4 className="mb-2 text-sm font-semibold">Matched Skills</h4>
+                <div className="flex flex-wrap gap-2">
+                  {assessmentOutput.matchedSkills.length > 0 ? (
+                    assessmentOutput.matchedSkills.map((skill, index) => (
+                      <Badge key={`matched-${skill}-${index}`} variant="outline" className="border-green-600/40 bg-green-500/10 text-green-700 dark:text-green-400">
+                        {skill}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No matched skills identified.</p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="mb-2 text-sm font-semibold">Missing Skills</h4>
+                <div className="flex flex-wrap gap-2">
+                  {assessmentOutput.missingSkills.length > 0 ? (
+                    assessmentOutput.missingSkills.map((skill, index) => (
+                      <Badge key={`missing-${skill}-${index}`} variant="outline" className="border-amber-600/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                        {skill}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No missing skills identified.</p>
+                  )}
+                </div>
+              </div>
+
+              {assessmentOutput.experienceAlignment && (
+                <div className="rounded-lg border bg-muted/40 p-4">
+                  <h4 className="mb-1 text-sm font-semibold">Experience Alignment</h4>
+                  <p className="text-sm text-muted-foreground">{assessmentOutput.experienceAlignment}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
       )}

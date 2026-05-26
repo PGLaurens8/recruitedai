@@ -10,6 +10,7 @@ const matchJobSchema = z
     masterResumeDataUri: z.string().min(1).max(4_000_000),
     jobSpecDataUri: z.string().max(8_000_000).optional(),
     jobSpecText: z.string().max(100_000).optional(),
+    skillsFirstMode: z.boolean().optional(),
   })
   .refine((value) => Boolean(value.jobSpecDataUri || value.jobSpecText), {
     message: 'Either jobSpecDataUri or jobSpecText must be provided.',

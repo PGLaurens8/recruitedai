@@ -30,6 +30,10 @@ export interface CandidateRecord {
   appliedFor?: string;
   fullResumeText?: string;
   skills?: string[];
+  yearsOfExperience?: number;
+  education?: Array<{ degree: string; institution: string; year?: string }>;
+  certifications?: string[];
+  hasDegreeLevelEducation?: boolean;
   interviewNotes?: Record<string, string>;
   interviewScores?: Record<string, number | null>;
   aiSummary?: string;

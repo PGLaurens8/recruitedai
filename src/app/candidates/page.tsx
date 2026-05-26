@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowDown, ArrowUp, ArrowUpDown, Eye, Plus, Search, Star, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Clock, Eye, Plus, Search, Star, Trash2, Upload } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/context/auth-context";
 import { removeCandidate, useCandidates, useCurrentProfile } from "@/lib/data/hooks";
@@ -213,6 +213,22 @@ function CandidatesPageContent() {
                         <div>
                           <Link href={`/candidates/${candidate.id}`} className="font-medium hover:underline">{candidate.name}</Link>
                           <p className="text-sm text-muted-foreground">{candidate.email}</p>
+                          {(candidate.yearsOfExperience != null || candidate.hasDegreeLevelEducation != null) && (
+                            <div className="mt-1 flex items-center gap-2">
+                              {candidate.yearsOfExperience != null && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Clock className="h-3 w-3" />{candidate.yearsOfExperience} yrs
+                                </span>
+                              )}
+                              {candidate.hasDegreeLevelEducation != null && (
+                                candidate.hasDegreeLevelEducation ? (
+                                  <Badge variant="outline" className="border-green-600/40 bg-green-500/10 text-green-700 text-[10px] dark:text-green-400">Degree</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="border-amber-600/40 bg-amber-500/10 text-amber-700 text-[10px] dark:text-amber-400">Skills-Based</Badge>
+                                )
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </TableCell>

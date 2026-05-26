@@ -26,6 +26,9 @@ RecruitedAI addresses this with genuine AI understanding of skills, experience, 
 ### For Recruiters & Agencies
 
 - **Smart CV Parser & Scorer** — AI extraction and scoring of candidate skills, experience, and seniority against a specific job description. Ranks candidates with plain-language explanations, not just a number
+  - **Explainable scoring** — shows matched skills as green indicators and missing skills as amber indicators, so you see exactly *why* a candidate scored the way they did
+  - **Skills-First Mode toggle** — explicitly weights demonstrated experience over formal education credentials; designed for skills-based hiring
+- **Candidate Profile Intelligence** — automatically extracts years of experience, skills, education history, and certifications from CVs. Surfaces a **Degree Qualified vs Skills-Based Profile** indicator on every candidate, visible in both list and detail views
 - **Skills-First Screening** — evaluates demonstrated skills and real-world experience; treats education as one signal among many rather than a gate. Built for skills-based hiring
 - **Branded CV Generator** — produce professional PDF CVs with agency branding for client submission
 - **Interview Transcript Analysis** — automated extraction of structured Q&A and candidate insights from raw interview transcripts
@@ -51,6 +54,7 @@ RecruitedAI addresses this with genuine AI understanding of skills, experience, 
 | API Layer | Next.js API Routes · `src/server/api/` |
 | Auth | Supabase SSR Auth with role-based access control |
 | Rate Limiting | Upstash Redis |
+| File Storage | Supabase Storage (in progress — replacing Base64 Data URIs) |
 | Document Generation | docx · jsPDF · html2canvas |
 | Testing | Vitest (unit) · Playwright (e2e) |
 | CI/CD | GitHub Actions · Vercel (69+ production deployments) |
@@ -83,8 +87,8 @@ RecruitedAI addresses this with genuine AI understanding of skills, experience, 
 **In progress / planned:**
 
 - [ ] Semantic CV search using vector embeddings (RAG pipeline with PGVector)
-- [ ] Explainable scoring breakdown — per-skill match/gap visibility
-- [ ] Skills vs degree weighting toggle — explicit skills-first mode for companies moving away from degree requirements
+- [x] Explainable scoring breakdown — per-skill match/gap visibility **[DONE]**
+- [x] Skills vs degree weighting toggle — explicit skills-first mode for companies moving away from degree requirements **[DONE]**
 - [ ] ATS-agnostic bulk import — CSV/export compatibility with major ATS platforms
 - [ ] Candidate feedback loop — recruiter accept/reject signals feed back into scoring model
 

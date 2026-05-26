@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -59,6 +60,7 @@ export default function JobMatchingPage() {
   const [jobSpecUrl, setJobSpecUrl] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [jobTitleForCoverLetter, setJobTitleForCoverLetter] = useState('');
+  const [skillsFirstMode, setSkillsFirstMode] = useState(false);
 
   const [isLoadingAssessment, setIsLoadingAssessment] = useState(false);
   const [isLoadingTailoring, setIsLoadingTailoring] = useState(false);
@@ -166,7 +168,7 @@ export default function JobMatchingPage() {
 
     try {
       const masterResumeDataUri = textToDataURI(masterResumeText);
-      const input: AssessJobMatchInput = { masterResumeDataUri, jobSpecDataUri, jobSpecText: currentJobSpecText };
+      const input: AssessJobMatchInput = { masterResumeDataUri, jobSpecDataUri, jobSpecText: currentJobSpecText, skillsFirstMode };
       const result = await postJson<AssessJobMatchOutput>('/api/ai/match-job', input);
       setAssessmentOutput(result);
       toast({ title: "Job Match Assessed!", description: "AI has analyzed your resume against the job spec." });
@@ -509,6 +511,17 @@ export default function JobMatchingPage() {
                     <Input id="jobTitleForCoverLetter" value={jobTitleForCoverLetter} onChange={(e) => setJobTitleForCoverLetter(e.target.value)} placeholder="e.g. Software Engineer" className="mt-1"/>
                 </div>
             </div>
+            <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-4">
+              <Switch
+                id="skills-first-mode"
+                checked={skillsFirstMode}
+                onCheckedChange={setSkillsFirstMode}
+                disabled={isLoadingAssessment || isLoadingTailoring || isLoadingCoverLetter}
+              />
+              <Label htmlFor="skills-first-mode" className="cursor-pointer text-sm font-medium">
+                Skills-First Mode — weight demonstrated experience over formal education credentials
+              </Label>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -576,6 +589,9 @@ export default function JobMatchingPage() {
                     </div>
                   </div>
                   <p className="text-lg font-semibold text-foreground/90">{assessmentOutput.summary}</p>
+                  {assessmentOutput.educationNote && (
+                    <p className="mt-2 text-sm italic text-muted-foreground">{assessmentOutput.educationNote}</p>
+                  )}
                 </div>
                 <Separator />
                 <ResumeSection
@@ -588,6 +604,43 @@ export default function JobMatchingPage() {
                   icon={<Lightbulb className="h-6 w-6 text-yellow-500" />}
                   content={assessmentOutput.areasForImprovement.length > 0 ? assessmentOutput.areasForImprovement : "AI found no specific areas to improve for this job spec!"}
                 />
+
+                <div>
+                  <h4 className="mb-2 text-sm font-semibold">Matched Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {assessmentOutput.matchedSkills.length > 0 ? (
+                      assessmentOutput.matchedSkills.map((skill, index) => (
+                        <Badge key={`matched-${skill}-${index}`} variant="outline" className="border-green-600/40 bg-green-500/10 text-green-700 dark:text-green-400">
+                          {skill}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No matched skills identified.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="mb-2 text-sm font-semibold">Missing Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {assessmentOutput.missingSkills.length > 0 ? (
+                      assessmentOutput.missingSkills.map((skill, index) => (
+                        <Badge key={`missing-${skill}-${index}`} variant="outline" className="border-amber-600/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                          {skill}
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No missing skills identified.</p>
+                    )}
+                  </div>
+                </div>
+
+                {assessmentOutput.experienceAlignment && (
+                  <div className="rounded-lg border bg-muted/40 p-4">
+                    <h4 className="mb-1 text-sm font-semibold">Experience Alignment</h4>
+                    <p className="text-sm text-muted-foreground">{assessmentOutput.experienceAlignment}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
