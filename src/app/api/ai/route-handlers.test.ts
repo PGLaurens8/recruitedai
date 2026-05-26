@@ -92,6 +92,95 @@ describe('AI API route handlers', () => {
     expect(enforceRateLimitMock).toHaveBeenCalled();
   });
 
+  it('parse-cv fetches a storage URL and inlines it as a data URI for the flows', async () => {
+    reformatResumeMock.mockResolvedValue({
+      reformattedResume: 'Resume body',
+      fullName: 'Jane Doe',
+      currentJobTitle: 'Engineer',
+      contactInfo: {},
+      skills: [],
+      missingInformation: [],
+      questions: [],
+    });
+    extractCVDataMock.mockResolvedValue({ name: 'Jane Doe', role: 'Engineer' });
+
+    const fileBytes = Buffer.from('PDF-BYTES');
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: (name: string) => (name === 'content-type' ? 'application/pdf' : null) },
+      arrayBuffer: async () =>
+        fileBytes.buffer.slice(fileBytes.byteOffset, fileBytes.byteOffset + fileBytes.byteLength),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    try {
+      const signedUrl = 'https://project.supabase.co/storage/v1/object/sign/resumes/user-1/cv.pdf?token=abc';
+      const response = await parseCvPost(
+        postRequest('http://localhost/api/ai/parse-cv', { resumeDataUri: signedUrl })
+      );
+      const body = await response.json();
+
+      const expectedDataUri = `data:application/pdf;base64,${fileBytes.toString('base64')}`;
+
+      expect(response.status).toBe(200);
+      expect(body.ok).toBe(true);
+      expect(fetchMock).toHaveBeenCalledWith(
+        signedUrl,
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
+      // Gemini cannot read the signed URL directly, so the flows must receive the inlined data URI.
+      expect(reformatResumeMock).toHaveBeenCalledWith({ resumeDataUri: expectedDataUri });
+      expect(extractCVDataMock).toHaveBeenCalledWith({ resumeDataUri: expectedDataUri });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('parse-cv returns 502 when the storage URL cannot be downloaded', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      headers: { get: () => null },
+      arrayBuffer: async () => new ArrayBuffer(0),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    try {
+      const response = await parseCvPost(
+        postRequest('http://localhost/api/ai/parse-cv', {
+          resumeDataUri: 'https://project.supabase.co/storage/v1/object/sign/resumes/expired.pdf?token=x',
+        })
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(502);
+      expect(body.ok).toBe(false);
+      expect(body.error.code).toBe('MEDIA_FETCH_FAILED');
+      expect(reformatResumeMock).not.toHaveBeenCalled();
+      expect(extractCVDataMock).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('parse-cv names the failing flow and skips the second when the first rejects', async () => {
+    reformatResumeMock.mockRejectedValue(new Error('Gemini: model overloaded'));
+
+    const response = await parseCvPost(
+      postRequest('http://localhost/api/ai/parse-cv', { resumeDataUri: 'data:application/pdf;base64,abc' })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe('AI_FLOW_FAILED');
+    expect(body.error.message).toContain('reformatResume');
+    expect(body.error.message).toContain('Gemini: model overloaded');
+    // Sequential execution: the second flow must not run once the first fails.
+    expect(extractCVDataMock).not.toHaveBeenCalled();
+  });
+
   it('parse-cv returns 400 for invalid payload', async () => {
     const response = await parseCvPost(postRequest('http://localhost/api/ai/parse-cv', {}));
     const body = await response.json();

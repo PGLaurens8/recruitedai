@@ -133,13 +133,21 @@ export function jsonError(requestId: string, error: unknown) {
     ip: ctx?.ip,
   });
 
+  // In production we never leak internal error detail to the client. Outside
+  // production (local dev, preview) we surface the real message and stack so
+  // failures like a broken AI flow are debuggable without digging through logs.
+  const exposeDetail = process.env.NODE_ENV !== "production";
+
   return Response.json(
     {
       ok: false,
       requestId,
       error: {
         code: "INTERNAL_ERROR",
-        message: "Unexpected server error.",
+        message: exposeDetail && error instanceof Error
+          ? error.message
+          : "Unexpected server error.",
+        ...(exposeDetail ? { details: unexpected } : {}),
       },
     },
     {

@@ -4,7 +4,13 @@ import { extractCVData } from '@/ai/flows/extract-cv-data';
 import { reformatResume } from '@/ai/flows/reformat-resume';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
+import { resolveMedia } from '@/server/api/media';
 import { enforceRateLimit } from '@/server/api/rate-limit';
+
+// media.ts uses Buffer (Node-only) and the two Gemini calls can run well past
+// Vercel's 10s serverless default, so pin the Node runtime and raise the limit.
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 const parseCvSchema = z.object({
   // Accepts either a Base64 data URI (fallback) or an https URL to a stored file.
@@ -35,16 +41,42 @@ await enforceRateLimit(request, {
       throw new ApiRouteError(400, 'VALIDATION_ERROR', 'Invalid CV parsing payload.', payload.error.flatten());
     }
 
-    const [reformatted, extracted] = await Promise.all([
-      reformatResume({ resumeDataUri: payload.data.resumeDataUri }),
-      extractCVData({ resumeDataUri: payload.data.resumeDataUri }),
-    ]);
+    // Gemini cannot read an external URL (e.g. a Supabase Storage signed URL)
+    // directly, so resolve it to an inline data URI before invoking the flows.
+    // Base64 data URIs pass through unchanged.
+    const resumeDataUri = await resolveMedia(payload.data.resumeDataUri);
+
+    // Run the flows sequentially (not Promise.all) so a failure names the
+    // offending flow instead of collapsing into one opaque rejection. Each
+    // flow's real error message is preserved and surfaced via ApiRouteError.
+    const reformatted = await runFlow('reformatResume', () => reformatResume({ resumeDataUri }));
+    const extracted = await runFlow('extractCVData', () => extractCVData({ resumeDataUri }));
 
     return jsonSuccess(requestId, {
       reformatted,
       extracted,
     });
   } catch (error) {
+    // Explicit log so the real cause is visible in Vercel function logs even
+    // when the client receives a sanitized message in production.
+    console.error('[parse-cv] request failed', {
+      requestId,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return jsonError(requestId, error);
+  }
+}
+
+async function runFlow<T>(name: string, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (cause) {
+    throw new ApiRouteError(
+      502,
+      'AI_FLOW_FAILED',
+      `The ${name} AI flow failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+      { flow: name }
+    );
   }
 }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { findCompanies } from '@/ai/flows/find-companies';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
+import { resolveOptionalMedia } from '@/server/api/media';
 import { enforceRateLimit } from '@/server/api/rate-limit';
 
 const schema = z
@@ -32,7 +33,11 @@ await enforceRateLimit(request, {
       throw new ApiRouteError(400, 'VALIDATION_ERROR', 'Invalid company finder payload.', payload.error.flatten());
     }
 
-    const result = await findCompanies(payload.data);
+    // Inline any storage URL so Gemini can read the file (data URIs pass through).
+    const result = await findCompanies({
+      ...payload.data,
+      resumeDataUri: await resolveOptionalMedia(payload.data.resumeDataUri),
+    });
     return jsonSuccess(requestId, result);
   } catch (error) {
     return jsonError(requestId, error);

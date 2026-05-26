@@ -10,15 +10,22 @@ const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hour
 type StorageCapableClient = {
   storage: {
     from(bucket: string): {
-      upload(
-        path: string,
-        body: File,
-        options?: { contentType?: string; upsert?: boolean }
-      ): Promise<{ data: { path: string } | null; error: { message: string } | null }>;
       createSignedUrl(
         path: string,
         expiresIn: number
       ): Promise<{ data: { signedUrl: string } | null; error: { message: string } | null }>;
+      createSignedUploadUrl(
+        path: string
+      ): Promise<{
+        data: { signedUrl: string; token: string; path: string } | null;
+        error: { message: string } | null;
+      }>;
+      uploadToSignedUrl(
+        path: string,
+        token: string,
+        body: File,
+        options?: { contentType?: string }
+      ): Promise<{ data: { path: string } | null; error: { message: string } | null }>;
     };
   };
 };
@@ -50,44 +57,39 @@ async function createSignedUrl(client: StorageCapableClient, path: string): Prom
 }
 
 /**
- * Uploads a resume to resumes/{userId}/{timestamp}-{filename} and returns a
- * signed URL valid for one hour. Pass an authenticated server client when
- * calling from a server route; defaults to the browser client otherwise.
+ * Mints a one-time signed upload URL so the browser can PUT the file directly
+ * to Supabase Storage, bypassing the serverless function body limit entirely.
+ * The returned token authorizes a single upload to `path`.
  */
-export async function uploadResumeFile(
-  file: File,
-  userId: string,
-  client: StorageCapableClient = createSupabaseBrowserClient() as unknown as StorageCapableClient
-): Promise<string> {
-  return (await uploadResume(file, userId, client)).url;
+export async function createResumeUploadTicket(
+  client: StorageCapableClient,
+  path: string
+): Promise<{ path: string; token: string }> {
+  const { data, error } = await client.storage.from(RESUME_BUCKET).createSignedUploadUrl(path);
+
+  if (error || !data?.token) {
+    throw new Error(
+      `Failed to create a signed upload URL for "${path}": ${error?.message ?? 'no token returned'}`
+    );
+  }
+
+  return { path: data.path ?? path, token: data.token };
 }
 
-/**
- * Same as uploadResumeFile but also returns the storage path, which the upload
- * API route needs so it can hand both back to the client.
- */
-export async function uploadResume(
-  file: File,
-  userId: string,
-  client: StorageCapableClient = createSupabaseBrowserClient() as unknown as StorageCapableClient
-): Promise<{ path: string; url: string }> {
-  if (!file) {
-    throw new Error('No file was provided to upload.');
-  }
-
-  const path = buildResumeStoragePath(userId, file.name);
-
-  const { error } = await client.storage.from(RESUME_BUCKET).upload(path, file, {
-    contentType: file.type || 'application/octet-stream',
-    upsert: false,
-  });
+/** Uploads a file to a previously-minted signed upload URL (browser-side). */
+export async function uploadToResumeSignedUrl(
+  client: StorageCapableClient,
+  path: string,
+  token: string,
+  file: File
+): Promise<void> {
+  const { error } = await client.storage
+    .from(RESUME_BUCKET)
+    .uploadToSignedUrl(path, token, file, { contentType: file.type || 'application/octet-stream' });
 
   if (error) {
-    throw new Error(`Failed to upload resume "${file.name}": ${error.message}`);
+    throw new Error(`Failed to upload "${file.name}" to storage: ${error.message}`);
   }
-
-  const url = await createSignedUrl(client, path);
-  return { path, url };
 }
 
 /** Generates a fresh signed URL for an already-stored resume file. */

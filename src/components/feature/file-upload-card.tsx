@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { UploadCloud } from 'lucide-react';
-import { postFormData } from '@/lib/api-client';
+import { uploadResumeDirect } from '@/lib/storage-client';
 import { useToast } from '@/hooks/use-toast';
 
 interface FileUploadCardProps {
@@ -18,9 +18,9 @@ interface FileUploadCardProps {
    */
   onFileUpload?: (file: File) => void;
   /**
-   * Preferred callback. When provided, the selected file is uploaded to
-   * Supabase Storage via /api/upload/resume and this is called with the
-   * resulting signed URL (not a Data URI).
+   * Preferred callback. When provided, the selected file is uploaded directly
+   * to Supabase Storage (via a signed upload ticket from /api/upload/resume)
+   * and this is called with the resulting signed read URL (not a Data URI).
    */
   onFileSelect?: (url: string) => void;
   acceptedFileTypes?: string; // e.g., ".pdf,.doc,.docx"
@@ -49,12 +49,7 @@ export function FileUploadCard({
       if (!onFileSelect) return;
       setIsUploading(true);
       try {
-        const formData = new FormData();
-        formData.append('file', file);
-        const { url } = await postFormData<{ url: string; path: string }>(
-          '/api/upload/resume',
-          formData
-        );
+        const { url } = await uploadResumeDirect(file);
         onFileSelect(url);
         toast({ title: 'Upload complete', description: `${file.name} is ready to process.` });
       } catch (error) {
@@ -136,7 +131,7 @@ export function FileUploadCard({
                 <span className="font-semibold">Click to upload</span> or drag and drop
               </p>
               <p className={`text-xs ${dragActive ? "text-primary" : "text-muted-foreground"}`}>
-                PDF, TXT (MAX. 5MB) {/* Changed text here */}
+                PDF, TXT (MAX. 4MB)
               </p>
             </div>
             <Input

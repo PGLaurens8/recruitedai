@@ -41,13 +41,3 @@ export async function postJson<T>(url: string, payload: unknown): Promise<T> {
 
   return parseEnvelope<T>(response);
 }
-
-export async function postFormData<T>(url: string, formData: FormData): Promise<T> {
-  // Do not set Content-Type; the browser sets the multipart boundary itself.
-  const response = await fetch(url, {
-    method: 'POST',
-    body: formData,
-  });
-
-  return parseEnvelope<T>(response);
-}

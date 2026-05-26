@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { tailorResumeToJobSpec } from '@/ai/flows/tailor-resume-to-job-spec';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
+import { resolveMedia, resolveOptionalMedia } from '@/server/api/media';
 import { enforceRateLimit } from '@/server/api/rate-limit';
 
 const schema = z
@@ -33,7 +34,12 @@ await enforceRateLimit(request, {
       throw new ApiRouteError(400, 'VALIDATION_ERROR', 'Invalid tailor resume payload.', payload.error.flatten());
     }
 
-    const result = await tailorResumeToJobSpec(payload.data);
+    // Inline any storage URLs so Gemini can read the files (data URIs pass through).
+    const result = await tailorResumeToJobSpec({
+      ...payload.data,
+      masterResumeDataUri: await resolveMedia(payload.data.masterResumeDataUri),
+      jobSpecDataUri: await resolveOptionalMedia(payload.data.jobSpecDataUri),
+    });
     return jsonSuccess(requestId, result);
   } catch (error) {
     return jsonError(requestId, error);

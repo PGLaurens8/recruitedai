@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { assessJobMatch } from '@/ai/flows/assess-job-match';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
+import { resolveMedia, resolveOptionalMedia } from '@/server/api/media';
 import { enforceRateLimit } from '@/server/api/rate-limit';
 
 const matchJobSchema = z
@@ -34,7 +35,12 @@ await enforceRateLimit(request, {
       throw new ApiRouteError(400, 'VALIDATION_ERROR', 'Invalid job match payload.', payload.error.flatten());
     }
 
-    const result = await assessJobMatch(payload.data);
+    // Inline any storage URLs so Gemini can read the files (data URIs pass through).
+    const result = await assessJobMatch({
+      ...payload.data,
+      masterResumeDataUri: await resolveMedia(payload.data.masterResumeDataUri),
+      jobSpecDataUri: await resolveOptionalMedia(payload.data.jobSpecDataUri),
+    });
     return jsonSuccess(requestId, result);
   } catch (error) {
     return jsonError(requestId, error);

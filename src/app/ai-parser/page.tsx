@@ -35,7 +35,8 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
-import { postJson, postFormData } from "@/lib/api-client";
+import { postJson } from "@/lib/api-client";
+import { uploadResumeDirect } from "@/lib/storage-client";
 import { fileToDataURI, textToDataURI } from "@/lib/file-utils";
 import type { ReformatResumeOutput } from "@/ai/flows/reformat-resume";
 import type { ExtractCVDataOutput } from "@/ai/flows/extract-cv-data";
@@ -142,9 +143,8 @@ export default function AiParserPage() {
       try {
         let resumeSource: string;
         try {
-          const formData = new FormData();
-          formData.append('file', file);
-          const uploaded = await postFormData<{ url: string; path: string }>("/api/upload/resume", formData);
+          // Direct-to-storage upload returns a signed URL the AI route can fetch.
+          const uploaded = await uploadResumeDirect(file);
           resumeSource = uploaded.url;
         } catch {
           // Fall back to a Base64 data URI if storage upload is unavailable.
