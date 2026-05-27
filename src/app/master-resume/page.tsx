@@ -10,7 +10,7 @@ import type { ReformatResumeOutput } from '@/ai/flows/reformat-resume';
 import { fileToDataURI } from '@/lib/file-utils';
 import { ResumeSection } from '@/components/feature/resume-section';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, FileText, HelpCircle, AlertTriangle, UploadCloud, Download, Linkedin, Mail, MapPin, Phone, Edit, UserPlus } from 'lucide-react';
+import { Lightbulb, FileText, HelpCircle, AlertTriangle, UploadCloud, Download, Linkedin, Mail, MapPin, Phone, Edit, UserPlus, Share2, Copy } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -48,6 +48,18 @@ export default function MasterResumePage() {
   const { data: storedResume } = useMasterResume(user?.id, refreshKey);
   const companyId = profile?.companyId;
   const isAgencyRole = user?.role === 'Recruiter' || user?.role === 'Admin' || user?.role === 'Developer';
+
+  const publicResumeUrl =
+    storedResume?.id && typeof window !== "undefined"
+      ? `${window.location.origin}/resume/${storedResume.id}`
+      : null;
+
+  const handleCopyShareLink = () => {
+    if (!publicResumeUrl) return;
+    navigator.clipboard.writeText(publicResumeUrl)
+      .then(() => toast({ title: "Link copied!", description: "Share this public resume link with recruiters." }))
+      .catch(() => toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy the share link." }));
+  };
 
   useEffect(() => {
     if (!storedResume) return;
@@ -361,6 +373,25 @@ export default function MasterResumePage() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Processing Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {aiOutput && publicResumeUrl && storedResume?.id && (
+        <Alert className="mt-8 border-green-500/40 bg-green-500/5">
+          <Share2 className="h-5 w-5 !text-green-600" />
+          <AlertTitle className="text-green-700 dark:text-green-400">Your resume is live!</AlertTitle>
+          <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-sm">
+              Your resume is live at{' '}
+              <Link href={`/resume/${storedResume.id}`} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline break-all">
+                /resume/{storedResume.id}
+              </Link>{' '}
+              — share this link with recruiters.
+            </span>
+            <Button variant="outline" size="sm" onClick={handleCopyShareLink} className="shrink-0">
+              <Copy className="mr-2 h-4 w-4" /> Copy link
+            </Button>
+          </AlertDescription>
         </Alert>
       )}
 

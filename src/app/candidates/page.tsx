@@ -21,7 +21,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowDown, ArrowUp, ArrowUpDown, Clock, Eye, Plus, Search, Star, Trash2, Upload } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Clock, Eye, Plus, RefreshCw, Search, Star, Trash2, Upload } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/context/auth-context";
 import { removeCandidate, useCandidates, useCurrentProfile } from "@/lib/data/hooks";
@@ -56,7 +57,7 @@ function CandidatesPageContent() {
 
   const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
-  const { data: candidates, isLoading } = useCandidates(companyId, refreshKey);
+  const { data: candidates, isLoading, error } = useCandidates(companyId, refreshKey);
 
   const sortedCandidates = useMemo(() => {
     if (!candidates) return [];
@@ -165,6 +166,18 @@ function CandidatesPageContent() {
         </div>
       </div>
 
+      {error ? (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Failed to load candidates</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p>Failed to load candidates. Please refresh the page or try again.</p>
+            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : (
       <Card>
         <CardHeader>
           <CardTitle>
@@ -273,6 +286,7 @@ function CandidatesPageContent() {
           </Table>
         </CardContent>
       </Card>
+      )}
 
       <AlertDialog open={pendingDeleteId !== null} onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}>
         <AlertDialogContent>

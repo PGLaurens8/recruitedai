@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { postJson } from '@/lib/api-client';
 import { ArrowLeft, Upload, Mail, Briefcase, Sparkles, Save, Star, Percent, AlertTriangle, Brain, Clock, GraduationCap, Award } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
-import { saveCandidateInterview, useCandidate, useCurrentProfile } from '@/lib/data/hooks';
+import { ApiClientError, saveCandidateInterview, useCandidate, useCurrentProfile } from '@/lib/data/hooks';
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 
 const screeningQuestions = [
@@ -39,7 +39,7 @@ export default function CandidateDetailPage() {
 
     const { data: profile } = useCurrentProfile(user);
     const companyId = profile?.companyId;
-    const { data: candidate, isLoading: isCandLoading } = useCandidate(companyId, candidateId);
+    const { data: candidate, isLoading: isCandLoading, error: candError } = useCandidate(companyId, candidateId);
 
     const [notes, setNotes] = useState<Record<string, string>>({});
     const [scores, setScores] = useState<Record<string, number | null>>({});
@@ -151,15 +151,40 @@ export default function CandidateDetailPage() {
         );
     }
 
+    // Distinguish a genuine 404 (candidate really doesn't exist) from any other
+    // failure (network error, 500, permission). Only an explicit 404 should read
+    // as "Not Found"; everything else is a load failure the user can retry.
+    if (candError) {
+        const isNotFound = candError instanceof ApiClientError && candError.status === 404;
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] text-center">
+                <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
+                <p className="text-lg font-bold">{isNotFound ? "Candidate Not Found" : "Something went wrong"}</p>
+                <p className="mt-1 text-muted-foreground">
+                    {isNotFound
+                        ? "This candidate does not exist or has been removed."
+                        : "Something went wrong loading this candidate. Please try again."}
+                </p>
+                <div className="mt-4 flex items-center gap-2">
+                    {!isNotFound && (
+                        <Button onClick={() => window.location.reload()}>Try Again</Button>
+                    )}
+                    <Button variant="outline" onClick={() => router.push('/candidates')}>
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Back to Candidates
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
     if (!candidate) {
+        // Dependencies (e.g. the resolved companyId) aren't ready yet and no error
+        // was raised — keep showing the loading state rather than a false "Not Found".
         return (
             <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)]">
-                <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
-                <p className="text-lg font-bold">Candidate Not Found</p>
-                 <Button variant="outline" onClick={() => router.push('/candidates')} className="mt-4">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Candidates
-                </Button>
+                <Spinner size={32} />
+                <p className="mt-4 text-muted-foreground">Loading candidate profile...</p>
             </div>
         );
     }

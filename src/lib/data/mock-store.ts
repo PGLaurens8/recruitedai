@@ -249,6 +249,10 @@ export function getMockMasterResume(userId: string) {
   return readDatabase().masterResumes.find((item) => item.userId === userId) || null;
 }
 
+export function getMockMasterResumeById(resumeId: string) {
+  return readDatabase().masterResumes.find((item) => item.id === resumeId) || null;
+}
+
 export function saveMockMasterResume(resume: Omit<MasterResumeRecord, 'id'> & { id?: string }) {
   const database = readDatabase();
   const existingIndex = database.masterResumes.findIndex((item) => item.userId === resume.userId);

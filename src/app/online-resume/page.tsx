@@ -101,6 +101,23 @@ export default function OnlineResumePage() {
         });
     }
   };
+
+  const publicResumeUrl =
+    storedResume?.id && typeof window !== "undefined"
+      ? `${window.location.origin}/resume/${storedResume.id}`
+      : null;
+
+  const handleShareResume = () => {
+    if (!publicResumeUrl) return;
+    navigator.clipboard.writeText(publicResumeUrl)
+      .then(() => {
+        toast({ title: "Public link copied!", description: "Anyone with this link can view your resume — no login required." });
+      })
+      .catch(err => {
+        console.error("Failed to copy public link: ", err);
+        toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy your public resume link." });
+      });
+  };
   
   const handleDownloadPdf = () => { 
     toast({ title: "Coming Soon!", description: "PDF download functionality is under development." });
@@ -135,10 +152,30 @@ export default function OnlineResumePage() {
           </div>
         </div>
         <div className="flex space-x-2">
+          {publicResumeUrl && (
+            <Button variant="default" size="sm" onClick={handleShareResume}><Share2 className="mr-2 h-4 w-4" /> Share Resume</Button>
+          )}
           <Button variant="outline" size="sm" onClick={handleCopyLink}><Copy className="mr-2 h-4 w-4" /> Copy Link</Button>
           <Button variant="outline" size="sm" onClick={handleDownloadPdf}><Download className="mr-2 h-4 w-4" /> PDF</Button>
         </div>
       </header>
+
+      {publicResumeUrl && (
+        <Alert className="mb-8 border-primary/30 bg-primary/5">
+          <Share2 className="h-5 w-5 !text-primary" />
+          <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-sm">
+              Your resume is publicly shareable at{' '}
+              <Link href={`/resume/${storedResume?.id}`} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline break-all">
+                /resume/{storedResume?.id}
+              </Link>
+            </span>
+            <Button variant="outline" size="sm" onClick={handleShareResume} className="shrink-0">
+              <Copy className="mr-2 h-4 w-4" /> Copy public link
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {!loadedResumeText && (
         <Alert variant="default" className="mb-8 bg-yellow-50 border-yellow-300 text-yellow-700">
