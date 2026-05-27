@@ -59,7 +59,12 @@ export function Sidebar() {
                   >
                     {link.icon}
                     <span className="flex-1">{link.label}</span>
-                     {link.badge && <Badge variant="outline" className="text-[9px] h-4 bg-primary/10 text-primary border-primary/20">{link.badge}</Badge>}
+                     {link.badge && <Badge variant="outline" className={cn(
+                       'text-[9px] h-4',
+                       link.badge === 'Beta'
+                         ? 'bg-muted text-muted-foreground border-border'
+                         : 'bg-primary/10 text-primary border-primary/20'
+                     )}>{link.badge}</Badge>}
                   </Link>
                 );
               })}
