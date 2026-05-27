@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Eye, Plus, Search, ArrowUp, ArrowDown, ArrowUpDown, Mic2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle, Eye, Plus, RefreshCw, Search, ArrowUp, ArrowDown, ArrowUpDown, Mic2 } from "lucide-react";
 import { useAuth } from '@/context/auth-context';
 import { useCurrentProfile, useJobs } from '@/lib/data/hooks';
 import type { JobRecord } from '@/lib/data/types';
@@ -40,7 +41,7 @@ export default function JobsPage() {
 
   const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
-  const { data: jobs, isLoading } = useJobs(companyId);
+  const { data: jobs, isLoading, error } = useJobs(companyId);
 
   const sortedJobs = useMemo(() => {
     if (!jobs) return [];
@@ -103,6 +104,18 @@ export default function JobsPage() {
         </div>
       </div>
 
+      {error ? (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Failed to load jobs</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p>Failed to load jobs. Please refresh the page or try again.</p>
+            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : (
       <Card>
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -172,6 +185,7 @@ export default function JobsPage() {
           </Table>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

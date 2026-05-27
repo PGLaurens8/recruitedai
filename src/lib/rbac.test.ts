@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDefaultRouteForRole, isPublicPath, isRoleAllowedForPath } from './rbac';
+import { getDefaultRouteForRole, isOpenPath, isPublicPath, isRoleAllowedForPath } from './rbac';
 
 describe('rbac', () => {
   it('returns expected default dashboard route by role', () => {
@@ -17,6 +17,17 @@ describe('rbac', () => {
     expect(isPublicPath('/signup')).toBe(true);
     expect(isPublicPath('/login/reset')).toBe(false);
     expect(isPublicPath('/dashboard')).toBe(false);
+  });
+
+  it('treats /resume/ and /api/resume/ as open paths (viewable by everyone)', () => {
+    expect(isOpenPath('/resume/abc-123')).toBe(true);
+    expect(isOpenPath('/api/resume/abc-123')).toBe(true);
+    // Open paths are not auth pages, so they must not be "public" (which would
+    // bounce signed-in users away).
+    expect(isPublicPath('/resume/abc-123')).toBe(false);
+    // Unrelated paths are not open.
+    expect(isOpenPath('/dashboard')).toBe(false);
+    expect(isOpenPath('/resumed')).toBe(false);
   });
 
   it('enforces role access on path prefixes', () => {

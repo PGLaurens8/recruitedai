@@ -20,7 +20,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Building, MoreHorizontal, Plus, Search, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle, Building, MoreHorizontal, Plus, RefreshCw, Search, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { useAuth } from '@/context/auth-context';
 import { removeClient, useClients, useCurrentProfile } from '@/lib/data/hooks';
 import type { ClientRecord } from '@/lib/data/types';
@@ -51,7 +52,7 @@ export default function ClientsPage() {
 
   const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
-  const { data: clients, isLoading } = useClients(companyId, refreshKey);
+  const { data: clients, isLoading, error } = useClients(companyId, refreshKey);
 
   const sortedClients = useMemo(() => {
     if (!clients) return [];
@@ -136,6 +137,18 @@ export default function ClientsPage() {
         </div>
       </div>
 
+      {error ? (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Failed to load clients</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p>Failed to load clients. Please refresh the page or try again.</p>
+            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : (
       <Card>
         <CardHeader>
           <CardTitle>{isLoading ? "Clients" : `All Clients (${sortedClients.length})`}</CardTitle>
@@ -214,6 +227,7 @@ export default function ClientsPage() {
           </Table>
         </CardContent>
       </Card>
+      )}
 
       <AlertDialog open={pendingDeleteId !== null} onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}>
         <AlertDialogContent>

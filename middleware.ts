@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getDefaultRouteForRole, isPublicPath, isRoleAllowedForPath } from "@/lib/rbac";
+import { getDefaultRouteForRole, isOpenPath, isPublicPath, isRoleAllowedForPath } from "@/lib/rbac";
 import { type Role } from "@/lib/roles";
 import { getSupabasePublicEnv, validateRuntimeConfig } from "@/lib/runtime-config";
 
@@ -43,6 +43,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const isPublic = isPublicPath(pathname);
+  const isOpen = isOpenPath(pathname);
 
   // Declare variables that will hold the validated config
   let config: ReturnType<typeof getSupabasePublicEnv>;
@@ -81,7 +82,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (user == null) {
-    if (isPublic) {
+    if (isPublic || isOpen) {
       return response;
     }
 
@@ -93,6 +94,12 @@ export async function middleware(request: NextRequest) {
 
   // API routes enforce their own RBAC — skip the role DB query for them.
   if (pathname.startsWith("/api/")) {
+    return response;
+  }
+
+  // Open pages (e.g. a shared /resume/[id]) are viewable by everyone — do not
+  // resolve the role or redirect signed-in users away.
+  if (isOpen) {
     return response;
   }
 

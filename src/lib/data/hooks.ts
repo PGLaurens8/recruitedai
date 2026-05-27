@@ -89,6 +89,23 @@ function useAsyncValue<T>(load: () => Promise<T>, deps: DependencyList): QuerySt
   return state;
 }
 
+/**
+ * Error thrown by {@link requestApi} when the API responds with a non-OK
+ * envelope. Carries the HTTP `status` and the server `code` so callers can
+ * distinguish, e.g., a genuine 404 from a 500/network failure.
+ */
+export class ApiClientError extends Error {
+  readonly status: number;
+  readonly code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = 'ApiClientError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
 async function requestApi<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
@@ -107,7 +124,7 @@ async function requestApi<T>(url: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok || !body?.ok) {
     const message = body?.error?.message || `Request failed: ${response.status}`;
-    throw new Error(message);
+    throw new ApiClientError(message, response.status, body?.error?.code);
   }
 
   return body.data as T;
