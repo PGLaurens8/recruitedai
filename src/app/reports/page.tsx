@@ -23,7 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
-import { Users, Briefcase, DollarSign, Target, TrendingUp, UserCheck, Percent, Download, Calendar as CalendarIcon, FlaskConical } from "lucide-react"
+import { Users, Briefcase, DollarSign, Target, TrendingUp, UserCheck, Percent, Download, Calendar as CalendarIcon, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -31,6 +31,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/context/auth-context"
+import { useCandidates, useCurrentProfile } from "@/lib/data/hooks"
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -85,6 +87,10 @@ const executiveChartConfig = {
 
 export default function ReportsPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { data: profile } = useCurrentProfile(user);
+  const { data: candidates } = useCandidates(profile?.companyId);
+  const showSampleDataBanner = (candidates?.length ?? 0) < 20;
   const [recruiterDate, setRecruiterDate] = useState<DateRange | undefined>({ from: addDays(new Date(), -30), to: new Date() });
   const [salesDate, setSalesDate] = useState<DateRange | undefined>({ from: addDays(new Date(), -90), to: new Date() });
   const [executiveDate, setExecutiveDate] = useState<DateRange | undefined>({ from: addDays(new Date(), -180), to: new Date() });
@@ -216,13 +222,15 @@ export default function ReportsPage() {
         </p>
       </div>
 
-      <Alert className="border-amber-200 bg-amber-50">
-        <FlaskConical className="h-4 w-4 text-amber-600" />
-        <AlertTitle className="text-amber-800">Sample Data</AlertTitle>
-        <AlertDescription className="text-amber-700">
-          The charts and figures on this page use illustrative sample data. Live analytics connected to your actual pipeline are coming in a future update.
-        </AlertDescription>
-      </Alert>
+      {showSampleDataBanner && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-800">Sample Data</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            You are viewing sample data. Your real metrics will appear here as you add candidates and complete placements.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="recruiter" className="w-full">
         <TabsList className="grid w-full grid-cols-3">

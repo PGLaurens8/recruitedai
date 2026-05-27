@@ -78,6 +78,13 @@ export default function CandidateDetailPage() {
         setScores(prev => ({ ...prev, [question]: value ? parseInt(value) : null }));
     };
 
+    const startScreeningSession = () => {
+        const section = document.getElementById('screening-notes');
+        section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const firstQuestion = document.getElementById('question-0') as HTMLTextAreaElement | null;
+        firstQuestion?.focus({ preventScroll: true });
+    };
+
     const handleGenerateSummary = async () => {
         if (!candidate) return;
 
@@ -200,7 +207,12 @@ export default function CandidateDetailPage() {
                                 <Progress value={completionPercentage} className="mt-2 h-2" indicatorClassName={progressColor} />
                             </>
                         ) : (
-                            <p className="text-sm text-muted-foreground">Screening not yet started</p>
+                            <>
+                                <p className="text-sm text-muted-foreground">Screening not yet started</p>
+                                <Button variant="link" size="sm" className="mt-1 h-auto p-0 text-primary" onClick={startScreeningSession}>
+                                    Start screening session →
+                                </Button>
+                            </>
                         )}
                     </CardContent>
                 </Card>
@@ -216,7 +228,10 @@ export default function CandidateDetailPage() {
                                 <p className="text-xs text-muted-foreground">Based on {Object.values(scores).filter(s => s !== null).length} scored questions</p>
                             </>
                         ) : (
-                            <p className="text-sm text-muted-foreground">No scores recorded yet</p>
+                            <>
+                                <p className="text-sm text-muted-foreground">No scores recorded yet</p>
+                                <p className="mt-1 text-xs text-muted-foreground">Scores appear after completing a screening session</p>
+                            </>
                         )}
                     </CardContent>
                 </Card>
@@ -289,7 +304,7 @@ export default function CandidateDetailPage() {
                 </CardContent>
             </Card>
 
-             <Card>
+             <Card id="screening-notes">
                 <CardHeader>
                     <CardTitle>Screening Interview Notes</CardTitle>
                     <CardDescription>Use this section to take notes and score the candidate during the initial screening call.</CardDescription>

@@ -154,7 +154,7 @@ export default function ClientsPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
+                Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><div className="flex items-center gap-3"><Skeleton className="h-9 w-9 rounded-md" /><Skeleton className="h-4 w-28" /></div></TableCell>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>

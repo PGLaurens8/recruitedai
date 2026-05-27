@@ -195,10 +195,17 @@ function CandidatesPageContent() {
                 ))
               ) : sortedCandidates.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                    {searchTerm || statusFilter !== "all"
-                      ? "No candidates match your filters."
-                      : "No candidates yet. Use the Smart Parser to add your first candidate."}
+                  <TableCell colSpan={5} className="py-12">
+                    {searchTerm || statusFilter !== "all" ? (
+                      <p className="text-center text-muted-foreground">No candidates match your filters.</p>
+                    ) : (
+                      <div className="flex flex-col items-center gap-3 text-center">
+                        <p className="font-medium">No candidates yet</p>
+                        <Button asChild>
+                          <Link href="/ai-parser"><Plus className="mr-2 h-4 w-4" /> Add your first candidate via Smart Parser</Link>
+                        </Button>
+                      </div>
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
