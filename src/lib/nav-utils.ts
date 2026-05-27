@@ -29,7 +29,7 @@ export interface NavLink {
   label: string;
   icon: React.ReactNode;
   roles: Role[];
-  badge?: 'Premium' | 'New';
+  badge?: 'Beta' | 'New';
 }
 
 export interface NavGroup {
@@ -73,7 +73,7 @@ const navGroups: NavGroup[] = [
     title: 'Module: Candidate Portal',
     roles: ['Admin', 'Candidate', 'Developer'],
     links: [
-      { href: '/master-resume', label: 'Resume Builder', icon: React.createElement(FileText, { size: 18 }), roles: ['Admin', 'Candidate', 'Developer'], badge: 'Premium' },
+      { href: '/master-resume', label: 'Resume Builder', icon: React.createElement(FileText, { size: 18 }), roles: ['Admin', 'Candidate', 'Developer'], badge: 'Beta' },
       { href: '/targeted-resume', label: 'AI Job Matcher', icon: React.createElement(Target, { size: 18 }), roles: ['Candidate', 'Developer'] },
       { href: '/online-resume', label: 'Online Profile', icon: React.createElement(User, { size: 18 }), roles: ['Candidate', 'Developer'] },
       { href: '/linktree-bio', label: 'LinkTree Bio', icon: React.createElement(LinkIcon, { size: 18 }), roles: ['Candidate', 'Developer'] },

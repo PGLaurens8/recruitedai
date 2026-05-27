@@ -256,17 +256,26 @@ export async function POST(request: Request) {
       },
     ];
 
-    const { error: candError } = await supabase.from('candidates').insert(candidates);
+    // Upsert (not insert) so re-running the seed updates the existing demo set
+    // instead of creating duplicates. Conflict targets are the per-company
+    // unique indexes added in 202605270013_seed_unique_constraints.sql.
+    const { error: candError } = await supabase
+      .from('candidates')
+      .upsert(candidates, { onConflict: 'company_id,email' });
     if (candError) {
       throw new ApiRouteError(500, 'SEED_CANDIDATES_FAILED', 'Could not seed candidates.', candError);
     }
 
-    const { error: jobError } = await supabase.from('jobs').insert(jobs);
+    const { error: jobError } = await supabase
+      .from('jobs')
+      .upsert(jobs, { onConflict: 'company_id,title' });
     if (jobError) {
       throw new ApiRouteError(500, 'SEED_JOBS_FAILED', 'Could not seed jobs.', jobError);
     }
 
-    const { error: clientError } = await supabase.from('clients').insert(clients);
+    const { error: clientError } = await supabase
+      .from('clients')
+      .upsert(clients, { onConflict: 'company_id,name' });
     if (clientError) {
       throw new ApiRouteError(500, 'SEED_CLIENTS_FAILED', 'Could not seed clients.', clientError);
     }
