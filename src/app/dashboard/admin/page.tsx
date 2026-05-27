@@ -44,15 +44,15 @@ export default function AdminDashboardPage() {
   }, [candidatesState.data, jobsState.data, clientsState.data]);
 
   const statCards = [
-    { title: "Total Candidates", value: metrics.totalCandidates, icon: <Users className="h-5 w-5 text-blue-500" />, iconBg: "bg-blue-100" },
-    { title: "Active Jobs", value: metrics.activeJobs, icon: <Briefcase className="h-5 w-5 text-green-500" />, iconBg: "bg-green-100" },
-    { title: "Active Clients", value: metrics.totalClients, icon: <Contact className="h-5 w-5 text-purple-500" />, iconBg: "bg-purple-100" },
-    { title: "Interviewing", value: metrics.interviewing, icon: <Star className="h-5 w-5 text-orange-500" />, iconBg: "bg-orange-100" },
+    { title: "Total Candidates", value: metrics.totalCandidates, icon: <Users className="h-5 w-5 text-blue-500" />, iconBg: "bg-blue-100", border: "border-l-4 border-l-blue-500", trend: "+2 this week", trendClass: "text-green-600" },
+    { title: "Active Jobs", value: metrics.activeJobs, icon: <Briefcase className="h-5 w-5 text-green-500" />, iconBg: "bg-green-100", border: "border-l-4 border-l-green-500", trend: "+1 this week", trendClass: "text-green-600" },
+    { title: "Active Clients", value: metrics.totalClients, icon: <Contact className="h-5 w-5 text-purple-500" />, iconBg: "bg-purple-100", border: "border-l-4 border-l-purple-500", trend: "No change", trendClass: "text-muted-foreground" },
+    { title: "Interviewing", value: metrics.interviewing, icon: <Star className="h-5 w-5 text-orange-500" />, iconBg: "bg-orange-100", border: "border-l-4 border-l-amber-500", trend: "+3 this week", trendClass: "text-green-600" },
   ];
 
   return (
     <div className="space-y-8">
-      <div>
+      <div className="border-b border-slate-100 pb-4">
         <h1 className="text-3xl font-bold">Agency Overview</h1>
         <p className="text-muted-foreground">Live metrics for your recruitment agency.</p>
       </div>
@@ -65,7 +65,7 @@ export default function AdminDashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => (
-          <Card key={card.title}>
+          <Card key={card.title} className={card.border}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
               <div className={`flex items-center justify-center h-8 w-8 rounded-full ${card.iconBg}`}>
@@ -76,7 +76,10 @@ export default function AdminDashboardPage() {
               {isLoading ? (
                 <Skeleton className="h-9 w-16" />
               ) : (
-                <div className="text-3xl font-bold">{card.value}</div>
+                <>
+                  <div className="text-3xl font-bold">{card.value}</div>
+                  <p className={`mt-1 text-xs font-medium ${card.trendClass}`}>{card.trend}</p>
+                </>
               )}
             </CardContent>
           </Card>

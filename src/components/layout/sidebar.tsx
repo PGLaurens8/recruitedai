@@ -29,18 +29,18 @@ export function Sidebar() {
 
 
   return (
-    <aside className="hidden md:flex flex-col w-64 bg-card border-r h-screen sticky top-0">
-      <div className="flex flex-col items-center justify-center h-20 border-b px-6">
-         <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
-          <Briefcase className="h-7 w-7 text-primary" />
+    <aside className="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800 h-screen sticky top-0">
+      <div className="flex flex-col items-center justify-center h-20 border-b border-slate-800 px-6">
+         <Link href="/" className="flex items-center gap-2 font-semibold text-lg text-white">
+          <Briefcase className="h-7 w-7 text-blue-400" />
           <span>RecruitedAI</span>
         </Link>
-        <div className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest font-bold">2026 Enterprise Edition</div>
+        <div className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">2026 Enterprise Edition</div>
       </div>
       <nav className="flex-1 px-2 py-4 space-y-6 overflow-y-auto">
         {accessibleGroups.map((group) => (
           <div key={group.title}>
-            <h3 className="px-3 py-2 text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/5 rounded-sm mb-2">
+            <h3 className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
               {group.title}
             </h3>
             <div className="space-y-1">
@@ -53,8 +53,8 @@ export function Sidebar() {
                     href={link.href}
                     aria-current={isActive ? 'page' : undefined}
                     className={cn(
-                      'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:text-primary hover:bg-muted',
-                      isActive && 'bg-muted text-primary'
+                      'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-300 transition-all hover:text-white hover:bg-slate-800',
+                      isActive && 'bg-blue-500 text-white hover:bg-blue-500 hover:text-white'
                     )}
                   >
                     {link.icon}
@@ -62,8 +62,8 @@ export function Sidebar() {
                      {link.badge && <Badge variant="outline" className={cn(
                        'text-[9px] h-4',
                        link.badge === 'Beta'
-                         ? 'bg-muted text-muted-foreground border-border'
-                         : 'bg-primary/10 text-primary border-primary/20'
+                         ? 'bg-slate-800 text-slate-300 border-slate-700'
+                         : 'bg-blue-500/20 text-blue-200 border-blue-400/30'
                      )}>{link.badge}</Badge>}
                   </Link>
                 );
@@ -72,21 +72,21 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className="mt-auto p-4 border-t space-y-1 bg-muted/10">
-         <Button variant="ghost" asChild className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
+      <div className="mt-auto p-4 border-t border-slate-800 space-y-1">
+         <Button variant="ghost" asChild className="w-full justify-start text-sm text-slate-400 hover:text-white hover:bg-slate-800">
               <Link href="/profile">
-                  <User className="h-5 w-5 mr-3" />
+                  <User className="h-4 w-4 mr-3" />
                   Profile & Billing
               </Link>
           </Button>
-          <Button variant="ghost" asChild className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
+          <Button variant="ghost" asChild className="w-full justify-start text-sm text-slate-400 hover:text-white hover:bg-slate-800">
               <Link href="/about">
-                  <HelpCircle className="h-5 w-5 mr-3" />
+                  <HelpCircle className="h-4 w-4 mr-3" />
                   Strategy & About
               </Link>
           </Button>
-          <Button variant="ghost" onClick={logout} className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/5 mt-2">
-            <LogOut className="h-5 w-5 mr-3" />
+          <Button variant="ghost" onClick={logout} className="w-full justify-start text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 mt-2">
+            <LogOut className="h-4 w-4 mr-3" />
             Log Out
           </Button>
       </div>

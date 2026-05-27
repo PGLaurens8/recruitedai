@@ -113,7 +113,7 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
+      <div className="border-b border-slate-100 pb-4">
         <h1 className="text-3xl font-bold tracking-tight">Client Management</h1>
         <p className="mt-1 text-muted-foreground">
           View, manage, and track all your clients and their job postings.

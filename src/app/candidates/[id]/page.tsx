@@ -292,7 +292,7 @@ export default function CandidateDetailPage() {
                             <h4 className="mb-2 text-sm font-semibold">Skills</h4>
                             <div className="flex flex-wrap gap-2">
                                 {candidate.skills.map((skill, index) => (
-                                    <Badge key={`${skill}-${index}`} variant="secondary">{skill}</Badge>
+                                    <Badge key={`${skill}-${index}`} variant="secondary" className="bg-blue-50 text-blue-700 border border-blue-200">{skill}</Badge>
                                 ))}
                             </div>
                         </div>
@@ -314,9 +314,12 @@ export default function CandidateDetailPage() {
                     {candidate.certifications && candidate.certifications.length > 0 && (
                         <div>
                             <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold"><Award className="h-4 w-4 text-muted-foreground" /> Certifications</h4>
-                            <ul className="list-disc space-y-1 pl-5">
+                            <ul className="space-y-1">
                                 {candidate.certifications.map((cert, index) => (
-                                    <li key={index} className="text-sm text-muted-foreground">{cert}</li>
+                                    <li key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Award className="h-4 w-4 shrink-0 text-amber-500" />
+                                        {cert}
+                                    </li>
                                 ))}
                             </ul>
                         </div>

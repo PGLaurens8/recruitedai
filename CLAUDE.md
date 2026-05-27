@@ -18,7 +18,7 @@ npm run security:secrets # Scan tree for leaked API keys / secrets
 ```
 
 Run a single unit test: `npx vitest run src/lib/rbac.test.ts` (or `npx vitest src/lib/rbac.test.ts` to watch).
-Tests live next to source as `*.test.ts`. The CI gate is `lint + typecheck + test + build` — all four must pass.
+Unit tests live next to source as `*.test.ts` (vitest, node environment). E2e tests live in `e2e/` (currently `smoke.spec.ts`) and run via Playwright against its own dev server on **port 9010** forced into **mock** mode — independent of the 9002 dev server. The CI gate is `lint + typecheck + test + build` — all four must pass.
 
 ## Runtime Modes
 
@@ -72,6 +72,9 @@ Schema lives only in `supabase/migrations/` (timestamped SQL, applied in order).
 - Pre-existing test failures in `src/lib/runtime-config.test.ts` are known and unrelated to feature work.
 
 See `PROJECT_STATE_ROADMAP.md` for the full execution tracker.
+
+## Operational Docs
+Operational runbooks live in `docs/`: `HOW_TO_SEED.md` (seeding the DB via the `/api/seed` route), `supabase-backup-recovery-runbook.md`, `release-rollout-rollback-checklist.md`, and `api-key-rotation-and-secret-hygiene.md` (paired with `npm run security:secrets`). `VERCEL_DEPLOYMENTS.md` covers the redeploy-after-env-change requirement.
 
 ## Product Context
 RecruitedAI solves CV screening for independent recruiters and small agencies. The target customer screens 50–300 CVs per role manually. The core differentiator is **explainable, skills-first AI scoring — not keyword matching**. See `README.md` for full positioning.

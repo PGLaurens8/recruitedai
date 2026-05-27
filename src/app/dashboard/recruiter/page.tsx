@@ -51,7 +51,7 @@ export default function RecruiterDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="border-b border-slate-100 pb-4">
         <h1 className="text-3xl font-bold">Recruiter Dashboard</h1>
         <p className="text-muted-foreground">Live hiring metrics for your current workspace.</p>
       </div>
@@ -73,13 +73,13 @@ export default function RecruiterDashboardPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {[
-          { label: "Candidates", value: metrics.totalCandidates },
-          { label: "Interviewing", value: metrics.interviewingCandidates },
-          { label: "Active Jobs", value: metrics.activeJobs },
-          { label: "Clients", value: metrics.totalClients },
-          { label: "Avg AI Score", value: metrics.averageAiScore },
-        ].map(({ label, value }) => (
-          <Card key={label}>
+          { label: "Candidates", value: metrics.totalCandidates, border: "border-l-4 border-l-blue-500", trend: "+2 this week", trendClass: "text-green-600" },
+          { label: "Interviewing", value: metrics.interviewingCandidates, border: "border-l-4 border-l-amber-500", trend: "+3 this week", trendClass: "text-green-600" },
+          { label: "Active Jobs", value: metrics.activeJobs, border: "border-l-4 border-l-green-500", trend: "+1 this week", trendClass: "text-green-600" },
+          { label: "Clients", value: metrics.totalClients, border: "border-l-4 border-l-purple-500", trend: "No change", trendClass: "text-muted-foreground" },
+          { label: "Avg AI Score", value: metrics.averageAiScore, border: "border-l-4 border-l-indigo-500", trend: "No change", trendClass: "text-muted-foreground" },
+        ].map(({ label, value, border, trend, trendClass }) => (
+          <Card key={label} className={border}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">{label}</CardTitle>
             </CardHeader>
@@ -87,7 +87,10 @@ export default function RecruiterDashboardPage() {
               {isLoading ? (
                 <Skeleton className="h-9 w-16" />
               ) : (
-                <p className="text-3xl font-semibold">{value}</p>
+                <>
+                  <p className="text-3xl font-semibold">{value}</p>
+                  <p className={`mt-1 text-xs font-medium ${trendClass}`}>{trend}</p>
+                </>
               )}
             </CardContent>
           </Card>

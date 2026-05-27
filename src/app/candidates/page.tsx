@@ -47,6 +47,12 @@ const getStatusBadgeVariant = (status: string) => {
   }
 };
 
+const getAiScorePillClass = (score: number) => {
+  if (score >= 80) return "bg-green-100 text-green-800";
+  if (score >= 60) return "bg-amber-100 text-amber-800";
+  return "bg-red-100 text-red-800";
+};
+
 function CandidatesPageContent() {
   const { user } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -126,7 +132,7 @@ function CandidatesPageContent() {
 
   return (
     <div className="space-y-8">
-      <div>
+      <div className="border-b border-slate-100 pb-4">
         <h1 className="text-3xl font-bold tracking-tight">Candidate Management</h1>
         <p className="mt-1 text-muted-foreground">
           View, manage, and track all candidates in your pipeline.
@@ -257,10 +263,10 @@ function CandidatesPageContent() {
                     </TableCell>
                     <TableCell>
                       {candidate.aiScore != null ? (
-                        <div className="flex items-center gap-1">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-sm font-semibold ${getAiScorePillClass(candidate.aiScore)}`}>
                           <Star className="h-4 w-4 text-yellow-500 fill-yellow-400" />
-                          <span className="font-semibold">{candidate.aiScore}%</span>
-                        </div>
+                          {candidate.aiScore}%
+                        </span>
                       ) : (
                         <span className="text-muted-foreground text-sm">N/A</span>
                       )}
