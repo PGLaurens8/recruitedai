@@ -18,6 +18,9 @@ const createCandidateSchema = z.object({
   fullResumeText: z.string().optional(),
   skills: z.array(z.string()).optional(),
   contactInfo: z.record(z.string(), z.unknown()).optional(),
+  aiSummary: z.string().optional(),
+  interviewAnalysis: z.unknown().optional(),
+  lastInterviewAt: z.string().datetime().optional(),
 });
 
 export async function GET(request: Request) {
@@ -75,6 +78,9 @@ export async function POST(request: Request) {
             full_resume_text: payload.fullResumeText || null,
             skills: payload.skills || [],
             contact_info: payload.contactInfo || {},
+            ai_summary: payload.aiSummary || null,
+            interview_analysis: payload.interviewAnalysis ?? null,
+            last_interview_at: payload.lastInterviewAt || null,
             created_by: userId,
           })
           .select('*')

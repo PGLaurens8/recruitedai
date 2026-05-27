@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -29,7 +30,8 @@ import {
   Mail,
   Send,
   Loader2,
-  Trash2
+  Trash2,
+  UserPlus
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
@@ -81,6 +83,8 @@ export default function InterviewAnalysisPage() {
   const [analysis, setAnalysis] = useState<AnalyzeInterviewOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isLinking, setIsLinking] = useState(false);
 
   // Live Session States
   const [isListening, setIsListening] = useState(false);
@@ -441,11 +445,61 @@ export default function InterviewAnalysisPage() {
     }
   };
 
-  const handleSaveToCandidate = async () => {
+  const handleLinkToExisting = async () => {
     if (!selectedCandidateId || !analysis || !companyId) return;
 
-    await saveCandidateInterviewAnalysis(companyId, selectedCandidateId, analysis);
-    toast({ title: "Profile Updated", description: "Interview data linked to candidate." });
+    setIsLinking(true);
+    try {
+      await saveCandidateInterviewAnalysis(companyId, selectedCandidateId, analysis);
+      toast({ title: "Profile Updated", description: "Interview data linked to candidate." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Link failed", description: e.message || "Could not link interview to candidate." });
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  const handleSaveAsNewCandidate = async () => {
+    if (!analysis || !companyId) return;
+
+    setIsSavingProfile(true);
+    try {
+      const interviewNotes = analysis.questionsAnswers
+        .map((qa) => `${qa.question}: ${qa.answer}`)
+        .join("\n");
+
+      const profile = await postJson<{ profileSummary?: string; skills?: string[] }>(
+        "/api/ai/generate-candidate-profile",
+        {
+          interviewNotes,
+          candidateName: analysis.candidateName,
+          candidateRole: analysis.overallAssessment.slice(0, 100),
+        }
+      );
+
+      const created = await postJson<{ id: string }>("/api/candidates", {
+        name: analysis.candidateName || "New Candidate",
+        aiSummary: profile.profileSummary || analysis.overallAssessment,
+        skills: profile.skills || [],
+        interviewAnalysis: analysis,
+        lastInterviewAt: new Date().toISOString(),
+        status: "Sourced",
+        companyId,
+      });
+
+      toast({
+        title: "Candidate profile created",
+        description: (
+          <Link href={`/candidates/${created.id}`} className="font-medium underline underline-offset-2">
+            View profile →
+          </Link>
+        ),
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Could not create candidate", description: e.message || "Profile creation failed." });
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const downloadBrandedPack = async () => {
@@ -713,10 +767,29 @@ export default function InterviewAnalysisPage() {
                       <Badge variant="outline">Interviewer: {analysis.interviewerName || 'Unknown'}</Badge>
                     </div>
                   </CardContent>
-                  <CardFooter>
-                    <Button variant="outline" className="w-full" onClick={handleSaveToCandidate}>
-                      <Save className="mr-2 h-4 w-4" /> Link to Candidate Record
-                    </Button>
+                  <CardFooter className="flex-col items-stretch gap-3">
+                    {!selectedCandidateId && (
+                      <Button className="w-full" onClick={handleSaveAsNewCandidate} disabled={isSavingProfile}>
+                        {isSavingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                        Save as New Candidate
+                      </Button>
+                    )}
+                    <div className="flex gap-2">
+                      <Select value={selectedCandidateId} onValueChange={setSelectedJobCandidateId}>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Link to existing candidate..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {candidates?.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}{c.currentJob ? ` (${c.currentJob})` : ""}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button variant="outline" onClick={handleLinkToExisting} disabled={!selectedCandidateId || isLinking}>
+                        {isLinking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Link to Existing Candidate
+                      </Button>
+                    </div>
                   </CardFooter>
                 </Card>
 
