@@ -2,6 +2,7 @@
 "use client"
 
 import { useState } from "react"
+import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { addDays, format } from "date-fns"
 import { DateRange } from "react-day-picker"
 
@@ -217,6 +218,7 @@ export default function ReportsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Reports & Analytics</h1>
+        <Breadcrumb className="mt-1" items={[{ label: "Strategic Insights", href: "/reports" }, { label: "Analytics & ROI" }]} />
         <p className="mt-1 text-muted-foreground">
           Track performance, monitor pipelines, and gain valuable insights.
         </p>

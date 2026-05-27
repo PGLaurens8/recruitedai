@@ -19,6 +19,7 @@ import { postJson } from '@/lib/api-client';
 import { ArrowLeft, Upload, Mail, Briefcase, Sparkles, Save, Star, Percent, AlertTriangle, Brain, Clock, GraduationCap, Award } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { saveCandidateInterview, useCandidate, useCurrentProfile } from '@/lib/data/hooks';
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 
 const screeningQuestions = [
   "Can you tell me about your background and experience?",
@@ -192,6 +193,8 @@ export default function CandidateDetailPage() {
                 </div>
                 <Button><Upload className="mr-2 h-4 w-4" /> View/Upload Resume</Button>
             </header>
+
+            <Breadcrumb items={[{ label: "Talent Pool", href: "/candidates" }, { label: candidate.name }]} />
 
             <div className="grid md:grid-cols-2 gap-6">
                  <Card>

@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -192,6 +193,7 @@ export default function CompanyFinderPage() {
         <div className="space-y-8">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Company & Lead Finder</h1>
+                <Breadcrumb className="mt-1" items={[{ label: "Business Hub", href: "/jobs" }, { label: "Smart Lead Finder" }]} />
                 <p className="mt-1 text-muted-foreground">
                     AI-powered discovery for companies and key decision-makers.
                 </p>

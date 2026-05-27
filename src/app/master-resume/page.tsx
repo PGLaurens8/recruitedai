@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FileUploadCard } from '@/components/feature/file-upload-card';
@@ -338,6 +339,9 @@ export default function MasterResumePage() {
         <p className="mt-2 text-lg text-muted-foreground">
           Upload your existing resume (PDF or TXT). Our AI will analyze, reformat it, and extract key details. This becomes your Master Resume.
         </p>
+        <div className="mt-4 flex justify-center">
+          <Breadcrumb items={[{ label: "Candidate Portal", href: "/master-resume" }, { label: "Resume Builder" }]} />
+        </div>
       </div>
 
       <FileUploadCard
