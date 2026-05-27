@@ -12,6 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { VoiceJobBriefButton } from '@/components/VoiceJobBriefButton';
 import type { VoiceJobBriefFields } from '@/hooks/useVoiceJobBrief';
+import { useAuth } from '@/context/auth-context';
+import { useClients, useCurrentProfile } from '@/lib/data/hooks';
+
+const NO_CLIENT = 'none';
 
 const statusOptions: { value: JobStatus; label: string }[] = [
   { value: 'draft', label: 'Draft' },
@@ -28,6 +32,7 @@ type JobFormState = {
   location: string;
   salary: string;
   company: string;
+  clientId: string;
 };
 
 const initialFormState: JobFormState = {
@@ -36,6 +41,7 @@ const initialFormState: JobFormState = {
   location: '',
   salary: '',
   company: '',
+  clientId: '',
 };
 
 export default function NewJobPage() {
@@ -43,6 +49,26 @@ export default function NewJobPage() {
   const [status, setStatus] = useState<JobStatus>('draft');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  const { user } = useAuth();
+  const { data: profile } = useCurrentProfile(user);
+  const companyId = profile?.companyId;
+  const { data: clients } = useClients(companyId);
+
+  const handleClientChange = (value: string) => {
+    if (value === NO_CLIENT) {
+      setFormState((prev) => ({ ...prev, clientId: '' }));
+      return;
+    }
+    const client = clients?.find((c) => c.id === value);
+    setFormState((prev) => ({
+      ...prev,
+      clientId: value,
+      // Auto-fill the free-text company so the brief and PDF stay consistent;
+      // the recruiter can still override it afterwards.
+      company: client?.name ?? prev.company,
+    }));
+  };
 
   const statusLabel = useMemo(() => {
     const option = statusOptions.find((item) => item.value === status);
@@ -87,6 +113,7 @@ export default function NewJobPage() {
           location: formState.location.trim() || undefined,
           salary: formState.salary.trim() || undefined,
           company: formState.company.trim() || undefined,
+          clientId: formState.clientId || undefined,
           status,
         }),
       });
@@ -144,6 +171,26 @@ export default function NewJobPage() {
                 placeholder="Capture the mission, responsibilities, and must-have technologies."
                 className="min-h-[120px]"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="job-client">Client</Label>
+              <Select value={formState.clientId || NO_CLIENT} onValueChange={handleClientChange}>
+                <SelectTrigger id="job-client">
+                  <SelectValue placeholder="Link this job to a client (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_CLIENT}>No client (use company field)</SelectItem>
+                  {clients?.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Selecting a client links this vacancy to their record and fills in the company name below.
+              </p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">

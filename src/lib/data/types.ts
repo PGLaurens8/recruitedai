@@ -53,6 +53,8 @@ export interface JobRecord {
   description?: string;
   candidates?: number;
   aiMatches?: number;
+  clientId?: string;
+  clientName?: string;
 }
 
 export interface ClientRecord {

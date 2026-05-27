@@ -187,6 +187,8 @@ function toJobRecord(row: any): JobRecord {
     description: row.description || undefined,
     candidates: row.candidates_count ?? undefined,
     aiMatches: row.ai_matches ?? undefined,
+    clientId: row.client_id || undefined,
+    clientName: row.client_name || undefined,
   };
 }
 

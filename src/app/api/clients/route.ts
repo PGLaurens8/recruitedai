@@ -32,7 +32,34 @@ export async function GET(request: Request) {
       throw new ApiRouteError(500, 'CLIENTS_QUERY_FAILED', 'Could not load clients.', error);
     }
 
-    return jsonSuccess(requestId, data || []);
+    // Derive a live open-jobs count per client from linked active jobs, overriding the
+    // static open_jobs column so the sales view ("Accenture — 3 open vacancies") is accurate.
+    const { data: openJobRows, error: jobsError } = await supabase
+      .from('jobs')
+      .select('client_id')
+      .eq('company_id', companyId)
+      .eq('status', 'active')
+      .is('deleted_at', null)
+      .not('client_id', 'is', null);
+
+    if (jobsError) {
+      throw new ApiRouteError(500, 'CLIENTS_QUERY_FAILED', 'Could not load client job counts.', jobsError);
+    }
+
+    const openJobCounts = new Map<string, number>();
+    for (const row of openJobRows || []) {
+      const clientId = (row as { client_id: string | null }).client_id;
+      if (clientId) {
+        openJobCounts.set(clientId, (openJobCounts.get(clientId) ?? 0) + 1);
+      }
+    }
+
+    const rows = (data || []).map((client) => ({
+      ...client,
+      open_jobs: openJobCounts.get(client.id) ?? 0,
+    }));
+
+    return jsonSuccess(requestId, rows);
   } catch (error) {
     return jsonError(requestId, error);
   }
