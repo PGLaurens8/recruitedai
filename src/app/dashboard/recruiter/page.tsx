@@ -7,6 +7,7 @@ import { useCandidates, useClients, useJobs } from "@/lib/data/hooks";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { OnboardingChecklist } from "@/components/feature/onboarding-checklist";
 import { UserPlus, Mic2, FilePlus2, Search } from "lucide-react";
 
 function formatAverageScore(values: number[]) {
@@ -54,6 +55,12 @@ export default function RecruiterDashboardPage() {
         <h1 className="text-3xl font-bold">Recruiter Dashboard</h1>
         <p className="text-muted-foreground">Live hiring metrics for your current workspace.</p>
       </div>
+
+      <OnboardingChecklist
+        candidatesCount={candidatesState.data?.length ?? 0}
+        clientsCount={clientsState.data?.length ?? 0}
+        jobsCount={jobsState.data?.length ?? 0}
+      />
 
       {error && (
         <Card className="border-destructive">

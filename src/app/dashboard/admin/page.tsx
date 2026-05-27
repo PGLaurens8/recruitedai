@@ -7,6 +7,7 @@ import { useCandidates, useClients, useJobs } from "@/lib/data/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { OnboardingChecklist } from "@/components/feature/onboarding-checklist";
 import {
   Users,
   Briefcase,
@@ -55,6 +56,12 @@ export default function AdminDashboardPage() {
         <h1 className="text-3xl font-bold">Agency Overview</h1>
         <p className="text-muted-foreground">Live metrics for your recruitment agency.</p>
       </div>
+
+      <OnboardingChecklist
+        candidatesCount={candidatesState.data?.length ?? 0}
+        clientsCount={clientsState.data?.length ?? 0}
+        jobsCount={jobsState.data?.length ?? 0}
+      />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => (
