@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -14,12 +15,22 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { postJson } from '@/lib/api-client';
-import { ArrowLeft, Upload, Mail, Briefcase, Sparkles, Save, Star, Percent, AlertTriangle, Brain, Clock, GraduationCap, Award } from 'lucide-react';
+import { ArrowLeft, Upload, Mail, Briefcase, Sparkles, Save, Send, Star, Percent, AlertTriangle, Brain, Clock, GraduationCap, Award } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
-import { ApiClientError, saveCandidateInterview, useCandidate, useCurrentProfile } from '@/lib/data/hooks';
+import {
+  ApiClientError,
+  createSubmission,
+  saveCandidateInterview,
+  useCandidate,
+  useCurrentProfile,
+  useJobs,
+  useSubmissions,
+} from '@/lib/data/hooks';
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { SUBMISSION_STATUS_BADGE_CLASS, SUBMISSION_STATUS_LABEL } from '@/lib/submissions-ui';
 
 const screeningQuestions = [
   "Can you tell me about your background and experience?",
@@ -40,6 +51,13 @@ export default function CandidateDetailPage() {
     const { data: profile } = useCurrentProfile(user);
     const companyId = profile?.companyId;
     const { data: candidate, isLoading: isCandLoading, error: candError } = useCandidate(companyId, candidateId);
+    const { data: jobs } = useJobs(companyId);
+    const [submissionRefresh, setSubmissionRefresh] = useState(0);
+    const { data: submissions, isLoading: isSubsLoading } = useSubmissions(
+      companyId,
+      candidateId ? { candidateId } : undefined,
+      submissionRefresh,
+    );
 
     const [notes, setNotes] = useState<Record<string, string>>({});
     const [scores, setScores] = useState<Record<string, number | null>>({});
@@ -47,6 +65,49 @@ export default function CandidateDetailPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+    const [submitJobId, setSubmitJobId] = useState('');
+    const [submitNotes, setSubmitNotes] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const activeJobs = useMemo(
+      () => (jobs || []).filter((job) => String(job.status).toLowerCase() === 'active'),
+      [jobs],
+    );
+
+    const openSubmitDialog = () => {
+      setSubmitJobId('');
+      setSubmitNotes('');
+      setSubmitDialogOpen(true);
+    };
+
+    const handleSubmitCandidate = async () => {
+      if (!companyId || !candidateId || !submitJobId) {
+        return;
+      }
+      const job = activeJobs.find((item) => item.id === submitJobId);
+      setIsSubmitting(true);
+      try {
+        await createSubmission({
+          companyId,
+          candidateId,
+          jobId: submitJobId,
+          notes: submitNotes.trim() || undefined,
+        });
+        toast({
+          title: 'Candidate submitted',
+          description: `Candidate submitted to ${job?.title || 'vacancy'}.`,
+        });
+        setSubmitDialogOpen(false);
+        setSubmissionRefresh((prev) => prev + 1);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Could not submit candidate.';
+        toast({ variant: 'destructive', title: 'Submission failed', description: message });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
 
     useEffect(() => {
         if (candidate) {
@@ -216,7 +277,12 @@ export default function CandidateDetailPage() {
                         </p>
                     </div>
                 </div>
-                <Button><Upload className="mr-2 h-4 w-4" /> View/Upload Resume</Button>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button variant="outline" onClick={openSubmitDialog}>
+                        <Send className="mr-2 h-4 w-4" /> Submit to Vacancy
+                    </Button>
+                    <Button><Upload className="mr-2 h-4 w-4" /> View/Upload Resume</Button>
+                </div>
             </header>
 
             <Breadcrumb items={[{ label: "Talent Pool", href: "/candidates" }, { label: candidate.name }]} />
@@ -335,6 +401,38 @@ export default function CandidateDetailPage() {
                 </CardContent>
             </Card>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Send className="h-5 w-5 text-primary" /> Submissions</CardTitle>
+                    <CardDescription>Vacancies this candidate has been put forward for and their current pipeline status.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isSubsLoading ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground"><Spinner size={16} /> Loading submissions...</div>
+                    ) : !submissions || submissions.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No submissions yet. Click <span className="font-medium">Submit to Vacancy</span> above to put this candidate forward.</p>
+                    ) : (
+                        <ul className="space-y-2">
+                            {submissions.map((submission) => (
+                                <li key={submission.id} className="flex flex-col gap-1 rounded-md border px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="min-w-0">
+                                        <Link href={`/jobs/${submission.jobId}`} className="font-medium hover:underline">
+                                            {submission.jobTitle || 'Untitled job'}
+                                        </Link>
+                                        {submission.clientName && (
+                                            <p className="text-xs text-muted-foreground">{submission.clientName}</p>
+                                        )}
+                                    </div>
+                                    <Badge variant="outline" className={SUBMISSION_STATUS_BADGE_CLASS[submission.status]}>
+                                        {SUBMISSION_STATUS_LABEL[submission.status]}
+                                    </Badge>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </CardContent>
+            </Card>
+
              <Card id="screening-notes">
                 <CardHeader>
                     <CardTitle>Screening Interview Notes</CardTitle>
@@ -401,6 +499,49 @@ export default function CandidateDetailPage() {
                     </Button>
                 </CardFooter>
             </Card>
+
+            <Dialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Submit candidate to a vacancy</DialogTitle>
+                        <DialogDescription>Pick an active vacancy and add any handover notes for the client. The candidate will appear in that job&apos;s pipeline.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="submit-job">Vacancy</Label>
+                            <Select value={submitJobId} onValueChange={setSubmitJobId}>
+                                <SelectTrigger id="submit-job">
+                                    <SelectValue placeholder={activeJobs.length === 0 ? "No active vacancies" : "Select a vacancy..."} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {activeJobs.map((job) => (
+                                        <SelectItem key={job.id} value={job.id}>
+                                            {job.title}{job.clientName || job.company ? ` — ${job.clientName || job.company}` : ''}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="submit-notes">Notes for this submission</Label>
+                            <Textarea
+                                id="submit-notes"
+                                value={submitNotes}
+                                onChange={(event) => setSubmitNotes(event.target.value)}
+                                placeholder="Why is this candidate a good fit? Any handover context for the client..."
+                                className="min-h-[120px]"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setSubmitDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
+                        <Button onClick={handleSubmitCandidate} disabled={isSubmitting || !submitJobId}>
+                            {isSubmitting ? <Spinner size={16} className="mr-2" /> : <Send className="mr-2 h-4 w-4" />}
+                            Submit Candidate
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

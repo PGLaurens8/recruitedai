@@ -3,10 +3,11 @@
 import { useMemo } from "react";
 
 import { useAuth } from "@/context/auth-context";
-import { useCandidates, useClients, useJobs } from "@/lib/data/hooks";
+import { useCandidates, useClients, useJobs, useSubmissions } from "@/lib/data/hooks";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
 import { Building, Users } from "lucide-react";
 
@@ -17,9 +18,15 @@ export default function SalesDashboardPage() {
   const candidatesState = useCandidates(companyId);
   const jobsState = useJobs(companyId);
   const clientsState = useClients(companyId);
+  const submissionsState = useSubmissions(companyId);
 
-  const isLoading = candidatesState.isLoading || jobsState.isLoading || clientsState.isLoading;
-  const error = candidatesState.error || jobsState.error || clientsState.error;
+  const isLoading =
+    candidatesState.isLoading ||
+    jobsState.isLoading ||
+    clientsState.isLoading ||
+    submissionsState.isLoading;
+  const error =
+    candidatesState.error || jobsState.error || clientsState.error || submissionsState.error;
 
   const metrics = useMemo(() => {
     const candidates = candidatesState.data || [];
@@ -38,6 +45,51 @@ export default function SalesDashboardPage() {
       recentClients: clients.slice(0, 5),
     };
   }, [candidatesState.data, jobsState.data, clientsState.data]);
+
+  // Submission-driven pipeline view: rolls up every submission by its client_id
+  // into the buckets a salesperson cares about. "Placed this month" filters by
+  // placement_date (set when status flips to placed); everything else is just a
+  // status bucket. Submissions without a client_id (job had no client linked at
+  // submit time) are skipped here — they show up on the per-job pipeline view.
+  const activePlacements = useMemo(() => {
+    const clients = clientsState.data || [];
+    const jobs = jobsState.data || [];
+    const submissions = submissionsState.data || [];
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    return clients.map((client) => {
+      const openJobs = jobs.filter(
+        (job) => job.clientId === client.id && String(job.status).toLowerCase() === "active",
+      ).length;
+      const clientSubs = submissions.filter((sub) => sub.clientId === client.id);
+
+      const submitted = clientSubs.filter((sub) => sub.status === "submitted").length;
+      const interviewing = clientSubs.filter(
+        (sub) => sub.status === "interview_scheduled" || sub.status === "interview_completed",
+      ).length;
+      const offers = clientSubs.filter(
+        (sub) => sub.status === "offer_extended" || sub.status === "offer_accepted",
+      ).length;
+      const placedThisMonth = clientSubs.filter((sub) => {
+        if (sub.status !== "placed" || !sub.placementDate) return false;
+        const placedAt = new Date(sub.placementDate);
+        return Number.isFinite(placedAt.getTime()) && placedAt >= monthStart;
+      }).length;
+
+      return {
+        id: client.id,
+        name: client.name,
+        openJobs,
+        submitted,
+        interviewing,
+        offers,
+        placedThisMonth,
+        activity: submitted + interviewing + offers + placedThisMonth + openJobs,
+      };
+    }).sort((a, b) => b.activity - a.activity);
+  }, [clientsState.data, jobsState.data, submissionsState.data]);
 
   // Sales person's book of business: each active client with their open vacancy count
   // and the candidates in play across those vacancies. Candidates aren't linked to a
@@ -99,6 +151,60 @@ export default function SalesDashboardPage() {
           </Card>
         ))}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Active Placements Pipeline</CardTitle>
+          <CardDescription>Submissions rolled up by client — counts move as recruiters advance each candidate.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Client</TableHead>
+                <TableHead className="text-right">Open Jobs</TableHead>
+                <TableHead className="text-right">Submitted</TableHead>
+                <TableHead className="text-right">Interviewing</TableHead>
+                <TableHead className="text-right">Offers</TableHead>
+                <TableHead className="text-right">Placed this month</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                    <TableCell><Skeleton className="ml-auto h-4 w-8" /></TableCell>
+                    <TableCell><Skeleton className="ml-auto h-4 w-8" /></TableCell>
+                    <TableCell><Skeleton className="ml-auto h-4 w-8" /></TableCell>
+                    <TableCell><Skeleton className="ml-auto h-4 w-8" /></TableCell>
+                    <TableCell><Skeleton className="ml-auto h-4 w-8" /></TableCell>
+                  </TableRow>
+                ))
+              ) : activePlacements.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                    No clients yet. Add a client and start submitting candidates to populate this view.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                activePlacements.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell>
+                      <Link href={`/clients/${row.id}`} className="font-medium hover:underline">{row.name}</Link>
+                    </TableCell>
+                    <TableCell className="text-right">{row.openJobs}</TableCell>
+                    <TableCell className="text-right">{row.submitted}</TableCell>
+                    <TableCell className="text-right">{row.interviewing}</TableCell>
+                    <TableCell className="text-right">{row.offers}</TableCell>
+                    <TableCell className="text-right font-semibold text-green-700">{row.placedThisMonth}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

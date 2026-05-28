@@ -14,11 +14,15 @@ import type {
   JobRecord,
   MasterResumeRecord,
   ModelRegistryRecord,
+  SubmissionRecord,
+  SubmissionStatus,
 } from '@/lib/data/types';
 import {
   createMockCandidate,
+  createMockSubmission,
   deleteMockCandidate,
   deleteMockClient,
+  deleteMockSubmission,
   getMockCandidate,
   getMockCompany,
   getMockMasterResume,
@@ -27,10 +31,12 @@ import {
   listMockCandidates,
   listMockClients,
   listMockJobs,
+  listMockSubmissions,
   saveMockCandidate,
   saveMockCompany,
   saveMockMasterResume,
   saveMockModelRegistry,
+  updateMockSubmission,
 } from '@/lib/data/mock-store';
 
 interface QueryState<T> {
@@ -217,6 +223,27 @@ function toClientRecord(row: any): ClientRecord {
     contactEmail: row.contact_email || undefined,
     status: row.status,
     openJobs: row.open_jobs ?? undefined,
+  };
+}
+
+function toSubmissionRecord(row: any): SubmissionRecord {
+  return {
+    id: row.id,
+    companyId: row.company_id,
+    candidateId: row.candidate_id,
+    jobId: row.job_id,
+    clientId: row.client_id || undefined,
+    status: row.status as SubmissionStatus,
+    submittedBy: row.submitted_by || undefined,
+    notes: row.notes || undefined,
+    rejectionReason: row.rejection_reason || undefined,
+    placementFee: row.placement_fee != null ? Number(row.placement_fee) : undefined,
+    placementDate: row.placement_date || undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    candidateName: row.candidate_name || row.candidate?.name || undefined,
+    jobTitle: row.job_title || row.job?.title || undefined,
+    clientName: row.client_name || row.client?.name || undefined,
   };
 }
 
@@ -557,6 +584,118 @@ export async function saveCandidateInterviewAnalysis(
         interviewAnalysis: analysis,
         lastInterviewAt: new Date().toISOString(),
       }),
+    });
+  }
+}
+
+export function useSubmissions(
+  companyId: string | undefined,
+  filters?: { jobId?: string; candidateId?: string },
+  refreshKey = 0,
+) {
+  const jobId = filters?.jobId;
+  const candidateId = filters?.candidateId;
+  return useAsyncValue<SubmissionRecord[]>(async () => {
+    if (!companyId) {
+      return [];
+    }
+
+    if (isMockMode()) {
+      return listMockSubmissions(companyId, { jobId, candidateId });
+    }
+
+    if (isSupabaseMode()) {
+      const query = new URLSearchParams();
+      if (jobId) query.set('jobId', jobId);
+      if (candidateId) query.set('candidateId', candidateId);
+      const suffix = query.toString() ? `?${query.toString()}` : '';
+      const data = await requestApi<any[]>(`/api/submissions${suffix}`);
+      return (data || []).map(toSubmissionRecord);
+    }
+
+    return [];
+  }, [companyId, jobId, candidateId, refreshKey]);
+}
+
+export function useJobSubmissions(
+  companyId: string | undefined,
+  jobId: string | undefined,
+  refreshKey = 0,
+) {
+  return useSubmissions(companyId, jobId ? { jobId } : undefined, refreshKey);
+}
+
+export async function createSubmission(input: {
+  companyId: string;
+  candidateId: string;
+  jobId: string;
+  notes?: string;
+}): Promise<SubmissionRecord> {
+  if (isMockMode()) {
+    return createMockSubmission({
+      companyId: input.companyId,
+      candidateId: input.candidateId,
+      jobId: input.jobId,
+      notes: input.notes,
+    });
+  }
+
+  if (isSupabaseMode()) {
+    const data = await requestApi<any>('/api/submissions', {
+      method: 'POST',
+      body: JSON.stringify({
+        candidateId: input.candidateId,
+        jobId: input.jobId,
+        notes: input.notes || undefined,
+      }),
+    });
+    return toSubmissionRecord(data);
+  }
+
+  throw new Error('Unsupported runtime mode for createSubmission.');
+}
+
+export async function updateSubmission(
+  companyId: string,
+  submissionId: string,
+  updates: {
+    status?: SubmissionStatus;
+    notes?: string | null;
+    rejectionReason?: string | null;
+    placementFee?: number | null;
+    placementDate?: string | null;
+  },
+): Promise<SubmissionRecord | null> {
+  if (isMockMode()) {
+    return updateMockSubmission(companyId, submissionId, {
+      status: updates.status,
+      notes: updates.notes ?? undefined,
+      rejectionReason: updates.rejectionReason ?? undefined,
+      placementFee: updates.placementFee ?? undefined,
+      placementDate: updates.placementDate ?? undefined,
+    });
+  }
+
+  if (isSupabaseMode()) {
+    const data = await requestApi<any>(`/api/submissions/${submissionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+    return toSubmissionRecord(data);
+  }
+
+  return null;
+}
+
+export async function deleteSubmission(companyId: string, submissionId: string) {
+  if (isMockMode()) {
+    deleteMockSubmission(companyId, submissionId);
+    return;
+  }
+
+  if (isSupabaseMode()) {
+    await requestApi(`/api/submissions/${submissionId}`, {
+      method: 'DELETE',
     });
   }
 }

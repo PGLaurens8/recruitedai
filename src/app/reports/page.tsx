@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { addDays, format } from "date-fns"
 import { DateRange } from "react-day-picker"
 
@@ -32,7 +32,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/context/auth-context"
-import { useCandidates, useCurrentProfile } from "@/lib/data/hooks"
+import { useCandidates, useCurrentProfile, useSubmissions } from "@/lib/data/hooks"
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -90,7 +90,42 @@ export default function ReportsPage() {
   const { user } = useAuth();
   const { data: profile } = useCurrentProfile(user);
   const { data: candidates } = useCandidates(profile?.companyId);
+  const { data: submissions } = useSubmissions(profile?.companyId);
   const showSampleDataBanner = (candidates?.length ?? 0) < 20;
+
+  // Successful placements metric: real submissions in the placed state. Compares
+  // this calendar month against last month so the delta line stays meaningful as
+  // data accumulates. Falls back to a "no prior baseline" copy when last month is
+  // empty (avoids divide-by-zero and misleading +Infinity% labels).
+  const placementsMetric = useMemo(() => {
+    const placed = (submissions || []).filter((sub) => sub.status === 'placed');
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const placedAt = (iso?: string) => (iso ? new Date(iso) : null);
+
+    const thisMonth = placed.filter((sub) => {
+      const date = placedAt(sub.placementDate);
+      return date && Number.isFinite(date.getTime()) && date >= monthStart;
+    }).length;
+    const lastMonth = placed.filter((sub) => {
+      const date = placedAt(sub.placementDate);
+      return date && Number.isFinite(date.getTime()) && date >= prevMonthStart && date < monthStart;
+    }).length;
+
+    let deltaLabel: string;
+    if (lastMonth === 0 && thisMonth === 0) {
+      deltaLabel = 'No placements yet';
+    } else if (lastMonth === 0) {
+      deltaLabel = `+${thisMonth} this month`;
+    } else {
+      const pct = ((thisMonth - lastMonth) / lastMonth) * 100;
+      const sign = pct >= 0 ? '+' : '';
+      deltaLabel = `${sign}${pct.toFixed(1)}% from last month`;
+    }
+
+    return { total: placed.length, deltaLabel };
+  }, [submissions]);
   const [recruiterDate, setRecruiterDate] = useState<DateRange | undefined>({ from: addDays(new Date(), -30), to: new Date() });
   const [salesDate, setSalesDate] = useState<DateRange | undefined>({ from: addDays(new Date(), -90), to: new Date() });
   const [executiveDate, setExecutiveDate] = useState<DateRange | undefined>({ from: addDays(new Date(), -180), to: new Date() });
@@ -291,8 +326,8 @@ export default function ReportsPage() {
                     <UserCheck className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">23</div>
-                    <p className="text-xs text-muted-foreground">+8.5% from last month</p>
+                    <div className="text-2xl font-bold">{placementsMetric.total}</div>
+                    <p className="text-xs text-muted-foreground">{placementsMetric.deltaLabel}</p>
                   </CardContent>
                 </Card>
                  <Card>

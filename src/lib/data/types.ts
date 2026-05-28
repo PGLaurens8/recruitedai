@@ -71,6 +71,36 @@ export interface ClientRecord {
   openJobs?: number;
 }
 
+export type SubmissionStatus =
+  | 'submitted'
+  | 'client_reviewing'
+  | 'interview_scheduled'
+  | 'interview_completed'
+  | 'offer_extended'
+  | 'offer_accepted'
+  | 'placed'
+  | 'rejected'
+  | 'withdrew';
+
+export interface SubmissionRecord {
+  id: string;
+  companyId: string;
+  candidateId: string;
+  jobId: string;
+  clientId?: string;
+  status: SubmissionStatus;
+  submittedBy?: string;
+  notes?: string;
+  rejectionReason?: string;
+  placementFee?: number;
+  placementDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  candidateName?: string;
+  jobTitle?: string;
+  clientName?: string;
+}
+
 export interface MasterResumeRecord {
   id: string;
   userId: string;

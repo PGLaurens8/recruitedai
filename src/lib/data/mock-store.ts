@@ -8,6 +8,8 @@ import type {
   MasterResumeRecord,
   ModelRegistryRecord,
   JobRecord,
+  SubmissionRecord,
+  SubmissionStatus,
 } from '@/lib/data/types';
 
 interface MockDatabase {
@@ -17,6 +19,7 @@ interface MockDatabase {
   jobs: JobRecord[];
   clients: ClientRecord[];
   masterResumes: MasterResumeRecord[];
+  submissions: SubmissionRecord[];
   modelRegistry: ModelRegistryRecord | null;
 }
 
@@ -119,6 +122,7 @@ const seedDatabase: MockDatabase = {
     },
   ],
   masterResumes: [],
+  submissions: [],
   modelRegistry: null,
 };
 
@@ -134,7 +138,13 @@ function readDatabase(): MockDatabase {
   }
 
   try {
-    return JSON.parse(raw) as MockDatabase;
+    const parsed = JSON.parse(raw) as MockDatabase;
+    // Backfill collections introduced after the cached DB was first written, so
+    // older mock-mode sessions don't crash on .filter/.find against undefined.
+    if (!Array.isArray(parsed.submissions)) {
+      parsed.submissions = [];
+    }
+    return parsed;
   } catch {
     window.localStorage.setItem(MOCK_DB_KEY, JSON.stringify(seedDatabase));
     return seedDatabase;
@@ -280,6 +290,118 @@ export function saveMockMasterResume(resume: Omit<MasterResumeRecord, 'id'> & { 
     database.masterResumes.push(nextRecord);
   }
 
+  writeDatabase(database);
+}
+
+function enrichSubmission(
+  database: MockDatabase,
+  submission: SubmissionRecord,
+): SubmissionRecord {
+  const candidate = database.candidates.find((c) => c.id === submission.candidateId);
+  const job = database.jobs.find((j) => j.id === submission.jobId);
+  const client = submission.clientId
+    ? database.clients.find((c) => c.id === submission.clientId)
+    : undefined;
+  return {
+    ...submission,
+    candidateName: candidate?.name,
+    jobTitle: job?.title,
+    clientName: client?.name,
+  };
+}
+
+export function listMockSubmissions(
+  companyId: string,
+  filters?: { jobId?: string; candidateId?: string },
+) {
+  const database = readDatabase();
+  return database.submissions
+    .filter((item) => {
+      if (item.companyId !== companyId) return false;
+      if (filters?.jobId && item.jobId !== filters.jobId) return false;
+      if (filters?.candidateId && item.candidateId !== filters.candidateId) return false;
+      return true;
+    })
+    .map((item) => enrichSubmission(database, item))
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+}
+
+export function createMockSubmission(input: {
+  companyId: string;
+  candidateId: string;
+  jobId: string;
+  status?: SubmissionStatus;
+  notes?: string;
+  submittedBy?: string;
+}): SubmissionRecord {
+  const database = readDatabase();
+  const duplicate = database.submissions.find(
+    (s) =>
+      s.companyId === input.companyId &&
+      s.candidateId === input.candidateId &&
+      s.jobId === input.jobId,
+  );
+  if (duplicate) {
+    throw new Error('This candidate has already been submitted to this job.');
+  }
+  const job = database.jobs.find((j) => j.id === input.jobId);
+  const now = new Date().toISOString();
+  const record: SubmissionRecord = {
+    id: `sub-${Date.now()}`,
+    companyId: input.companyId,
+    candidateId: input.candidateId,
+    jobId: input.jobId,
+    clientId: job?.clientId,
+    status: input.status || 'submitted',
+    submittedBy: input.submittedBy,
+    notes: input.notes,
+    createdAt: now,
+    updatedAt: now,
+  };
+  database.submissions.push(record);
+  writeDatabase(database);
+  return enrichSubmission(database, record);
+}
+
+export function updateMockSubmission(
+  companyId: string,
+  submissionId: string,
+  updates: Partial<SubmissionRecord>,
+): SubmissionRecord | null {
+  const database = readDatabase();
+  const index = database.submissions.findIndex(
+    (item) => item.companyId === companyId && item.id === submissionId,
+  );
+  if (index < 0) return null;
+  const next: SubmissionRecord = {
+    ...database.submissions[index],
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  };
+  if (updates.status === 'placed' && !updates.placementDate && !next.placementDate) {
+    next.placementDate = new Date().toISOString();
+  }
+  database.submissions[index] = next;
+  writeDatabase(database);
+  return enrichSubmission(database, next);
+}
+
+export function deleteMockSubmission(companyId: string, submissionId: string) {
+  const database = readDatabase();
+  const submission = database.submissions.find(
+    (item) => item.companyId === companyId && item.id === submissionId,
+  );
+  if (!submission) {
+    throw new Error('Submission not found.');
+  }
+  if (submission.status !== 'submitted') {
+    throw new Error(
+      'Submission has progressed past the initial stage. Use status "withdrew" to mark it inactive instead.',
+    );
+  }
+  database.submissions = database.submissions.filter(
+    (item) => !(item.companyId === companyId && item.id === submissionId),
+  );
   writeDatabase(database);
 }
 
