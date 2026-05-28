@@ -1,3 +1,5 @@
+import { dispatchTrialLimit, isTrialLimitResponse } from '@/lib/error-handler';
+
 interface ApiEnvelope<T> {
   ok: boolean;
   data?: T;
@@ -17,7 +19,19 @@ async function parseEnvelope<T>(response: Response): Promise<T> {
   }
 
   if (response.ok === false || body?.ok !== true) {
-    throw new Error(body?.error?.message || `Request failed: ${response.status}`);
+    const code = body?.error?.code;
+    const message = body?.error?.message || `Request failed: ${response.status}`;
+    if (isTrialLimitResponse(response.status, code)) {
+      const details = body?.error?.details as Record<string, unknown> | undefined;
+      dispatchTrialLimit({
+        feature: details?.feature as string | undefined,
+        plan: details?.plan as string | undefined,
+        limit: details?.limit as number | undefined,
+        current: details?.current as number | undefined,
+        message,
+      });
+    }
+    throw new Error(message);
   }
 
   return body.data as T;

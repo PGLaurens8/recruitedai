@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { analyzeInterview } from '@/ai/flows/analyze-interview';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
-import { enforceRateLimit } from '@/server/api/rate-limit';
+import { enforceRateLimit, enforceTrialQuota } from '@/server/api/rate-limit';
 
 const interviewAnalyzeSchema = z.object({
   transcript: z.string().min(1).max(250_000),
@@ -14,13 +14,14 @@ export async function POST(request: Request) {
   const requestId = getRequestId(request);
 
   try {
-    const { userId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Developer']);
-await enforceRateLimit(request, {
+    const { userId, companyId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Developer']);
+    await enforceRateLimit(request, {
       scope: 'ai:interview-analyze',
       subject: userId,
       limit: 20,
       windowMs: 60_000,
     });
+    await enforceTrialQuota(request, 'INTERVIEW_ANALYSIS', companyId);
 
     const payload = interviewAnalyzeSchema.safeParse(await request.json());
     if (!payload.success) {

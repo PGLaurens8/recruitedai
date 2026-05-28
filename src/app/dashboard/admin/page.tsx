@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OnboardingChecklist } from "@/components/feature/onboarding-checklist";
+import { TrialBanner } from "@/components/feature/trial-banner";
 import {
   Users,
   Briefcase,
@@ -56,6 +57,8 @@ export default function AdminDashboardPage() {
         <h1 className="text-3xl font-bold">Agency Overview</h1>
         <p className="text-muted-foreground">Live metrics for your recruitment agency.</p>
       </div>
+
+      <TrialBanner />
 
       <OnboardingChecklist
         candidatesCount={candidatesState.data?.length ?? 0}

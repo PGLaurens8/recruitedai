@@ -1,5 +1,7 @@
 import { Redis } from '@upstash/redis';
 
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { getFeatureLimit, isPlan, type PlanFeature } from '@/lib/plan-limits';
 import { ApiRouteError } from '@/server/api/http';
 
 interface RateLimitBucket {
@@ -181,4 +183,88 @@ export async function enforceRateLimit(
   }
 
   return result;
+}
+
+function currentPeriodStart(now = new Date()): string {
+  // First day of the current month, formatted as YYYY-MM-DD for Postgres `date`.
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  return `${year}-${month}-01`;
+}
+
+// Enforces per-company, per-month feature caps from src/lib/plan-limits.ts.
+// Reads companies.plan, compares against usage_counters for the current period,
+// and increments the counter on success. Throws 402 TRIAL_LIMIT_REACHED when
+// the cap is hit so the client can surface the upgrade prompt. Uses the
+// service-role admin client so the write bypasses the read-only RLS policy on
+// usage_counters.
+export async function enforceTrialQuota(
+  _request: Request,
+  feature: PlanFeature,
+  companyId: string
+): Promise<{ plan: string; current: number; limit: number }> {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: company, error: companyError } = await supabase
+    .from('companies')
+    .select('plan')
+    .eq('id', companyId)
+    .maybeSingle();
+
+  if (companyError) {
+    throw new ApiRouteError(500, 'QUOTA_LOOKUP_FAILED', 'Could not load company plan for quota check.', companyError);
+  }
+
+  const plan = company?.plan && isPlan(company.plan) ? company.plan : 'trial';
+  const limit = getFeatureLimit(plan, feature);
+
+  // Unlimited plans (scale) short-circuit before touching the counter table.
+  if (!Number.isFinite(limit)) {
+    return { plan, current: 0, limit };
+  }
+
+  const periodStart = currentPeriodStart();
+
+  const { data: existing, error: counterError } = await supabase
+    .from('usage_counters')
+    .select('count')
+    .eq('company_id', companyId)
+    .eq('period_start', periodStart)
+    .eq('feature', feature)
+    .maybeSingle();
+
+  if (counterError) {
+    throw new ApiRouteError(500, 'QUOTA_LOOKUP_FAILED', 'Could not load usage counter.', counterError);
+  }
+
+  const current = existing?.count ?? 0;
+
+  if (current >= limit) {
+    throw new ApiRouteError(
+      402,
+      'TRIAL_LIMIT_REACHED',
+      'You have reached your plan limit for this feature. Upgrade to continue.',
+      { feature, plan, limit, current }
+    );
+  }
+
+  const nextCount = current + 1;
+  const { error: upsertError } = await supabase
+    .from('usage_counters')
+    .upsert(
+      {
+        company_id: companyId,
+        period_start: periodStart,
+        feature,
+        count: nextCount,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'company_id,period_start,feature' }
+    );
+
+  if (upsertError) {
+    throw new ApiRouteError(500, 'QUOTA_WRITE_FAILED', 'Could not record usage.', upsertError);
+  }
+
+  return { plan, current: nextCount, limit };
 }

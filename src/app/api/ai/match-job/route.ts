@@ -4,7 +4,7 @@ import { assessJobMatch } from '@/ai/flows/assess-job-match';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 import { resolveMedia, resolveOptionalMedia } from '@/server/api/media';
-import { enforceRateLimit } from '@/server/api/rate-limit';
+import { enforceRateLimit, enforceTrialQuota } from '@/server/api/rate-limit';
 
 const matchJobSchema = z
   .object({
@@ -22,13 +22,14 @@ export async function POST(request: Request) {
   const requestId = getRequestId(request);
 
   try {
-    const { userId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Developer', 'Candidate']);
-await enforceRateLimit(request, {
+    const { userId, companyId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Developer', 'Candidate']);
+    await enforceRateLimit(request, {
       scope: 'ai:match-job',
       subject: userId,
       limit: 30,
       windowMs: 60_000,
     });
+    await enforceTrialQuota(request, 'JOB_MATCH', companyId);
 
     const payload = matchJobSchema.safeParse(await request.json());
     if (!payload.success) {

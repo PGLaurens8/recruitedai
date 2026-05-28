@@ -4,6 +4,7 @@ import { useEffect, useState, type DependencyList } from 'react';
 
 import type { AppUser } from '@/context/auth-context';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { dispatchTrialLimit, isTrialLimitResponse } from '@/lib/error-handler';
 import { isMockMode, isSupabaseMode } from '@/lib/runtime-mode';
 import type {
   AppProfile,
@@ -124,7 +125,18 @@ async function requestApi<T>(url: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok || !body?.ok) {
     const message = body?.error?.message || `Request failed: ${response.status}`;
-    throw new ApiClientError(message, response.status, body?.error?.code);
+    const code = body?.error?.code;
+    if (isTrialLimitResponse(response.status, code)) {
+      const details = body?.error?.details as Record<string, unknown> | undefined;
+      dispatchTrialLimit({
+        feature: details?.feature as string | undefined,
+        plan: details?.plan as string | undefined,
+        limit: details?.limit as number | undefined,
+        current: details?.current as number | undefined,
+        message,
+      });
+    }
+    throw new ApiClientError(message, response.status, code);
   }
 
   return body.data as T;
@@ -148,6 +160,9 @@ function toCompanyRecord(row: any): CompanyRecord {
     website: row.website || undefined,
     email: row.email || undefined,
     address: row.address || undefined,
+    plan: row.plan || undefined,
+    trialStartedAt: row.trial_started_at || undefined,
+    trialExpiresAt: row.trial_expires_at || undefined,
   };
 }
 

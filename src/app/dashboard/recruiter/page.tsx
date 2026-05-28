@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OnboardingChecklist } from "@/components/feature/onboarding-checklist";
+import { TrialBanner } from "@/components/feature/trial-banner";
 import { UserPlus, Mic2, FilePlus2, Search } from "lucide-react";
 
 function formatAverageScore(values: number[]) {
@@ -55,6 +56,8 @@ export default function RecruiterDashboardPage() {
         <h1 className="text-3xl font-bold">Recruiter Dashboard</h1>
         <p className="text-muted-foreground">Live hiring metrics for your current workspace.</p>
       </div>
+
+      <TrialBanner />
 
       <OnboardingChecklist
         candidatesCount={candidatesState.data?.length ?? 0}

@@ -4,7 +4,7 @@ import { generateCoverLetter } from '@/ai/flows/generate-cover-letter';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 import { resolveMedia, resolveOptionalMedia } from '@/server/api/media';
-import { enforceRateLimit } from '@/server/api/rate-limit';
+import { enforceRateLimit, enforceTrialQuota } from '@/server/api/rate-limit';
 
 const schema = z
   .object({
@@ -24,13 +24,14 @@ export async function POST(request: Request) {
   const requestId = getRequestId(request);
 
   try {
-    const { userId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Developer', 'Candidate']);
-await enforceRateLimit(request, {
+    const { userId, companyId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Developer', 'Candidate']);
+    await enforceRateLimit(request, {
       scope: 'ai:generate-cover-letter',
       subject: userId,
       limit: 20,
       windowMs: 60_000,
     });
+    await enforceTrialQuota(request, 'COVER_LETTER', companyId);
 
     const payload = schema.safeParse(await request.json());
     if (payload.success === false) {

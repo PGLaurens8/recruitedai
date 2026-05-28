@@ -9,6 +9,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Spinner } from '@/components/ui/spinner';
 import { Header } from '@/components/layout/header';
 import { AppProviders } from '@/components/providers/app-providers';
+import { TrialLimitListener } from '@/components/feature/trial-limit-listener';
 import { getDefaultRouteForRole, isPublicPath, isRoleAllowedForPath } from '@/lib/rbac';
 
 function LayoutShell({ children }: { children: ReactNode }) {
@@ -60,6 +61,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <AppProviders>
       <LayoutShell>{children}</LayoutShell>
+      <TrialLimitListener />
       <Toaster />
     </AppProviders>
   );

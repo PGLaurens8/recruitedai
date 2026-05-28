@@ -15,6 +15,9 @@ export interface CompanyRecord {
   website?: string;
   email?: string;
   address?: string;
+  plan?: 'trial' | 'starter' | 'agency' | 'scale';
+  trialStartedAt?: string;
+  trialExpiresAt?: string;
 }
 
 export interface CandidateRecord {
