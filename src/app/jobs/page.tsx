@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Eye, Plus, RefreshCw, Search, ArrowUp, ArrowDown, ArrowUpDown, Mic2 } from "lucide-react";
 import { useAuth } from '@/context/auth-context';
-import { useCurrentProfile, useJobs } from '@/lib/data/hooks';
+import { useClients, useCurrentProfile, useJobs } from '@/lib/data/hooks';
 import type { JobRecord } from '@/lib/data/types';
 
 type JobKey = keyof JobRecord;
@@ -35,17 +36,38 @@ const getApprovalBadgeClass = (approval: string) => {
     }
 }
 
+const ALL_CLIENTS = 'all';
+
 export default function JobsPage() {
   const { user } = useAuth();
   const [sortConfig, setSortConfig] = useState<{ key: JobKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [clientFilter, setClientFilter] = useState(ALL_CLIENTS);
 
   const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
   const { data: jobs, isLoading, error } = useJobs(companyId);
+  const { data: clients } = useClients(companyId);
 
   const sortedJobs = useMemo(() => {
     if (!jobs) return [];
     let sortableItems = [...jobs];
+
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      sortableItems = sortableItems.filter(
+        (job) =>
+          job.title?.toLowerCase().includes(term) ||
+          job.company?.toLowerCase().includes(term) ||
+          job.clientName?.toLowerCase().includes(term) ||
+          job.location?.toLowerCase().includes(term)
+      );
+    }
+
+    if (clientFilter !== ALL_CLIENTS) {
+      sortableItems = sortableItems.filter((job) => job.clientId === clientFilter);
+    }
+
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
         const aValue = String(a[sortConfig.key!] || "");
@@ -57,7 +79,7 @@ export default function JobsPage() {
       });
     }
     return sortableItems;
-  }, [jobs, sortConfig]);
+  }, [jobs, sortConfig, searchTerm, clientFilter]);
 
   const requestSort = (key: JobKey) => {
     let direction: 'asc' | 'desc' = 'desc';
@@ -122,9 +144,29 @@ export default function JobsPage() {
             <CardTitle>{isLoading ? "Job Postings" : `All Job Postings (${sortedJobs.length})`}</CardTitle>
             <CardDescription>View and manage all active, pending, and closed job postings.</CardDescription>
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search postings..." className="pl-9 w-full md:w-64" />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search postings..."
+                className="pl-9 w-full md:w-64"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Select value={clientFilter} onValueChange={setClientFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="All Clients" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_CLIENTS}>All Clients</SelectItem>
+                {clients?.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -132,6 +174,7 @@ export default function JobsPage() {
             <TableHeader>
               <TableRow>
                 <SortableTableHeader sortKey="title">Job Details</SortableTableHeader>
+                <SortableTableHeader sortKey="clientName">Client</SortableTableHeader>
                 <SortableTableHeader sortKey="status">Status</SortableTableHeader>
                 <SortableTableHeader sortKey="approval">Approval</SortableTableHeader>
                 <SortableTableHeader sortKey="candidates">Candidates</SortableTableHeader>
@@ -143,6 +186,7 @@ export default function JobsPage() {
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-8" /></TableCell>
@@ -151,8 +195,10 @@ export default function JobsPage() {
                 ))
               ) : sortedJobs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                    No job postings yet. Create your first posting above.
+                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    {searchTerm || clientFilter !== ALL_CLIENTS
+                      ? "No job postings match your filters."
+                      : "No job postings yet. Create your first posting above."}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -162,6 +208,15 @@ export default function JobsPage() {
                       <p className="font-medium">{job.title}</p>
                       {job.salary && <p className="text-sm text-green-600 font-semibold">{job.salary}</p>}
                       {job.location && <p className="text-xs text-muted-foreground">{job.location}</p>}
+                    </TableCell>
+                    <TableCell>
+                      {job.clientId ? (
+                        <Link href={`/clients/${job.clientId}`} className="font-medium text-primary hover:underline">
+                          {job.clientName || job.company || "—"}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">{job.company || "—"}</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={getStatusBadgeClass(job.status) + " capitalize"}>{job.status}</Badge>
