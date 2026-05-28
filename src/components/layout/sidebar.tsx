@@ -3,11 +3,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
+import {
   Briefcase,
-  LogOut, 
-  User,
+  CreditCard,
   HelpCircle,
+  LogOut,
+  User,
 } from 'lucide-react';
 
 import { useAuth } from '@/context/auth-context';
@@ -76,13 +77,19 @@ export function Sidebar() {
          <Button variant="ghost" asChild className="w-full justify-start text-sm text-slate-400 hover:text-white hover:bg-slate-800">
               <Link href="/profile">
                   <User className="h-4 w-4 mr-3" />
-                  Profile & Billing
+                  Profile
+              </Link>
+          </Button>
+          <Button variant="ghost" asChild className="w-full justify-start text-sm text-slate-400 hover:text-white hover:bg-slate-800">
+              <Link href="/billing">
+                  <CreditCard className="h-4 w-4 mr-3" />
+                  Plans &amp; Billing
               </Link>
           </Button>
           <Button variant="ghost" asChild className="w-full justify-start text-sm text-slate-400 hover:text-white hover:bg-slate-800">
               <Link href="/about">
                   <HelpCircle className="h-4 w-4 mr-3" />
-                  Strategy & About
+                  Strategy &amp; About
               </Link>
           </Button>
           <Button variant="ghost" onClick={logout} className="w-full justify-start text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 mt-2">

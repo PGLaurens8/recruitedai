@@ -9,6 +9,11 @@ export const publicPaths = ['/', '/login', '/signup', '/forgot-password', '/rese
 // is its data endpoint.
 export const openPathPrefixes = ['/resume/', '/api/resume/'] as const;
 
+// Marketing pages (pricing, future about/blog) — visible to everyone, exact
+// or sub-path match. Kept separate from `openPathPrefixes` so the bare prefix
+// like `/pricing` doesn't accidentally match `/pricing-foo`.
+export const marketingPaths = ['/pricing'] as const;
+
 const rolePathRules: Array<{ prefix: string; roles: Role[] }> = [
   { prefix: '/dashboard/admin', roles: ['Admin', 'Developer', 'Recruiter', 'Sales'] },
   { prefix: '/dashboard/recruiter', roles: ['Recruiter'] },
@@ -37,7 +42,8 @@ export function isPublicPath(pathname: string) {
 }
 
 export function isOpenPath(pathname: string) {
-  return openPathPrefixes.some((prefix) => pathname.startsWith(prefix));
+  if (openPathPrefixes.some((prefix) => pathname.startsWith(prefix))) return true;
+  return marketingPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
 export function getDefaultRouteForRole(role: Role) {

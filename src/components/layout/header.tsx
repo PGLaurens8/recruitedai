@@ -3,11 +3,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, Briefcase, LogOut, User, HelpCircle } from 'lucide-react';
+import { Menu, Briefcase, LogOut, User, HelpCircle, CreditCard } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
 import { getNavLinksForRole, isNavLinkActive } from '@/lib/nav-utils';
@@ -93,6 +101,12 @@ export function Header() {
                                 </Link>
                             </Button>
                             <Button variant="ghost" asChild className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
+                                <Link href="/billing" onClick={handleLinkClick}>
+                                    <CreditCard className="h-5 w-5 mr-3" />
+                                    Plans &amp; Billing
+                                </Link>
+                            </Button>
+                            <Button variant="ghost" asChild className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
                                 <Link href="/about" onClick={handleLinkClick}>
                                     <HelpCircle className="h-5 w-5 mr-3" />
                                     About Strategy
@@ -108,17 +122,64 @@ export function Header() {
             </Sheet>
         </div>
 
-        {/* Desktop: user info on the right */}
+        {/* Desktop: user info + account dropdown on the right */}
         <div className="hidden md:flex items-center gap-3 ml-auto">
             <div className="text-right">
                 <p className="text-sm font-medium leading-none">{user.name}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{user.role}</p>
             </div>
-            <Link href="/profile">
-                <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-transparent hover:ring-primary/30 transition-all">
-                    <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">{avatarInitials}</AvatarFallback>
-                </Avatar>
-            </Link>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <button
+                        type="button"
+                        className="rounded-full focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        aria-label="Open account menu"
+                    >
+                        <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-transparent hover:ring-primary/30 transition-all">
+                            <AvatarFallback className="text-xs bg-primary/10 text-primary font-semibold">
+                                {avatarInitials}
+                            </AvatarFallback>
+                        </Avatar>
+                    </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col space-y-1">
+                            <p className="text-sm font-medium leading-none">{user.name}</p>
+                            <p className="text-xs leading-none text-muted-foreground">
+                                {user.email ?? user.role}
+                            </p>
+                        </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                        <Link href="/profile" className="cursor-pointer">
+                            <User className="mr-2 h-4 w-4" />
+                            <span>Profile</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link href="/billing" className="cursor-pointer">
+                            <CreditCard className="mr-2 h-4 w-4" />
+                            <span>Plans &amp; Billing</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link href="/about" className="cursor-pointer">
+                            <HelpCircle className="mr-2 h-4 w-4" />
+                            <span>About Strategy</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        onSelect={logout}
+                        className="cursor-pointer text-destructive focus:text-destructive"
+                    >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Log out</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
     </header>
   );

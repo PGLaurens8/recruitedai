@@ -87,6 +87,12 @@ export default function LoginPage() {
                 Sign up
               </Link>
             </div>
+            <div className="text-center text-xs text-muted-foreground">
+              Curious about plans?{' '}
+              <Link href="/pricing" className="underline">
+                View pricing
+              </Link>
+            </div>
           </div>
         </div>
         <div className="hidden bg-gradient-to-br from-indigo-600 to-blue-700 lg:flex flex-col items-center justify-center p-12 text-white text-center">

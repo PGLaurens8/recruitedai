@@ -15,8 +15,31 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Briefcase, User, AlertTriangle } from "lucide-react";
+import { Briefcase, User, AlertTriangle, Zap } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+const planBanners: Record<string, { title: string; description: string }> = {
+  starter: {
+    title: "Starting your 7-day Starter trial",
+    description: "No credit card required. Cancel any time.",
+  },
+  agency: {
+    title: "Starting your 7-day Agency trial",
+    description: "No credit card required. 2 CV screenings + 3 job matches included in trial.",
+  },
+  scale: {
+    title: "Scale plan enquiry",
+    description: "Create your account and our team will reach out to set up your Scale subscription.",
+  },
+  "candidate-free": {
+    title: "Welcome — set up your free candidate account",
+    description: "No credit card. Upgrade to Pro any time.",
+  },
+  "candidate-pro": {
+    title: "Upgrading to Candidate Pro",
+    description: "Create your account first, then add a payment method to unlock Pro features.",
+  },
+};
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,6 +50,8 @@ function SignupForm() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const redirectTo = searchParams?.get('redirectTo') ?? undefined;
+  const planParam = searchParams?.get('plan') ?? undefined;
+  const planBanner = planParam ? planBanners[planParam] : undefined;
   const [accountType, setAccountType] = useState<AccountType>('personal');
   const [companyName, setCompanyName] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -79,6 +104,13 @@ function SignupForm() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
+                {planBanner && (
+                  <Alert className="mb-4 border-primary/40 bg-primary/5">
+                    <Zap className="h-4 w-4 text-primary" />
+                    <AlertTitle>{planBanner.title}</AlertTitle>
+                    <AlertDescription>{planBanner.description}</AlertDescription>
+                  </Alert>
+                )}
                 {authConfigError && (
                   <Alert className="mb-4 border-destructive/50">
                     <AlertTriangle className="h-4 w-4" />
@@ -161,6 +193,12 @@ function SignupForm() {
                   Already have an account?{" "}
                   <Link href="/login" className="underline">
                       Sign in
+                  </Link>
+                </div>
+                <div className="text-center text-xs text-muted-foreground">
+                  Not sure which plan?{" "}
+                  <Link href="/pricing" className="underline">
+                      Compare pricing
                   </Link>
                 </div>
             </CardContent>
