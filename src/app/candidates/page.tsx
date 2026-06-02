@@ -24,6 +24,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Clock, Eye, Plus, RefreshCw, Search, Star, Trash2, Upload } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useAuth } from "@/context/auth-context";
 import { removeCandidate, useCandidates, useCurrentProfile } from "@/lib/data/hooks";
 import type { CandidateRecord } from "@/lib/data/types";
@@ -104,16 +105,19 @@ function CandidatesPageContent() {
     setSortConfig({ key, direction });
   };
   
-  const SortableTableHeader = ({ sortKey, children, className }: { sortKey: CandidateKey; children: React.ReactNode; className?: string }) => {
+  const SortableTableHeader = ({ sortKey, children, className, info }: { sortKey: CandidateKey; children: React.ReactNode; className?: string; info?: string }) => {
     const isSorted = sortConfig.key === sortKey;
     return (
         <TableHead className={className}>
-            <Button variant="ghost" onClick={() => requestSort(sortKey)} className="px-2">
-                {children}
-                {isSorted ? (
-                    sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
-                ) : <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />}
-            </Button>
+            <div className="flex items-center">
+                <Button variant="ghost" onClick={() => requestSort(sortKey)} className="px-2">
+                    {children}
+                    {isSorted ? (
+                        sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+                    ) : <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />}
+                </Button>
+                {info && <InfoTooltip text={info} />}
+            </div>
         </TableHead>
     );
   };
@@ -133,7 +137,10 @@ function CandidatesPageContent() {
   return (
     <div className="space-y-8">
       <div className="border-b border-slate-100 pb-4">
-        <h1 className="text-3xl font-bold tracking-tight">Candidate Management</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-3xl font-bold tracking-tight">Candidate Management</h1>
+          <InfoTooltip text="Your talent pool. Add candidates by uploading their CV through Smart Parser or manually via Add Candidate" />
+        </div>
         <p className="mt-1 text-muted-foreground">
           View, manage, and track all candidates in your pipeline.
         </p>
@@ -196,7 +203,7 @@ function CandidatesPageContent() {
               <TableRow>
                 <SortableTableHeader sortKey="name">Candidate</SortableTableHeader>
                 <SortableTableHeader sortKey="status">Status</SortableTableHeader>
-                <SortableTableHeader sortKey="aiScore">AI Score</SortableTableHeader>
+                <SortableTableHeader sortKey="aiScore" info="AI match score from the last job match assessment. Green = strong match, Amber = partial match, Red = weak match">AI Score</SortableTableHeader>
                 <SortableTableHeader sortKey="currentJob">Current Job / Company</SortableTableHeader>
                 <TableHead className="w-[100px] text-left pl-4">Actions</TableHead>
               </TableRow>

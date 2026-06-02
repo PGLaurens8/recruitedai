@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Eye, Plus, RefreshCw, Search, ArrowUp, ArrowDown, ArrowUpDown, Mic2 } from "lucide-react";
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { useAuth } from '@/context/auth-context';
 import { useClients, useCurrentProfile, useJobs } from '@/lib/data/hooks';
 import type { JobRecord } from '@/lib/data/types';
@@ -107,7 +108,10 @@ export default function JobsPage() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Job Management</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold tracking-tight">Job Management</h1>
+            <InfoTooltip text="Active vacancies you are filling for clients. Link jobs to clients to track the full placement pipeline" />
+          </div>
           <p className="mt-1 text-muted-foreground">
             Manage and create AI-powered job postings.
           </p>

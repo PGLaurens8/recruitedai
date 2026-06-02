@@ -48,6 +48,7 @@ import { ResumeSection } from "@/components/feature/resume-section";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/context/auth-context";
 import { createCandidateFromResume, useCompany, useCurrentProfile } from "@/lib/data/hooks";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 
 type ParsedResume = ReformatResumeOutput & {
@@ -298,7 +299,10 @@ export default function AiParserPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Smart Parser & Match</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold tracking-tight">Smart Parser & Match</h1>
+            <InfoTooltip text="Upload a candidate CV and paste a job description to get an AI-powered match score with explainable skill indicators" />
+          </div>
           <p className="mt-1 text-muted-foreground">
             AI-powered resume extraction, agency branding, and job matching.
           </p>
@@ -332,6 +336,7 @@ export default function AiParserPage() {
         <Label htmlFor="skills-first-mode" className="cursor-pointer text-sm font-medium">
           Skills-First Mode — weight demonstrated experience over formal education credentials
         </Label>
+        <InfoTooltip text="When enabled, the AI weights demonstrated experience and skills over formal education credentials — ideal for skills-based hiring" />
       </div>
 
       {!companyInfo && (

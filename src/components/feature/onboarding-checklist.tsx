@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight, CheckCircle2, Circle, PartyPopper, Sparkles, X } from "lucide-react";
 import { getJson } from "@/lib/api-client";
@@ -212,6 +213,7 @@ export function OnboardingChecklist({
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
               Get started with RecruitedAI
+              <InfoTooltip text="Complete these steps to get the most out of RecruitedAI" />
             </CardTitle>
             <CardDescription>
               A few quick steps to set up your workspace and run your first AI screen.

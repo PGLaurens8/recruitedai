@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Building, MoreHorizontal, Plus, RefreshCw, Search, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { useAuth } from '@/context/auth-context';
 import { removeClient, useClients, useCurrentProfile } from '@/lib/data/hooks';
 import type { ClientRecord } from '@/lib/data/types';
@@ -114,7 +115,10 @@ export default function ClientsPage() {
   return (
     <div className="space-y-8">
       <div className="border-b border-slate-100 pb-4">
-        <h1 className="text-3xl font-bold tracking-tight">Client Management</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-3xl font-bold tracking-tight">Client Management</h1>
+          <InfoTooltip text="Companies you recruit for. Link vacancies to clients to track submissions and placements per client relationship" />
+        </div>
         <p className="mt-1 text-muted-foreground">
           View, manage, and track all your clients and their job postings.
         </p>
