@@ -49,8 +49,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useAuth } from "@/context/auth-context";
 import { createCandidateFromResume, useCompany, useCurrentProfile } from "@/lib/data/hooks";
 
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 type ParsedResume = ReformatResumeOutput & {
   fileName: string;
@@ -234,7 +232,11 @@ export default function AiParserPage() {
     if (!brandedCvRef.current) return;
     
     toast({ title: "Generating Branded CV...", description: "Optimizing layout for PDF." });
-    
+
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf'),
+    ]);
     const canvas = await html2canvas(brandedCvRef.current, { scale: 2 });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');

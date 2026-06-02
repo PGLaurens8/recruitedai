@@ -28,8 +28,6 @@ import {
   useMasterResume,
 } from '@/lib/data/hooks';
 
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 export default function MasterResumePage() {
@@ -230,10 +228,14 @@ export default function MasterResumePage() {
     document.body.removeChild(element);
   };
 
-  const downloadPdf = () => {
+  const downloadPdf = async () => {
     const input = document.getElementById('master-resume-content');
     if (input && aiOutput) {
       toast({ title: "Generating PDF...", description: "This may take a moment." });
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
       html2canvas(input, { scale: 2 })
         .then((canvas) => {
           const imgData = canvas.toDataURL('image/png');

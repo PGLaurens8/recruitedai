@@ -95,7 +95,7 @@ function SignupForm() {
 
   return (
     <div className="w-full lg:grid min-h-screen lg:grid-cols-2">
-        <div className="flex items-center justify-center py-12">
+        <main className="flex items-center justify-center py-12">
             <Card className="mx-auto max-w-sm">
             <CardHeader>
                 <CardTitle className="text-xl">Create your account</CardTitle>
@@ -203,7 +203,7 @@ function SignupForm() {
                 </div>
             </CardContent>
             </Card>
-        </div>
+        </main>
       <div className="hidden bg-gradient-to-br from-indigo-600 to-blue-700 lg:flex flex-col items-center justify-center p-12 text-white text-center">
          <Briefcase className="h-20 w-20 mb-6 text-indigo-200" />
          <h1 className="text-5xl font-bold mb-4">RecruitedAI</h1>

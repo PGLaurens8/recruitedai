@@ -25,8 +25,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { useAuth } from '@/context/auth-context';
 import { saveMasterResume, useMasterResume } from '@/lib/data/hooks';
@@ -275,10 +273,14 @@ export default function JobMatchingPage() {
     document.body.removeChild(element);
   };
 
-  const downloadPdf = () => {
+  const downloadPdf = async () => {
     const input = document.getElementById('tailored-resume-content');
     if (input && tailoredResumeOutput) {
       toast({ title: "Generating PDF...", description: "This may take a moment." });
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
       html2canvas(input, { scale: 2 })
         .then((canvas) => {
           const imgData = canvas.toDataURL('image/png');

@@ -6,6 +6,9 @@ import type {NextConfig} from 'next';
 // For multiple origins, implement per-request CORS in middleware instead.
 const corsOrigin = process.env.CORS_ALLOWED_ORIGINS?.split(',')[0]?.trim() ?? null;
 
+// Modern-browser targeting is driven by the `browserslist` field in
+// package.json. Next.js 13.1+ feeds that list to SWC to skip legacy polyfills
+// for browsers that don't need them (~11 KiB saving per the Lighthouse audit).
 const nextConfig: NextConfig = {
   async headers() {
     const corsHeaders = corsOrigin

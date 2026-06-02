@@ -46,8 +46,6 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { useAuth } from "@/context/auth-context";
 import {
   saveCandidateInterviewAnalysis,
@@ -453,6 +451,10 @@ export default function InterviewAnalysisPage() {
 
     toast({ title: "Generating Branded Pack...", description: "Combining CV and Interview notes." });
 
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf'),
+    ]);
     const canvas = await html2canvas(packRef.current, { scale: 2 });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');

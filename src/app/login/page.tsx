@@ -71,7 +71,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-15rem)] py-12">
+    <main className="flex items-center justify-center min-h-[calc(100vh-15rem)] py-12">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-1">
           <Briefcase className="mx-auto h-10 w-10 text-primary" />
@@ -160,6 +160,6 @@ export default function LoginPage() {
           </p>
         </CardFooter>
       </Card>
-    </div>
+    </main>
   );
 }

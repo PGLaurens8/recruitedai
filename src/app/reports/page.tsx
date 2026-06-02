@@ -33,8 +33,6 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/context/auth-context"
 import { useCandidates, useCurrentProfile, useSubmissions } from "@/lib/data/hooks"
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 const recruiterStats = [
   { name: "Anna Smith", placements: 12, timeToFill: 28 },
@@ -130,13 +128,17 @@ export default function ReportsPage() {
   const [salesDate, setSalesDate] = useState<DateRange | undefined>({ from: addDays(new Date(), -90), to: new Date() });
   const [executiveDate, setExecutiveDate] = useState<DateRange | undefined>({ from: addDays(new Date(), -180), to: new Date() });
 
-  const downloadReport = (reportId: string, fileName: string) => {
+  const downloadReport = async (reportId: string, fileName: string) => {
     const input = document.getElementById(reportId);
     if (!input) {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not find report content to download.' });
       return;
     }
     toast({ title: 'Generating PDF...', description: 'Please wait a moment.' });
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf'),
+    ]);
     html2canvas(input, { scale: 2, useCORS: true })
       .then((canvas) => {
         const imgData = canvas.toDataURL('image/png');
