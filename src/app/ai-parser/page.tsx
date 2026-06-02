@@ -31,7 +31,8 @@ import {
   Download,
   Save,
   CheckCircle2,
-  Building
+  Building,
+  UserPlus,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
@@ -76,6 +77,16 @@ export default function AiParserPage() {
   const [companyInfo, setCompanyInfo] = useState<{ name: string; logo: string; website: string } | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const brandedCvRef = useRef<HTMLDivElement>(null);
+
+  // Pre-fetched logo as a data URI so html2canvas never has to do a cross-origin
+  // fetch against a Supabase Storage URL (which 401s and taints the canvas,
+  // producing the "Incomplete or corrupt PNG file" jsPDF error).
+  const [logoDataUri, setLogoDataUri] = useState<string | null>(null);
+  const [logoLoadFailed, setLogoLoadFailed] = useState(false);
+
+  // Talent Pool save flow
+  const [showTalentPoolDialog, setShowTalentPoolDialog] = useState(false);
+  const [isSavingToTalentPool, setIsSavingToTalentPool] = useState(false);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -95,6 +106,46 @@ export default function AiParserPage() {
       setCompanyInfo(null);
     }
   }, [companyDoc]);
+
+  useEffect(() => {
+    const logo = companyInfo?.logo;
+    if (!logo) {
+      setLogoDataUri(null);
+      setLogoLoadFailed(false);
+      return;
+    }
+    if (logo.startsWith('data:')) {
+      setLogoDataUri(logo);
+      setLogoLoadFailed(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(logo);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        const dataUri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = () => reject(reader.error ?? new Error('FileReader failed'));
+          reader.readAsDataURL(blob);
+        });
+        if (cancelled) return;
+        setLogoDataUri(dataUri);
+        setLogoLoadFailed(false);
+      } catch {
+        if (cancelled) return;
+        setLogoDataUri(null);
+        setLogoLoadFailed(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [companyInfo?.logo]);
 
   const handleDrag = (e: React.DragEvent<HTMLDivElement | HTMLLabelElement>, type: 'resume' | 'jobspec') => {
     e.preventDefault();
@@ -231,37 +282,98 @@ export default function AiParserPage() {
 
   const downloadBrandedCv = async () => {
     if (!brandedCvRef.current) return;
-    
+
     toast({ title: "Generating Branded CV...", description: "Optimizing layout for PDF." });
 
-    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-      import('html2canvas'),
-      import('jspdf'),
-    ]);
-    const canvas = await html2canvas(brandedCvRef.current, { scale: 2 });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const ratio = canvas.width / canvas.height;
-    const imgWidth = pdfWidth;
-    const imgHeight = imgWidth / ratio;
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+      const canvas = await html2canvas(brandedCvRef.current, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const ratio = canvas.width / canvas.height;
+      const imgWidth = pdfWidth;
+      const imgHeight = imgWidth / ratio;
 
-    let heightLeft = imgHeight;
-    let position = 0;
-    
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pdfHeight;
+      let heightLeft = imgHeight;
+      let position = 0;
 
-    while (heightLeft >= 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pdfHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      pdf.save(`Branded_CV_${parsedResume?.fullName?.replace(/\s+/g, '_') || 'Candidate'}.pdf`);
+
+      if (logoLoadFailed) {
+        toast({
+          title: 'Branded CV generated',
+          description: 'Logo could not be included — check your branding settings.',
+        });
+      } else {
+        toast({ title: 'Branded CV generated' });
+      }
+      setShowSaveDialog(true);
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not generate Branded CV',
+        description: err?.message || 'PDF generation failed.',
+      });
     }
-    
-    pdf.save(`Branded_CV_${parsedResume?.fullName?.replace(/\s+/g, '_') || 'Candidate'}.pdf`);
-    setShowSaveDialog(true);
+  };
+
+  const handleSaveToTalentPool = async () => {
+    if (!parsedResume) return;
+    setIsSavingToTalentPool(true);
+    try {
+      const ext = parsedResume.extractedData;
+      // Schema-supported fields go in directly. The extra extracted fields
+      // (yearsOfExperience, education, certifications, hasDegreeLevelEducation,
+      // aiSummary) are sent too — the API's Zod schema strips them silently
+      // today, but they're available the moment a future migration adds them.
+      const payload = {
+        name: parsedResume.fullName || 'Unknown',
+        email: parsedResume.contactInfo?.email || '',
+        currentJob: parsedResume.currentJobTitle || ext?.role || '',
+        status: 'Sourced' as const,
+        skills: parsedResume.skills || [],
+        fullResumeText: parsedResume.reformattedResume || '',
+        contactInfo: parsedResume.contactInfo || {},
+        yearsOfExperience: ext?.yearsOfExperience,
+        education: ext?.education,
+        certifications: ext?.certifications,
+        hasDegreeLevelEducation: ext?.hasDegreeLevelEducation,
+        aiSummary: ext?.summary,
+      };
+      const created = await postJson<{ id: string }>('/api/candidates', payload);
+      setShowTalentPoolDialog(false);
+      toast({
+        title: 'Candidate saved to Talent Pool',
+        description: (
+          <Link href={`/candidates/${created.id}`} className="underline font-medium">
+            View profile →
+          </Link>
+        ),
+      });
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Save failed',
+        description: err?.message || 'Could not save candidate.',
+      });
+    } finally {
+      setIsSavingToTalentPool(false);
+    }
   };
 
   const handleSaveCandidate = async (save: boolean) => {
@@ -452,6 +564,19 @@ export default function AiParserPage() {
 
       {parsedResume && (
         <div className="space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+            <div>
+              <p className="font-semibold">Save this candidate to your Talent Pool</p>
+              <p className="text-sm text-muted-foreground">
+                Add the extracted profile to your candidate database so you can match them to jobs later.
+              </p>
+            </div>
+            <Button size="lg" onClick={() => setShowTalentPoolDialog(true)}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Save to Talent Pool
+            </Button>
+          </div>
+
           <div className="grid md:grid-cols-3 gap-6">
               <Card className="md:col-span-2">
                 <CardHeader>
@@ -526,8 +651,8 @@ export default function AiParserPage() {
             <div ref={brandedCvRef} className="p-12 bg-white text-black font-serif w-[210mm] min-h-[297mm]">
               {/* Agency Header */}
               <div className="flex items-center justify-between border-b-2 border-primary pb-6 mb-8">
-                {companyInfo?.logo ? (
-                  <Image src={companyInfo.logo} alt="Logo" width={256} height={64} unoptimized className="h-16 w-auto object-contain" />
+                {logoDataUri ? (
+                  <Image src={logoDataUri} alt="Logo" width={256} height={64} unoptimized className="h-16 w-auto object-contain" />
                 ) : (
                   <div className="h-16 w-16 bg-primary/10 flex items-center justify-center text-primary font-bold text-3xl">
                     {companyInfo?.name?.charAt(0) || 'A'}
@@ -681,6 +806,57 @@ export default function AiParserPage() {
             </CardContent>
           </Card>
       )}
+
+      {/* Save to Talent Pool confirmation */}
+      <Dialog open={showTalentPoolDialog} onOpenChange={(open) => { if (!isSavingToTalentPool) setShowTalentPoolDialog(open); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Save to Talent Pool
+            </DialogTitle>
+            <DialogDescription>
+              Confirm the details below — we&apos;ll add this candidate to your database with a status of Sourced.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2 text-sm">
+            <div className="flex justify-between gap-4 border-b pb-2">
+              <span className="text-muted-foreground">Name</span>
+              <span className="font-medium text-right">{parsedResume?.fullName || '—'}</span>
+            </div>
+            <div className="flex justify-between gap-4 border-b pb-2">
+              <span className="text-muted-foreground">Role</span>
+              <span className="font-medium text-right">
+                {parsedResume?.currentJobTitle || parsedResume?.extractedData?.role || '—'}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">Email</span>
+              <span className="font-medium text-right break-all">
+                {parsedResume?.contactInfo?.email || '—'}
+              </span>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowTalentPoolDialog(false)} disabled={isSavingToTalentPool}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveToTalentPool} disabled={isSavingToTalentPool || !parsedResume?.fullName}>
+              {isSavingToTalentPool ? (
+                <>
+                  <Spinner size={14} className="mr-2" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Save Candidate
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Save Candidate Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>

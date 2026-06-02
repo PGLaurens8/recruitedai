@@ -16,18 +16,32 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Building, MoreHorizontal, Plus, RefreshCw, Search, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { useAuth } from '@/context/auth-context';
+import { useToast } from '@/hooks/use-toast';
+import { postJson } from '@/lib/api-client';
 import { removeClient, useClients, useCurrentProfile } from '@/lib/data/hooks';
 import type { ClientRecord } from '@/lib/data/types';
 
 type ClientKey = keyof ClientRecord;
+type ClientStatus = 'active' | 'prospect' | 'on hold' | 'inactive';
+const CLIENT_STATUS_OPTIONS: ClientStatus[] = ['active', 'prospect', 'on hold', 'inactive'];
 
 const getStatusBadgeVariant = (status: string) => {
   switch (status?.toLowerCase()) {
@@ -46,14 +60,56 @@ const getStatusBadgeVariant = (status: string) => {
 
 export default function ClientsPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: ClientKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newContactName, setNewContactName] = useState('');
+  const [newContactEmail, setNewContactEmail] = useState('');
+  const [newStatus, setNewStatus] = useState<ClientStatus>('prospect');
+
   const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
   const { data: clients, isLoading, error } = useClients(companyId, refreshKey);
+
+  const openAddDialog = () => {
+    setNewClientName('');
+    setNewContactName('');
+    setNewContactEmail('');
+    setNewStatus('prospect');
+    setShowAddDialog(true);
+  };
+
+  const handleCreateClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newClientName.trim()) return;
+
+    setIsCreating(true);
+    try {
+      await postJson<unknown>('/api/clients', {
+        name: newClientName.trim(),
+        contactName: newContactName.trim() || undefined,
+        contactEmail: newContactEmail.trim() || undefined,
+        status: newStatus,
+      });
+      toast({ title: 'Client added', description: `${newClientName.trim()} is now in your client list.` });
+      setShowAddDialog(false);
+      setRefreshKey((k) => k + 1);
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not add client',
+        description: err?.message || 'Please try again.',
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   const sortedClients = useMemo(() => {
     if (!clients) return [];
@@ -137,7 +193,7 @@ export default function ClientsPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button><Plus className="mr-2 h-4 w-4" /> Add Client</Button>
+          <Button onClick={openAddDialog}><Plus className="mr-2 h-4 w-4" /> Add Client</Button>
         </div>
       </div>
 
@@ -232,6 +288,72 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
       )}
+
+      <Dialog open={showAddDialog} onOpenChange={(open) => { if (!isCreating) setShowAddDialog(open); }}>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleCreateClient}>
+            <DialogHeader>
+              <DialogTitle>Add Client</DialogTitle>
+              <DialogDescription>Create a new client record. You can add jobs and contacts after.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="client-name">Client name *</Label>
+                <Input
+                  id="client-name"
+                  value={newClientName}
+                  onChange={(e) => setNewClientName(e.target.value)}
+                  placeholder="Acme Inc."
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="client-contact-name">Contact name</Label>
+                  <Input
+                    id="client-contact-name"
+                    value={newContactName}
+                    onChange={(e) => setNewContactName(e.target.value)}
+                    placeholder="Jane Doe"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="client-contact-email">Contact email</Label>
+                  <Input
+                    id="client-contact-email"
+                    type="email"
+                    value={newContactEmail}
+                    onChange={(e) => setNewContactEmail(e.target.value)}
+                    placeholder="jane@acme.com"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client-status">Status</Label>
+                <Select value={newStatus} onValueChange={(v) => setNewStatus(v as ClientStatus)}>
+                  <SelectTrigger id="client-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CLIENT_STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowAddDialog(false)} disabled={isCreating}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isCreating || !newClientName.trim()}>
+                {isCreating ? 'Adding...' : 'Add Client'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={pendingDeleteId !== null} onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}>
         <AlertDialogContent>

@@ -36,7 +36,6 @@ export function Sidebar() {
           <Briefcase className="h-7 w-7 text-blue-400" />
           <span>RecruitedAI</span>
         </Link>
-        <div className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">2026 Enterprise Edition</div>
       </div>
       <nav className="flex-1 px-2 py-4 space-y-6 overflow-y-auto">
         {accessibleGroups.map((group) => (
