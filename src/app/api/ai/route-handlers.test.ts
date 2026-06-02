@@ -5,6 +5,7 @@ import { ApiRouteError } from '@/server/api/http';
 const {
   requireUserAndCompanyRoleMock,
   enforceRateLimitMock,
+  enforceTrialQuotaMock,
   reformatResumeMock,
   extractCVDataMock,
   assessJobMatchMock,
@@ -12,6 +13,7 @@ const {
 } = vi.hoisted(() => ({
   requireUserAndCompanyRoleMock: vi.fn(),
   enforceRateLimitMock: vi.fn(),
+  enforceTrialQuotaMock: vi.fn(),
   reformatResumeMock: vi.fn(),
   extractCVDataMock: vi.fn(),
   assessJobMatchMock: vi.fn(),
@@ -24,6 +26,9 @@ vi.mock('@/server/api/auth', () => ({
 
 vi.mock('@/server/api/rate-limit', () => ({
   enforceRateLimit: enforceRateLimitMock,
+  // enforceTrialQuota hits Supabase to check plan/usage; stub it to a no-op so
+  // the route logic under test runs without a live backend.
+  enforceTrialQuota: enforceTrialQuotaMock,
 }));
 
 vi.mock('@/ai/flows/reformat-resume', () => ({
@@ -59,6 +64,7 @@ describe('AI API route handlers', () => {
     vi.clearAllMocks();
     requireUserAndCompanyRoleMock.mockResolvedValue({ userId: 'user-1', companyId: 'company-1' });
     enforceRateLimitMock.mockReturnValue({ allowed: true, remaining: 10, retryAfterSeconds: 60 });
+    enforceTrialQuotaMock.mockResolvedValue(undefined);
   });
 
   it('parse-cv returns parsed data for valid input', async () => {
