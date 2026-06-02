@@ -116,11 +116,21 @@ Lighthouse 13.3.0 against https://recruitedai.vercel.app/
 
 === OPEN QUESTIONS FOR PRODUCT/ENG ===
 
-  Issue #1 — /pricing is auth-gated
-    Unauthenticated visitors are bounced to /login?reason=session-expired.
-    Most SaaS treats /pricing as a public marketing surface. Was this
-    intentional, or did pricing get added to the protected-routes list
-    by mistake in src/lib/rbac.ts?
+  Issue #1 — /pricing is auth-gated   [RESOLVED 2026-06-02, commit ba9056e]
+    Unauthenticated visitors were bounced to /login?reason=session-expired.
+
+    Root cause: src/context/auth-context.tsx Effect 2 used isPublicPath()
+    only — it ignored isOpenPath(), which is where /pricing already lived
+    (via marketingPaths in src/lib/rbac.ts). The middleware (middleware.ts)
+    correctly combined both checks; the client did not.
+
+    Fix: one-line change in auth-context.tsx — the unauth-redirect branch
+    now also passes through paths matched by isOpenPath(). Keeps /pricing
+    in marketingPaths (so signed-in users still see it; no regression).
+
+    Verified live: smoke test re-run after Vercel deploy returned
+      OK  /pricing  200  h1=["Screen 200 CVs in the time it takes to read 10."]
+    (was previously REDIRECT -> /login?redirectTo=%2Fpricing)
 
   Issue #2 — Perf: 1.2s Total Blocking Time on landing
     Performance score 74 is held back by main-thread work and JS
@@ -139,7 +149,12 @@ Lighthouse 13.3.0 against https://recruitedai.vercel.app/
 === FILES TOUCHED THIS SESSION ===
   modified:  src/components/ui/toast.tsx
              (8s default duration for destructive variant)
+  modified:  src/context/auth-context.tsx
+             (unauth-bounce respects isOpenPath; fixes Issue #1)
   modified:  ~/.claude.json
              (added Playwright MCP server config for project)
   created:   test-results.txt
              (this report)
+
+  Shipped on commit ba9056e — pushed to origin/main, Vercel deploy live,
+  smoke test green.
