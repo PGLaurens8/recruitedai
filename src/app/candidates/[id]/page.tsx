@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,7 +19,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { postJson } from '@/lib/api-client';
-import { ArrowLeft, Upload, Mail, Briefcase, Sparkles, Save, Send, Star, Percent, AlertTriangle, Brain, Clock, GraduationCap, Award } from 'lucide-react';
+import { ArrowLeft, Upload, Mail, Briefcase, Sparkles, Save, Send, Star, Percent, AlertTriangle, Brain, Clock, GraduationCap, Award, Pencil, Plus, Trash2, ArrowUp, ArrowDown, NotebookPen } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import {
   ApiClientError,
@@ -31,15 +32,11 @@ import {
 } from '@/lib/data/hooks';
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { SUBMISSION_STATUS_BADGE_CLASS, SUBMISSION_STATUS_LABEL } from '@/lib/submissions-ui';
-
-const screeningQuestions = [
-  "Can you tell me about your background and experience?",
-  "What are your key strengths and how do they align with this type of role?",
-  "What are you looking for in your next role?",
-  "What are your salary expectations?",
-  "When would you be available to start?",
-  "Do you have any questions for me?",
-];
+import {
+  GENERAL_NOTES_KEY,
+  QUESTIONS_KEY,
+  parseScreeningQuestions,
+} from '@/lib/screening-questions';
 
 export default function CandidateDetailPage() {
     const params = useParams();
@@ -62,9 +59,17 @@ export default function CandidateDetailPage() {
     const [notes, setNotes] = useState<Record<string, string>>({});
     const [scores, setScores] = useState<Record<string, number | null>>({});
     const [summary, setSummary] = useState('');
+    const [questions, setQuestions] = useState<string[]>(() => parseScreeningQuestions(null));
+    const [generalNotes, setGeneralNotes] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Edit-questions dialog state. `draftQuestions` is the working copy edited
+    // inside the dialog; it's only committed to `questions` on Save.
+    const [editQuestionsOpen, setEditQuestionsOpen] = useState(false);
+    const [draftQuestions, setDraftQuestions] = useState<string[]>([]);
+    const [newQuestion, setNewQuestion] = useState('');
 
     const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
     const [submitJobId, setSubmitJobId] = useState('');
@@ -111,29 +116,72 @@ export default function CandidateDetailPage() {
 
     useEffect(() => {
         if (candidate) {
-            setNotes(candidate.interviewNotes || {});
+            const interviewNotes = candidate.interviewNotes || {};
+            setNotes(interviewNotes);
             setScores(candidate.interviewScores || {});
             setSummary(candidate.aiSummary || '');
+            setQuestions(parseScreeningQuestions(interviewNotes));
+            setGeneralNotes(interviewNotes[GENERAL_NOTES_KEY] || '');
         }
     }, [candidate]);
     
-    const { completionPercentage, averageScore, hasNotes, hasScores } = useMemo(() => {
-        const answeredNotes = Object.values(notes).filter(note => note && note.trim() !== '');
-        const completion = (answeredNotes.length / screeningQuestions.length) * 100;
+    const { completionPercentage, averageScore, answeredCount, hasNotes, hasScores } = useMemo(() => {
+        // Count only answered questions in the active question set — ignore the
+        // reserved meta keys (__questions, __general_notes) and any stale answers
+        // left behind by removed questions.
+        const answered = questions.filter(q => notes[q] && notes[q].trim() !== '');
+        const completion = questions.length > 0 ? (answered.length / questions.length) * 100 : 0;
 
-        const validScores = Object.values(scores).filter((score): score is number => score !== null);
+        const validScores = questions
+            .map(q => scores[q])
+            .filter((score): score is number => score != null);
         const avg = validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : 0;
 
         return {
             completionPercentage: completion,
             averageScore: avg,
-            hasNotes: answeredNotes.length > 0,
+            answeredCount: answered.length,
+            hasNotes: answered.length > 0,
             hasScores: validScores.length > 0,
         };
-    }, [notes, scores]);
+    }, [notes, scores, questions]);
+
+    const hasAnyScreening = hasNotes || generalNotes.trim() !== '';
 
     const handleNoteChange = (question: string, value: string) => {
         setNotes(prev => ({ ...prev, [question]: value }));
+    };
+
+    const openEditQuestions = () => {
+        setDraftQuestions([...questions]);
+        setNewQuestion('');
+        setEditQuestionsOpen(true);
+    };
+
+    const addDraftQuestion = () => {
+        const trimmed = newQuestion.trim();
+        if (!trimmed) return;
+        setDraftQuestions(prev => [...prev, trimmed]);
+        setNewQuestion('');
+    };
+
+    const removeDraftQuestion = (index: number) => {
+        setDraftQuestions(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const moveDraftQuestion = (index: number, direction: -1 | 1) => {
+        setDraftQuestions(prev => {
+            const target = index + direction;
+            if (target < 0 || target >= prev.length) return prev;
+            const next = [...prev];
+            [next[index], next[target]] = [next[target], next[index]];
+            return next;
+        });
+    };
+
+    const saveQuestions = () => {
+        setQuestions(draftQuestions);
+        setEditQuestionsOpen(false);
     };
 
     const handleScoreChange = (question: string, value: string) => {
@@ -190,8 +238,24 @@ export default function CandidateDetailPage() {
         if (!companyId || !candidateId) return;
         setIsSaving(true);
         try {
+          // Persist only the answers for the active questions, plus the reserved
+          // meta keys. Stale answers from removed questions are dropped. Question
+          // list is JSON-encoded because the JSONB column is typed string→string.
+          const notesToSave: Record<string, string> = {};
+          questions.forEach(q => {
+            const value = notes[q];
+            if (value && value.trim() !== '') {
+              notesToSave[q] = value;
+            }
+          });
+          notesToSave[QUESTIONS_KEY] = JSON.stringify(questions);
+          const trimmedGeneral = generalNotes.trim();
+          if (trimmedGeneral) {
+            notesToSave[GENERAL_NOTES_KEY] = trimmedGeneral;
+          }
+
           await saveCandidateInterview(companyId, candidateId, {
-            interviewNotes: notes,
+            interviewNotes: notesToSave,
             interviewScores: scores,
             aiSummary: summary,
           });
@@ -297,7 +361,7 @@ export default function CandidateDetailPage() {
                         {hasNotes ? (
                             <>
                                 <div className="text-2xl font-bold">{completionPercentage.toFixed(0)}%</div>
-                                <p className="text-xs text-muted-foreground">{Object.values(notes).filter(n => n?.trim()).length} of {screeningQuestions.length} questions noted</p>
+                                <p className="text-xs text-muted-foreground">{answeredCount} of {questions.length} questions noted</p>
                                 <Progress value={completionPercentage} className="mt-2 h-2" indicatorClassName={progressColor} />
                             </>
                         ) : (
@@ -435,12 +499,28 @@ export default function CandidateDetailPage() {
 
              <Card id="screening-notes">
                 <CardHeader>
-                    <CardTitle>Screening Interview Notes</CardTitle>
-                    <CardDescription>Use this section to take notes and score the candidate during the initial screening call.</CardDescription>
+                    <div className="flex flex-row items-start justify-between gap-2">
+                        <div>
+                            <CardTitle>Screening Interview Notes</CardTitle>
+                            <CardDescription>Optional — capture notes and scores from your screening call. Tailor the questions to this candidate, or just jot a quick general note.</CardDescription>
+                        </div>
+                        <Button variant="outline" size="sm" className="shrink-0" onClick={openEditQuestions}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit Questions
+                        </Button>
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                   {screeningQuestions.map((question, index) => (
-                    <div key={index} className="space-y-2">
+                   {!hasAnyScreening && (
+                       <div className="rounded-lg border border-dashed bg-muted/30 px-4 py-6 text-center">
+                           <NotebookPen className="mx-auto h-6 w-6 text-muted-foreground/60" />
+                           <p className="mt-2 text-sm font-medium text-muted-foreground">No screening notes yet</p>
+                           <p className="text-xs text-muted-foreground/80">Add notes after your screening call</p>
+                       </div>
+                   )}
+                   {questions.length === 0 ? (
+                       <p className="text-sm text-muted-foreground">No screening questions configured. Use <span className="font-medium">Edit Questions</span> to add some, or just use the general notes below.</p>
+                   ) : questions.map((question, index) => (
+                    <div key={`${question}-${index}`} className="space-y-2">
                         <div className="flex justify-between items-center">
                             <Label htmlFor={`question-${index}`} className="font-semibold">{question}</Label>
                             <div className="flex items-center gap-2 w-40">
@@ -466,6 +546,21 @@ export default function CandidateDetailPage() {
                         />
                     </div>
                    ))}
+
+                    <Separator />
+
+                    <div className="space-y-2">
+                        <Label htmlFor="general-notes" className="font-semibold">General screening notes</Label>
+                        <p className="text-xs text-muted-foreground">Unstructured notes from the call — no need to fill in every question above.</p>
+                        <Textarea
+                            id="general-notes"
+                            value={generalNotes}
+                            onChange={(e) => setGeneralNotes(e.target.value)}
+                            placeholder="Anything else worth recording from the screening call..."
+                            className="min-h-[100px]"
+                        />
+                    </div>
+
                     <Separator />
 
                     <div>
@@ -499,6 +594,61 @@ export default function CandidateDetailPage() {
                     </Button>
                 </CardFooter>
             </Card>
+
+            <Dialog open={editQuestionsOpen} onOpenChange={setEditQuestionsOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit screening questions</DialogTitle>
+                        <DialogDescription>Add, remove, or reorder the questions for this candidate. These are saved with the candidate when you save the profile.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="space-y-2">
+                            {draftQuestions.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">No questions yet. Add one below or save to use general notes only.</p>
+                            ) : draftQuestions.map((question, index) => (
+                                <div key={index} className="flex items-start gap-2 rounded-md bg-muted/50 p-2 text-sm">
+                                    <span className="flex-1 break-words">{question}</span>
+                                    <div className="flex shrink-0 items-center gap-1">
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" disabled={index === 0} onClick={() => moveDraftQuestion(index, -1)}>
+                                            <ArrowUp className="h-3 w-3" />
+                                            <span className="sr-only">Move up</span>
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" disabled={index === draftQuestions.length - 1} onClick={() => moveDraftQuestion(index, 1)}>
+                                            <ArrowDown className="h-3 w-3" />
+                                            <span className="sr-only">Move down</span>
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeDraftQuestion(index)}>
+                                            <Trash2 className="h-3 w-3 text-destructive" />
+                                            <span className="sr-only">Remove question</span>
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="Add a custom question..."
+                                value={newQuestion}
+                                onChange={(e) => setNewQuestion(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        addDraftQuestion();
+                                    }
+                                }}
+                            />
+                            <Button variant="outline" size="icon" onClick={addDraftQuestion}>
+                                <Plus className="h-4 w-4" />
+                                <span className="sr-only">Add question</span>
+                            </Button>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditQuestionsOpen(false)}>Cancel</Button>
+                        <Button onClick={saveQuestions}>Save Questions</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen}>
                 <DialogContent>

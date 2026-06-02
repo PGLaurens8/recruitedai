@@ -53,19 +53,12 @@ import {
   useCompany,
   useCurrentProfile,
 } from "@/lib/data/hooks";
+import { defaultQuestions } from "@/lib/screening-questions";
 
 // Speech Recognition Setup
 const SpeechRecognition =
   (typeof window !== "undefined" && (window as any).SpeechRecognition) ||
   (typeof window !== "undefined" && (window as any).webkitSpeechRecognition);
-
-const defaultQuestions = [
-  "Brief professional background summary?",
-  "What are your primary technical/core skills?",
-  "What is your greatest professional achievement?",
-  "Why are you leaving your current role?",
-  "What are your salary expectations?",
-];
 
 const TRANSCRIPT_CHUNK_TARGET_CHARS = 4000;
 const TRANSCRIPT_MAX_CHARS = 250000;
