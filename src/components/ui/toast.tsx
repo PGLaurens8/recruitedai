@@ -44,10 +44,14 @@ const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
     VariantProps<typeof toastVariants>
->(({ className, variant, ...props }, ref) => {
+>(({ className, variant, duration, ...props }, ref) => {
+  // Destructive toasts surface errors users need to read (e.g. "Invalid login credentials").
+  // The Radix default of 5s is too short for that; give it 8s unless a caller overrides.
+  const resolvedDuration = duration ?? (variant === "destructive" ? 8000 : undefined)
   return (
     <ToastPrimitives.Root
       ref={ref}
+      duration={resolvedDuration}
       className={cn(toastVariants({ variant }), className)}
       {...props}
     />

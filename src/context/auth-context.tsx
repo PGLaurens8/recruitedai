@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { getRuntimeMode, isMockMode, isSupabaseMode } from "@/lib/runtime-mode";
 import { getSupabasePublicEnvError } from "@/lib/runtime-config";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { getDefaultRouteForRole, isPublicPath } from "@/lib/rbac";
+import { getDefaultRouteForRole, isOpenPath, isPublicPath } from "@/lib/rbac";
 import { normalizeRole, type Role } from "@/lib/roles";
 
 export interface AppUser {
@@ -207,12 +207,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isLoading) return;
 
     const pathIsPublic = isPublicPath(pathname);
+    const pathIsOpen = isOpenPath(pathname);
 
     if (user != null) {
       if (pathIsPublic) {
         router.push(getDefaultRouteForRole(user.role));
       }
-    } else if (!pathIsPublic && !isSigningOutRef.current) {
+    } else if (!pathIsPublic && !pathIsOpen && !isSigningOutRef.current) {
       const params = new URLSearchParams({ redirectTo: pathname });
       const reason = pendingRedirectReasonRef.current;
       if (reason) {
