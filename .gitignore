@@ -45,3 +45,6 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+# Throwaway live-site smoke script
+_smoke.mjs
