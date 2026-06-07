@@ -40,10 +40,12 @@ export function Sidebar() {
       </div>
       <nav className="flex-1 px-2 py-4 space-y-6 overflow-y-auto">
         {accessibleGroups.map((group) => (
-          <div key={group.title}>
-            <h3 className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-              {group.title}
-            </h3>
+          <div key={group.title || group.links[0]?.href}>
+            {group.title && (
+              <h3 className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                {group.title}
+              </h3>
+            )}
             <div className="space-y-1">
               {group.links.map((link) => {
                 const isActive = isNavLinkActive(pathname, link.href);
@@ -83,14 +85,14 @@ export function Sidebar() {
           <Button variant="ghost" asChild className="w-full justify-start text-sm text-slate-400 hover:text-white hover:bg-slate-800">
               <Link href="/billing">
                   <CreditCard className="h-4 w-4 mr-3" />
-                  Plans &amp; Billing
+                  Subscription
               </Link>
           </Button>
           {isInternalUser(user.email) && (
             <Button variant="ghost" asChild className="w-full justify-start text-sm text-slate-400 hover:text-white hover:bg-slate-800">
                 <Link href="/about">
                     <HelpCircle className="h-4 w-4 mr-3" />
-                    Strategy &amp; About
+                    About
                 </Link>
             </Button>
           )}

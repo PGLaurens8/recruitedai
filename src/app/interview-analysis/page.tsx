@@ -484,8 +484,8 @@ export default function InterviewAnalysisPage() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">AI Note Taker & Analyst</h1>
-          <Breadcrumb className="mt-1" items={[{ label: "Talent Engine", href: "/candidates" }, { label: "AI Note Taker" }]} />
+          <h1 className="text-3xl font-bold tracking-tight">Interview Notes</h1>
+          <Breadcrumb className="mt-1" items={[{ label: "Candidates", href: "/candidates" }, { label: "Interview Notes" }]} />
           <p className="mt-1 text-muted-foreground">
             Live capture, structured analysis, and branded candidate reporting.
           </p>

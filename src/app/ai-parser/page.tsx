@@ -418,7 +418,7 @@ export default function AiParserPage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight">Smart Parser & Match</h1>
+            <h1 className="text-3xl font-bold tracking-tight">CV Screening</h1>
             <InfoTooltip text="Upload a candidate CV and paste a job description to get an AI-powered match score with explainable skill indicators" />
           </div>
           <p className="mt-1 text-muted-foreground">

@@ -20,8 +20,7 @@ import {
   Mic,
   Target,
   Zap,
-  HelpCircle,
-  FilePlus2
+  HelpCircle
 } from 'lucide-react';
 
 export interface NavLink {
@@ -40,37 +39,37 @@ export interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    title: 'Operational Dashboard',
+    // Headerless group — single primary dashboard per role, no section label needed.
+    title: '',
     roles: ['Admin', 'Recruiter', 'Sales', 'Developer', 'Candidate'],
     links: [
-      { href: '/dashboard/admin', label: 'Agency Overview', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
+      { href: '/dashboard/admin', label: 'Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
       { href: '/dashboard/recruiter', label: 'Recruiter Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Recruiter'] },
       { href: '/dashboard/sales', label: 'Sales Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Admin', 'Developer', 'Sales'] },
       { href: '/dashboard', label: 'Candidate Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Candidate'] },
     ]
   },
   {
-    title: 'Module: Talent Engine',
+    title: 'Candidates',
     roles: ['Admin', 'Recruiter', 'Developer'],
     links: [
       { href: '/candidates', label: 'Talent Pool', icon: React.createElement(Users, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'] },
-      { href: '/ai-parser', label: 'Smart Parser & Match', icon: React.createElement(ScanText, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'], badge: 'New' },
-      { href: '/interview-analysis', label: 'AI Note Taker', icon: React.createElement(Mic, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'], badge: 'New' },
-      { href: '/candidate-profiles', label: 'Screening Notes', icon: React.createElement(UserCheck, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'] },
+      { href: '/ai-parser', label: 'CV Screening', icon: React.createElement(ScanText, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'], badge: 'New' },
+      { href: '/interview-analysis', label: 'Interview Notes', icon: React.createElement(Mic, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'], badge: 'New' },
+      { href: '/candidate-profiles', label: 'Screening Tool', icon: React.createElement(UserCheck, { size: 18 }), roles: ['Admin', 'Recruiter', 'Developer'] },
     ]
   },
   {
-    title: 'Module: Business Hub',
+    title: 'Business',
     roles: ['Admin', 'Recruiter', 'Sales', 'Developer'],
     links: [
-      { href: '/jobs', label: 'Job Board', icon: React.createElement(Briefcase, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
-      { href: '/jobs/new', label: 'Job Brief Builder', icon: React.createElement(FilePlus2, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'], badge: 'New' },
-      { href: '/clients', label: 'Client CRM', icon: React.createElement(Building, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
-      { href: '/company-finder', label: 'Smart Lead Finder', icon: React.createElement(Search, { size: 18 }), roles: ['Admin', 'Sales', 'Developer'] },
+      { href: '/jobs', label: 'Jobs', icon: React.createElement(Briefcase, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
+      { href: '/clients', label: 'Clients', icon: React.createElement(Building, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
+      { href: '/company-finder', label: 'Lead Finder', icon: React.createElement(Search, { size: 18 }), roles: ['Admin', 'Sales', 'Developer'] },
     ]
   },
   {
-    title: 'Module: Candidate Portal',
+    title: 'Candidate Tools',
     roles: ['Admin', 'Candidate', 'Developer'],
     links: [
       { href: '/master-resume', label: 'Resume Builder', icon: React.createElement(FileText, { size: 18 }), roles: ['Admin', 'Candidate', 'Developer'], badge: 'Beta' },
@@ -81,18 +80,18 @@ const navGroups: NavGroup[] = [
     ]
   },
   {
-    title: 'Strategic Insights',
+    title: 'Reports',
     roles: ['Admin', 'Sales', 'Developer'],
     links: [
-      { href: '/reports', label: 'Analytics & ROI', icon: React.createElement(BarChart, { size: 18 }), roles: ['Admin', 'Sales', 'Developer'] },
+      { href: '/reports', label: 'Reports & Analytics', icon: React.createElement(BarChart, { size: 18 }), roles: ['Admin', 'Sales', 'Developer'] },
     ]
   },
   {
-    title: 'System',
+    title: 'Settings',
     roles: ['Admin', 'Developer'],
     links: [
-       { href: '/team', label: 'Team Management', icon: React.createElement(Users, { size: 18 }), roles: ['Admin', 'Developer'] },
-       { href: '/settings', label: 'System Settings', icon: React.createElement(Settings, { size: 18 }), roles: ['Admin', 'Developer'] },
+       { href: '/team', label: 'Team', icon: React.createElement(Users, { size: 18 }), roles: ['Admin', 'Developer'] },
+       { href: '/settings', label: 'Settings', icon: React.createElement(Settings, { size: 18 }), roles: ['Admin', 'Developer'] },
     ]
    }
 ];

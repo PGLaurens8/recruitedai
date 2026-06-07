@@ -66,10 +66,12 @@ export function Header() {
                             <span>RecruitedAI</span>
                         </Link>
                         {accessibleGroups.map((group) => (
-                          <div key={group.title} className="mb-4">
-                             <h3 className="px-3 py-2 text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/5 rounded-sm mb-2">
-                                {group.title}
-                            </h3>
+                          <div key={group.title || group.links[0]?.href} className="mb-4">
+                             {group.title && (
+                               <h3 className="px-3 py-2 text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/5 rounded-sm mb-2">
+                                  {group.title}
+                              </h3>
+                             )}
                              {group.links.map((link) => {
                                 const isActive = isNavLinkActive(pathname, link.href);
 
@@ -104,13 +106,13 @@ export function Header() {
                             <Button variant="ghost" asChild className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
                                 <Link href="/billing" onClick={handleLinkClick}>
                                     <CreditCard className="h-5 w-5 mr-3" />
-                                    Plans &amp; Billing
+                                    Subscription
                                 </Link>
                             </Button>
                             <Button variant="ghost" asChild className="w-full justify-start text-muted-foreground hover:text-primary hover:bg-muted">
                                 <Link href="/about" onClick={handleLinkClick}>
                                     <HelpCircle className="h-5 w-5 mr-3" />
-                                    About Strategy
+                                    About
                                 </Link>
                             </Button>
                             <Button variant="ghost" onClick={handleLogoutClick} className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-muted">
@@ -162,13 +164,13 @@ export function Header() {
                     <DropdownMenuItem asChild>
                         <Link href="/billing" className="cursor-pointer">
                             <CreditCard className="mr-2 h-4 w-4" />
-                            <span>Plans &amp; Billing</span>
+                            <span>Subscription</span>
                         </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                         <Link href="/about" className="cursor-pointer">
                             <HelpCircle className="mr-2 h-4 w-4" />
-                            <span>About Strategy</span>
+                            <span>About</span>
                         </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />

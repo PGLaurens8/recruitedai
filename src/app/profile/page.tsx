@@ -93,7 +93,7 @@ export default function ProfilePage() {
           <p className="mt-1 text-muted-foreground">Manage your credentials, branding, and subscription tier.</p>
         </div>
         <Button variant="outline" asChild>
-          <Link href="/about">Strategic About Page</Link>
+          <Link href="/about">About</Link>
         </Button>
       </div>
 
