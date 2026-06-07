@@ -28,6 +28,7 @@ import {
   agencyPlans,
   candidatePlans,
   getPrice,
+  getPlanFeatures,
   annualSavingsPercent,
   type BillingCycle,
   type Plan,
@@ -91,7 +92,7 @@ function InAppPlanCard({ plan, currency, cycle, isCurrent }: InAppPlanCardProps)
 
       <CardContent className="flex-grow">
         <ul className="space-y-2 text-sm">
-          {plan.features.slice(0, 6).map((f) => (
+          {getPlanFeatures(plan, currency).slice(0, 6).map((f) => (
             <li key={f} className="flex items-start">
               <span className="text-green-500 mr-2 mt-0.5">•</span>
               <span>{f}</span>

@@ -1,4 +1,4 @@
-import type { Currency } from '@/lib/locale';
+import { formatPrice, type Currency } from '@/lib/locale';
 
 export type BillingCycle = 'monthly' | 'annual';
 
@@ -40,7 +40,8 @@ export const agencyPlans: Plan[] = [
       ZAR: { monthly: 599, annual: 499 },
     },
     features: [
-      '1 seat included (additional seats $29 each)',
+      // {seatPrice} is interpolated per-currency by getPlanFeatures().
+      '1 seat included (additional seats {seatPrice} each)',
       '100 CV screenings / month',
       '25 job match assessments / month',
       '5 branded CV exports / month',
@@ -141,6 +142,19 @@ export const candidatePlans: Plan[] = [
     ctaHref: '/signup?plan=candidate-pro',
   },
 ];
+
+// Per-currency price of an additional seat on the Starter plan. Kept here next
+// to the plan data so the feature copy and the pricing stay in one place.
+const ADDITIONAL_SEAT_PRICE: Record<Currency, number> = { USD: 29, ZAR: 529 };
+
+/**
+ * Returns a plan's feature bullets with currency-dependent placeholders (e.g.
+ * the additional-seat price) resolved for the given currency.
+ */
+export function getPlanFeatures(plan: Plan, currency: Currency): string[] {
+  const seatPrice = formatPrice(ADDITIONAL_SEAT_PRICE[currency], currency);
+  return plan.features.map((feature) => feature.replace('{seatPrice}', seatPrice));
+}
 
 export function getPrice(plan: Plan, currency: Currency, cycle: BillingCycle): number | null {
   if (plan.price === null) return null;

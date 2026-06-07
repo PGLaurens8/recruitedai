@@ -44,6 +44,7 @@ import {
   agencyPlans,
   candidatePlans,
   getPrice,
+  getPlanFeatures,
   annualSavingsPercent,
   type BillingCycle,
   type Plan,
@@ -224,7 +225,7 @@ function PlanCard({ plan, currency, cycle }: PlanCardProps) {
 
       <CardContent className="flex-grow">
         <ul className="space-y-2.5">
-          {plan.features.map((feature) => (
+          {getPlanFeatures(plan, currency).map((feature) => (
             <li key={feature} className="flex items-start text-sm">
               <CheckCircle2 className="h-4 w-4 text-green-500 mr-2 shrink-0 mt-0.5" />
               <span>{feature}</span>

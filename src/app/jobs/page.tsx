@@ -205,7 +205,7 @@ export default function JobsPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
+          <Table className="hidden sm:table">
             <TableHeader>
               <TableRow>
                 <SortableTableHeader sortKey="title">Job Details</SortableTableHeader>
@@ -290,6 +290,42 @@ export default function JobsPage() {
               )}
             </TableBody>
           </Table>
+
+          {/* Mobile: stacked card list (the table overflows on < 640px). */}
+          <div className="space-y-3 p-4 sm:hidden">
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <Card key={i} className="p-4 space-y-2">
+                  <Skeleton className="h-4 w-40" /><Skeleton className="h-3 w-24" />
+                </Card>
+              ))
+            ) : sortedJobs.length === 0 ? (
+              <Card className="p-8 text-center text-muted-foreground">
+                {searchTerm || clientFilter !== ALL_CLIENTS
+                  ? "No job postings match your filters."
+                  : "No job postings yet. Create your first posting above."}
+              </Card>
+            ) : (
+              sortedJobs.map((job) => (
+                <Card key={job.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link href={`/jobs/${job.id}`} className="block truncate font-medium text-primary hover:underline">{job.title}</Link>
+                      {job.salary && <p className="text-sm font-semibold text-green-600">{job.salary}</p>}
+                      {job.location && <p className="truncate text-xs text-muted-foreground">{job.location}</p>}
+                    </div>
+                    <Badge variant="outline" className={getStatusBadgeClass(job.status) + " capitalize shrink-0"}>{job.status}</Badge>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">{job.candidates ?? 0} applied</span>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/jobs/${job.id}`}><Eye className="mr-2 h-4 w-4" /> View</Link>
+                    </Button>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
       )}

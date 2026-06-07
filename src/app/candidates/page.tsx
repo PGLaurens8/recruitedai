@@ -284,7 +284,8 @@ function CandidatesPageContent() {
           </AlertDescription>
         </Alert>
       ) : (
-      <Card>
+      <>
+      <Card className="hidden sm:block">
         <CardHeader>
           <CardTitle>
             {isLoading ? "Candidates" : `All Candidates (${sortedCandidates.length})`}
@@ -409,6 +410,62 @@ function CandidatesPageContent() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Mobile: stacked card list (the table overflows on < 640px). */}
+      <div className="space-y-3 sm:hidden">
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i} className="p-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-1"><Skeleton className="h-4 w-32" /><Skeleton className="h-3 w-24" /></div>
+              </div>
+            </Card>
+          ))
+        ) : sortedCandidates.length === 0 ? (
+          <Card className="p-8 text-center">
+            {searchTerm || statusFilter !== "all" ? (
+              <p className="text-muted-foreground">No candidates match your filters.</p>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <p className="font-medium">No candidates yet</p>
+                <Button asChild>
+                  <Link href="/ai-parser"><Plus className="mr-2 h-4 w-4" /> Add your first candidate via Smart Parser</Link>
+                </Button>
+              </div>
+            )}
+          </Card>
+        ) : (
+          sortedCandidates.map((candidate) => (
+            <Card key={candidate.id} className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar className="h-10 w-10 shrink-0">
+                    <AvatarImage src={candidate.avatar} data-ai-hint="person portrait" />
+                    <AvatarFallback>{candidate.name?.split(' ').map((n) => n[0]).join('')}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <Link href={`/candidates/${candidate.id}`} className="block truncate font-medium text-primary hover:underline">{candidate.name}</Link>
+                    <p className="truncate text-sm text-muted-foreground">{candidate.email}</p>
+                  </div>
+                </div>
+                {candidate.aiScore != null && (
+                  <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-sm font-semibold ${getAiScorePillClass(candidate.aiScore)}`}>
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-500" />{candidate.aiScore}%
+                  </span>
+                )}
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <Badge variant="outline" className={getStatusBadgeVariant(candidate.status)}>{candidate.status}</Badge>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/candidates/${candidate.id}`}><Eye className="mr-2 h-4 w-4" /> View</Link>
+                </Button>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+      </>
       )}
 
       <Dialog open={showQuickAdd} onOpenChange={(open) => { if (!isQuickAdding) setShowQuickAdd(open); }}>

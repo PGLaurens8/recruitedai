@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
-import { saveCandidateInterview, useCandidates, useCurrentProfile } from "@/lib/data/hooks";
+import { saveCandidateInterview, useCandidate, useCandidates, useCurrentProfile } from "@/lib/data/hooks";
 import {
   GENERAL_NOTES_KEY,
   QUESTIONS_KEY,
@@ -50,24 +50,31 @@ export default function CandidateProfilesPage() {
     [candidates, selectedId],
   );
 
-  // Load the selected candidate's existing screening notes into the editor.
+  // The candidates list endpoint omits interview_notes / interview_scores /
+  // ai_summary, so fetch the full record for the selected candidate to populate
+  // the editor (notes, scores, and the AI summary).
+  const { data: fullCandidate } = useCandidate(companyId, selectedId || undefined, refreshKey);
+
+  // Reset the editor when the selection changes...
   useEffect(() => {
-    if (selectedCandidate) {
-      const interviewNotes = selectedCandidate.interviewNotes || {};
-      setQuestions(parseScreeningQuestions(interviewNotes));
-      setNotes(interviewNotes);
-      setScores(selectedCandidate.interviewScores || {});
-      setGeneralNotes(interviewNotes[GENERAL_NOTES_KEY] || "");
-      setSummary(selectedCandidate.aiSummary || "");
-      setError(null);
-    } else {
-      setQuestions(parseScreeningQuestions(null));
-      setNotes({});
-      setScores({});
-      setGeneralNotes("");
-      setSummary("");
-    }
-  }, [selectedCandidate]);
+    setError(null);
+    setQuestions(parseScreeningQuestions(null));
+    setNotes({});
+    setScores({});
+    setGeneralNotes("");
+    setSummary("");
+  }, [selectedId]);
+
+  // ...then populate from the full record once it loads.
+  useEffect(() => {
+    if (!fullCandidate || fullCandidate.id !== selectedId) return;
+    const interviewNotes = fullCandidate.interviewNotes || {};
+    setQuestions(parseScreeningQuestions(interviewNotes));
+    setNotes(interviewNotes);
+    setScores(fullCandidate.interviewScores || {});
+    setGeneralNotes(interviewNotes[GENERAL_NOTES_KEY] || "");
+    setSummary(fullCandidate.aiSummary || "");
+  }, [fullCandidate, selectedId]);
 
   const filteredCandidates = useMemo(() => {
     const term = pickerSearch.trim().toLowerCase();

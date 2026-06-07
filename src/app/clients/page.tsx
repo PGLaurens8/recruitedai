@@ -212,7 +212,8 @@ export default function ClientsPage() {
           </AlertDescription>
         </Alert>
       ) : (
-      <Card>
+      <>
+      <Card className="hidden sm:block">
         <CardHeader>
           <CardTitle>{isLoading ? "Clients" : `All Clients (${sortedClients.length})`}</CardTitle>
           <CardDescription>A list of all clients in your system.</CardDescription>
@@ -293,6 +294,49 @@ export default function ClientsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Mobile: stacked card list (the table overflows on < 640px). */}
+      <div className="space-y-3 sm:hidden">
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i} className="p-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-9 w-9 rounded-md" />
+                <div className="space-y-1"><Skeleton className="h-4 w-28" /><Skeleton className="h-3 w-24" /></div>
+              </div>
+            </Card>
+          ))
+        ) : sortedClients.length === 0 ? (
+          <Card className="p-8 text-center text-muted-foreground">
+            {searchTerm ? "No clients match your search." : "No clients found."}
+          </Card>
+        ) : (
+          sortedClients.map((client) => (
+            <Card key={client.id} className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar className="h-9 w-9 shrink-0 rounded-md">
+                    <AvatarImage src={client.logo} data-ai-hint="company logo" />
+                    <AvatarFallback className="rounded-md bg-muted"><Building className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <Link href={`/clients/${client.id}`} className="block truncate font-medium text-primary hover:underline">{client.name}</Link>
+                    {client.contactName && <p className="truncate text-sm text-muted-foreground">{client.contactName}</p>}
+                  </div>
+                </div>
+                <Badge variant="outline" className={getStatusBadgeVariant(client.status) + " shrink-0"}>{client.status}</Badge>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">{client.openJobs || 0} open jobs</span>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/clients/${client.id}`}>View</Link>
+                </Button>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+      </>
       )}
 
       <Dialog open={showAddDialog} onOpenChange={(open) => { if (!isCreating) setShowAddDialog(open); }}>
