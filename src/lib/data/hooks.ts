@@ -717,8 +717,9 @@ export async function createCandidate(
     notes?: string;
   },
 ): Promise<CandidateRecord> {
-  // Phone and free-text notes don't have dedicated candidate columns, so they
-  // ride along in the contact_info JSONB blob where the API persists them.
+  // Phone maps to the dedicated `phone` column (surfaced on the Contact Details
+  // card). Email/notes also ride along in the contact_info JSONB blob for the
+  // legacy contact view.
   const contactInfo: Record<string, string> = {};
   if (input.email) contactInfo.email = input.email;
   if (input.phone) contactInfo.phone = input.phone;
@@ -733,6 +734,7 @@ export async function createCandidate(
       status: input.status || 'Sourced',
       currentJob: input.currentJob || undefined,
       currentCompany: input.currentCompany || undefined,
+      phone: input.phone || undefined,
     };
     createMockCandidate(record);
     return record;
@@ -747,6 +749,7 @@ export async function createCandidate(
         status: input.status || 'Sourced',
         currentJob: input.currentJob || undefined,
         currentCompany: input.currentCompany || undefined,
+        phone: input.phone || undefined,
         contactInfo,
       }),
     });

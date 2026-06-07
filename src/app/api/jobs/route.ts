@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     const offset = parseInt(url.searchParams.get('offset') ?? '0', 10) || 0;
     const { data, error } = await supabase
       .from('jobs')
-      .select('id,company_id,title,salary,company,location,status,approval,candidates_count,ai_matches,client_id,created_at,updated_at,client:clients(name)')
+      .select('id,company_id,title,salary,company,location,status,approval,description,candidates_count,ai_matches,client_id,created_at,updated_at,client:clients(name)')
       .eq('company_id', companyId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })

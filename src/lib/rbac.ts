@@ -17,7 +17,7 @@ export const marketingPaths = ['/pricing', '/terms', '/privacy', '/refunds'] as 
 const rolePathRules: Array<{ prefix: string; roles: Role[] }> = [
   { prefix: '/dashboard/admin', roles: ['Admin', 'Developer', 'Recruiter', 'Sales'] },
   { prefix: '/dashboard/recruiter', roles: ['Recruiter'] },
-  { prefix: '/dashboard/sales', roles: ['Sales'] },
+  { prefix: '/dashboard/sales', roles: ['Admin', 'Developer', 'Sales'] },
   { prefix: '/dashboard', roles: ['Candidate'] },
   { prefix: '/candidates', roles: ['Admin', 'Recruiter', 'Developer'] },
   { prefix: '/ai-parser', roles: ['Admin', 'Recruiter', 'Developer'] },
