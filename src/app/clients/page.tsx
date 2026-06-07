@@ -2,6 +2,8 @@
 "use client";
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Building, MoreHorizontal, Plus, RefreshCw, Search, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { AlertTriangle, Building, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +63,7 @@ const getStatusBadgeVariant = (status: string) => {
 export default function ClientsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -251,7 +254,7 @@ export default function ClientsPage() {
                           <AvatarImage src={client.logo} data-ai-hint="company logo"/>
                           <AvatarFallback className="rounded-md bg-muted"><Building className="h-5 w-5 text-muted-foreground"/></AvatarFallback>
                         </Avatar>
-                        <span className="font-medium">{client.name}</span>
+                        <Link href={`/clients/${client.id}`} className="font-medium hover:underline">{client.name}</Link>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -274,6 +277,9 @@ export default function ClientsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => router.push(`/clients/${client.id}`)}>
+                            <Pencil className="mr-2 h-4 w-4" /> Edit Client
+                          </DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => confirmDelete(client.id)}>
                             <Trash2 className="mr-2 h-4 w-4" /> Delete Client
                           </DropdownMenuItem>

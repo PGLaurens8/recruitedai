@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { seedDemoData, saveModelRegistry, useModelRegistry } from '@/lib/data/hooks';
+import { isInternalUser } from '@/lib/internal-access';
 
 // Mock data for seeding
 const SEED_DATA = {
@@ -116,7 +117,7 @@ export default function SettingsPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="general" className="flex items-center gap-2"><Settings size={16} /> General</TabsTrigger>
-          {(user.role === 'Developer' || user.role === 'Admin') && (
+          {isInternalUser(user.email) && (
             <TabsTrigger value="developer" className="flex items-center gap-2"><Code size={16} /> Developer</TabsTrigger>
           )}
         </TabsList>
@@ -146,7 +147,7 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {(user.role === 'Developer' || user.role === 'Admin') && (
+        {isInternalUser(user.email) && (
           <TabsContent value="developer" className="mt-6 space-y-8">
             {/* Database Seeding Section */}
             <Card className="border-primary/50 shadow-md">

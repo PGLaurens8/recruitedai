@@ -247,6 +247,30 @@ export function listMockClients(companyId: string) {
   return readDatabase().clients.filter((item) => item.companyId === companyId);
 }
 
+export function getMockClient(companyId: string, clientId: string) {
+  return (
+    readDatabase().clients.find(
+      (item) => item.companyId === companyId && item.id === clientId,
+    ) || null
+  );
+}
+
+export function saveMockClient(
+  companyId: string,
+  clientId: string,
+  updates: Partial<ClientRecord>,
+) {
+  const database = readDatabase();
+  const index = database.clients.findIndex(
+    (item) => item.companyId === companyId && item.id === clientId,
+  );
+
+  if (index >= 0) {
+    database.clients[index] = { ...database.clients[index], ...updates };
+    writeDatabase(database);
+  }
+}
+
 export function deleteMockClient(companyId: string, clientId: string) {
   const database = readDatabase();
   database.clients = database.clients.filter(

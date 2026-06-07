@@ -67,6 +67,8 @@ export interface ClientRecord {
   logo?: string;
   contactName?: string;
   contactEmail?: string;
+  website?: string;
+  notes?: string;
   status: string;
   openJobs?: number;
 }

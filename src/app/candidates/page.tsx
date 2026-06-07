@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,13 +23,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Clock, Eye, Plus, RefreshCw, Search, Star, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Clock, Eye, Plus, RefreshCw, Search, Star, Trash2, Upload, UserPlus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/auth-context";
-import { removeCandidate, useCandidates, useCurrentProfile } from "@/lib/data/hooks";
+import { createCandidate, removeCandidate, useCandidates, useCurrentProfile } from "@/lib/data/hooks";
 import type { CandidateRecord } from "@/lib/data/types";
+
+const QUICK_ADD_STATUS_OPTIONS = ['Sourced', 'Applied', 'Interviewing', 'Offer', 'Hired', 'Rejected'] as const;
+type QuickAddStatus = (typeof QUICK_ADD_STATUS_OPTIONS)[number];
 
 type CandidateKey = keyof CandidateRecord;
 
@@ -56,6 +70,7 @@ const getAiScorePillClass = (score: number) => {
 
 function CandidatesPageContent() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [refreshKey, setRefreshKey] = useState(0);
   const [sortConfig, setSortConfig] = useState<{ key: CandidateKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
   const [searchTerm, setSearchTerm] = useState("");
@@ -65,6 +80,55 @@ function CandidatesPageContent() {
   const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
   const { data: candidates, isLoading, error } = useCandidates(companyId, refreshKey);
+
+  // Quick Add dialog state.
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [isQuickAdding, setIsQuickAdding] = useState(false);
+  const [quickAdd, setQuickAdd] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    currentJob: '',
+    currentCompany: '',
+    status: 'Sourced' as QuickAddStatus,
+    notes: '',
+  });
+
+  const openQuickAdd = () => {
+    setQuickAdd({ name: '', email: '', phone: '', currentJob: '', currentCompany: '', status: 'Sourced', notes: '' });
+    setShowQuickAdd(true);
+  };
+
+  const handleQuickAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyId || !quickAdd.name.trim()) return;
+    setIsQuickAdding(true);
+    try {
+      const created = await createCandidate(companyId, {
+        name: quickAdd.name.trim(),
+        email: quickAdd.email.trim() || undefined,
+        phone: quickAdd.phone.trim() || undefined,
+        currentJob: quickAdd.currentJob.trim() || undefined,
+        currentCompany: quickAdd.currentCompany.trim() || undefined,
+        status: quickAdd.status,
+        notes: quickAdd.notes.trim() || undefined,
+      });
+      setShowQuickAdd(false);
+      setRefreshKey((k) => k + 1);
+      toast({
+        title: 'Candidate added',
+        description: (
+          <Link href={`/candidates/${created.id}`} className="underline font-medium">
+            View profile →
+          </Link>
+        ),
+      });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Could not add candidate', description: err?.message || 'Please try again.' });
+    } finally {
+      setIsQuickAdding(false);
+    }
+  };
 
   const sortedCandidates = useMemo(() => {
     if (!candidates) return [];
@@ -173,8 +237,11 @@ function CandidatesPageContent() {
           </Select>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={openQuickAdd}>
+            <UserPlus className="mr-2 h-4 w-4" /> Quick Add
+          </Button>
           <Button asChild>
-            <Link href="/ai-parser"><Plus className="mr-2 h-4 w-4" /> Add Candidate</Link>
+            <Link href="/ai-parser"><Plus className="mr-2 h-4 w-4" /> Import via Smart Parser</Link>
           </Button>
         </div>
       </div>
@@ -300,6 +367,65 @@ function CandidatesPageContent() {
         </CardContent>
       </Card>
       )}
+
+      <Dialog open={showQuickAdd} onOpenChange={(open) => { if (!isQuickAdding) setShowQuickAdd(open); }}>
+        <DialogContent className="sm:max-w-lg">
+          <form onSubmit={handleQuickAdd}>
+            <DialogHeader>
+              <DialogTitle>Quick Add Candidate</DialogTitle>
+              <DialogDescription>Add a candidate manually. Only the full name is required — you can enrich the profile later.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="qa-name">Full name *</Label>
+                <Input id="qa-name" value={quickAdd.name} onChange={(e) => setQuickAdd((q) => ({ ...q, name: e.target.value }))} placeholder="Jane Doe" required autoFocus />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="qa-email">Email</Label>
+                  <Input id="qa-email" type="email" value={quickAdd.email} onChange={(e) => setQuickAdd((q) => ({ ...q, email: e.target.value }))} placeholder="jane@example.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="qa-phone">Phone</Label>
+                  <Input id="qa-phone" value={quickAdd.phone} onChange={(e) => setQuickAdd((q) => ({ ...q, phone: e.target.value }))} placeholder="+1 555 123 4567" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="qa-role">Current role</Label>
+                  <Input id="qa-role" value={quickAdd.currentJob} onChange={(e) => setQuickAdd((q) => ({ ...q, currentJob: e.target.value }))} placeholder="Senior Engineer" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="qa-company">Current company</Label>
+                  <Input id="qa-company" value={quickAdd.currentCompany} onChange={(e) => setQuickAdd((q) => ({ ...q, currentCompany: e.target.value }))} placeholder="Acme Inc." />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="qa-status">Status</Label>
+                <Select value={quickAdd.status} onValueChange={(v) => setQuickAdd((q) => ({ ...q, status: v as QuickAddStatus }))}>
+                  <SelectTrigger id="qa-status"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {QUICK_ADD_STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="qa-notes">Notes</Label>
+                <Textarea id="qa-notes" value={quickAdd.notes} onChange={(e) => setQuickAdd((q) => ({ ...q, notes: e.target.value }))} placeholder="Any context worth recording..." className="min-h-[80px]" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowQuickAdd(false)} disabled={isQuickAdding}>Cancel</Button>
+              <Button type="submit" disabled={isQuickAdding || !quickAdd.name.trim()}>
+                {isQuickAdding ? <Spinner size={16} className="mr-2" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                Add Candidate
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={pendingDeleteId !== null} onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}>
         <AlertDialogContent>

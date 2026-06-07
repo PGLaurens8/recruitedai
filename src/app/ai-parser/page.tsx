@@ -93,7 +93,13 @@ export default function AiParserPage() {
 
   const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
-  const { data: companyDoc } = useCompany(companyId);
+  const { data: companyDoc, isLoading: isCompanyLoading } = useCompany(companyId);
+
+  // Show the "set up branding" prompt only once the company record has genuinely
+  // loaded and we can see it has no logo configured. Gating on isCompanyLoading
+  // (and on companyId being resolved) prevents the banner from flashing on first
+  // render before the async company fetch resolves.
+  const brandingMissing = Boolean(companyId) && !isCompanyLoading && !!companyDoc && !companyDoc.logo;
 
   useEffect(() => {
     if (companyDoc?.name) {
@@ -451,7 +457,7 @@ export default function AiParserPage() {
         <InfoTooltip text="When enabled, the AI weights demonstrated experience and skills over formal education credentials — ideal for skills-based hiring" />
       </div>
 
-      {!companyInfo && (
+      {brandingMissing && (
         <Alert className="bg-primary/5 border-primary/20">
           <Building className="h-4 w-4" />
           <AlertTitle>No Agency Branding Found</AlertTitle>

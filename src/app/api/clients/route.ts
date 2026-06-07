@@ -9,6 +9,8 @@ const createClientSchema = z.object({
   logo: z.string().optional(),
   contactName: z.string().optional(),
   contactEmail: z.string().email().optional().or(z.literal('')),
+  website: z.string().optional(),
+  notes: z.string().optional(),
   status: z.enum(['active', 'prospect', 'on hold', 'inactive']).optional(),
 });
 
@@ -22,7 +24,7 @@ export async function GET(request: Request) {
     const offset = parseInt(url.searchParams.get('offset') ?? '0', 10) || 0;
     const { data, error } = await supabase
       .from('clients')
-      .select('id,company_id,name,logo,contact_name,contact_email,status,open_jobs,created_at,updated_at')
+      .select('id,company_id,name,logo,contact_name,contact_email,website,notes,status,open_jobs,created_at,updated_at')
       .eq('company_id', companyId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
@@ -91,6 +93,8 @@ export async function POST(request: Request) {
             logo: payload.logo || null,
             contact_name: payload.contactName || null,
             contact_email: payload.contactEmail || null,
+            website: payload.website || null,
+            notes: payload.notes || null,
             status: payload.status || 'prospect',
             created_by: userId,
           })

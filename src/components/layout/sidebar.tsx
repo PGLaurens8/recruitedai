@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { getNavLinksForRole, isNavLinkActive } from '@/lib/nav-utils';
+import { isInternalUser } from '@/lib/internal-access';
 
 
 export function Sidebar() {
@@ -85,12 +86,14 @@ export function Sidebar() {
                   Plans &amp; Billing
               </Link>
           </Button>
-          <Button variant="ghost" asChild className="w-full justify-start text-sm text-slate-400 hover:text-white hover:bg-slate-800">
-              <Link href="/about">
-                  <HelpCircle className="h-4 w-4 mr-3" />
-                  Strategy &amp; About
-              </Link>
-          </Button>
+          {isInternalUser(user.email) && (
+            <Button variant="ghost" asChild className="w-full justify-start text-sm text-slate-400 hover:text-white hover:bg-slate-800">
+                <Link href="/about">
+                    <HelpCircle className="h-4 w-4 mr-3" />
+                    Strategy &amp; About
+                </Link>
+            </Button>
+          )}
           <Button variant="ghost" onClick={logout} className="w-full justify-start text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 mt-2">
             <LogOut className="h-4 w-4 mr-3" />
             Log Out

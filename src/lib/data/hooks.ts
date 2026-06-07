@@ -24,6 +24,7 @@ import {
   deleteMockClient,
   deleteMockSubmission,
   getMockCandidate,
+  getMockClient,
   getMockCompany,
   getMockMasterResume,
   getMockModelRegistry,
@@ -33,6 +34,7 @@ import {
   listMockJobs,
   listMockSubmissions,
   saveMockCandidate,
+  saveMockClient,
   saveMockCompany,
   saveMockMasterResume,
   saveMockModelRegistry,
@@ -221,6 +223,8 @@ function toClientRecord(row: any): ClientRecord {
     logo: row.logo || undefined,
     contactName: row.contact_name || undefined,
     contactEmail: row.contact_email || undefined,
+    website: row.website || undefined,
+    notes: row.notes || undefined,
     status: row.status,
     openJobs: row.open_jobs ?? undefined,
   };
@@ -472,6 +476,50 @@ export async function removeClient(companyId: string, clientId: string) {
   }
 }
 
+export function useClient(
+  companyId: string | undefined,
+  clientId: string | undefined,
+  refreshKey = 0,
+) {
+  return useAsyncValue<ClientRecord | null>(async () => {
+    if (!companyId || !clientId) {
+      return null;
+    }
+
+    if (isMockMode()) {
+      return getMockClient(companyId, clientId);
+    }
+
+    if (isSupabaseMode()) {
+      const data = await requestApi<any>(`/api/clients/${clientId}`);
+      return toClientRecord(data);
+    }
+
+    return null;
+  }, [companyId, clientId, refreshKey]);
+}
+
+export async function updateClient(
+  companyId: string,
+  clientId: string,
+  updates: Partial<Pick<ClientRecord, 'name' | 'contactName' | 'contactEmail' | 'website' | 'notes' | 'status'>>,
+): Promise<ClientRecord | null> {
+  if (isMockMode()) {
+    saveMockClient(companyId, clientId, updates);
+    return getMockClient(companyId, clientId);
+  }
+
+  if (isSupabaseMode()) {
+    const data = await requestApi<any>(`/api/clients/${clientId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+    return toClientRecord(data);
+  }
+
+  return null;
+}
+
 export function useMasterResume(userId: string | undefined, refreshKey = 0) {
   return useAsyncValue<MasterResumeRecord | null>(async () => {
     if (!userId) {
@@ -563,6 +611,57 @@ export async function createCandidateFromResume(
       }),
     });
   }
+}
+
+export async function createCandidate(
+  companyId: string,
+  input: {
+    name: string;
+    email?: string;
+    phone?: string;
+    currentJob?: string;
+    currentCompany?: string;
+    status?: string;
+    notes?: string;
+  },
+): Promise<CandidateRecord> {
+  // Phone and free-text notes don't have dedicated candidate columns, so they
+  // ride along in the contact_info JSONB blob where the API persists them.
+  const contactInfo: Record<string, string> = {};
+  if (input.email) contactInfo.email = input.email;
+  if (input.phone) contactInfo.phone = input.phone;
+  if (input.notes) contactInfo.notes = input.notes;
+
+  if (isMockMode()) {
+    const record: CandidateRecord = {
+      id: `cand-${Date.now()}`,
+      companyId,
+      name: input.name,
+      email: input.email || '',
+      status: input.status || 'Sourced',
+      currentJob: input.currentJob || undefined,
+      currentCompany: input.currentCompany || undefined,
+    };
+    createMockCandidate(record);
+    return record;
+  }
+
+  if (isSupabaseMode()) {
+    const data = await requestApi<any>('/api/candidates', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: input.name,
+        email: input.email || '',
+        status: input.status || 'Sourced',
+        currentJob: input.currentJob || undefined,
+        currentCompany: input.currentCompany || undefined,
+        contactInfo,
+      }),
+    });
+    return toCandidateRecord(data);
+  }
+
+  throw new Error('Unsupported runtime mode for createCandidate.');
 }
 
 export async function saveCandidateInterviewAnalysis(
