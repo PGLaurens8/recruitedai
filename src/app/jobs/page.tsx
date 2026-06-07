@@ -10,11 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Eye, Plus, RefreshCw, Search, ArrowUp, ArrowDown, ArrowUpDown, Mic2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { AlertTriangle, Check, Eye, Plus, RefreshCw, Search, ArrowUp, ArrowDown, ArrowUpDown, Mic2 } from "lucide-react";
 import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
-import { useClients, useCurrentProfile, useJobs } from '@/lib/data/hooks';
+import { updateJob, useClients, useCurrentProfile, useJobs } from '@/lib/data/hooks';
 import type { JobRecord } from '@/lib/data/types';
+
+const JOB_STATUS_OPTIONS = ['draft', 'pending', 'active', 'closed'] as const;
 
 type JobKey = keyof JobRecord;
 
@@ -41,14 +45,41 @@ const ALL_CLIENTS = 'all';
 
 export default function JobsPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [sortConfig, setSortConfig] = useState<{ key: JobKey | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
   const [searchTerm, setSearchTerm] = useState("");
   const [clientFilter, setClientFilter] = useState(ALL_CLIENTS);
+
+  // Inline status edit: optimistic override per row plus saving/saved markers.
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
+  const [savingStatusId, setSavingStatusId] = useState<string | null>(null);
+  const [savedStatusId, setSavedStatusId] = useState<string | null>(null);
 
   const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
   const { data: jobs, isLoading, error } = useJobs(companyId);
   const { data: clients } = useClients(companyId);
+
+  const handleStatusChange = async (jobId: string, nextStatus: string) => {
+    if (!companyId) return;
+    setStatusOverrides((prev) => ({ ...prev, [jobId]: nextStatus }));
+    setSavingStatusId(jobId);
+    try {
+      await updateJob(companyId, jobId, { status: nextStatus });
+      setSavedStatusId(jobId);
+      setTimeout(() => setSavedStatusId((current) => (current === jobId ? null : current)), 2000);
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Could not update status', description: err?.message || 'Please try again.' });
+      // Drop the optimistic override so the row reverts to the persisted value.
+      setStatusOverrides((prev) => {
+        const next = { ...prev };
+        delete next[jobId];
+        return next;
+      });
+    } finally {
+      setSavingStatusId((current) => (current === jobId ? null : current));
+    }
+  };
 
   const sortedJobs = useMemo(() => {
     if (!jobs) return [];
@@ -223,7 +254,24 @@ export default function JobsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={getStatusBadgeClass(job.status) + " capitalize"}>{job.status}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={statusOverrides[job.id] ?? job.status}
+                          onValueChange={(value) => handleStatusChange(job.id, value)}
+                          disabled={savingStatusId === job.id}
+                        >
+                          <SelectTrigger className={`h-8 w-[130px] border capitalize ${getStatusBadgeClass(statusOverrides[job.id] ?? job.status)}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {JOB_STATUS_OPTIONS.map((s) => (
+                              <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {savingStatusId === job.id && <Spinner size={14} />}
+                        {savedStatusId === job.id && <Check className="h-4 w-4 text-green-600" />}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={getApprovalBadgeClass(job.approval) + " capitalize"}>{job.approval}</Badge>
