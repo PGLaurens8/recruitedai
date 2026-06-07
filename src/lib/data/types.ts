@@ -31,6 +31,13 @@ export interface CandidateRecord {
   currentJob?: string;
   currentCompany?: string;
   appliedFor?: string;
+  phone?: string;
+  linkedinUrl?: string;
+  location?: string;
+  noticePeriod?: string;
+  salaryExpectation?: string;
+  availabilityDate?: string;
+  workAuthorization?: string;
   fullResumeText?: string;
   skills?: string[];
   yearsOfExperience?: number;

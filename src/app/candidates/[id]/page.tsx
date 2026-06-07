@@ -19,17 +19,19 @@ import { Spinner } from "@/components/ui/spinner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { postJson } from '@/lib/api-client';
-import { ArrowLeft, Upload, Mail, Briefcase, Sparkles, Save, Send, Star, Percent, AlertTriangle, Brain, Clock, GraduationCap, Award, Pencil, Plus, Trash2, ArrowUp, ArrowDown, NotebookPen } from 'lucide-react';
+import { ArrowLeft, Upload, Mail, Briefcase, Sparkles, Save, Send, Star, Percent, AlertTriangle, Brain, Clock, GraduationCap, Award, Pencil, Plus, Trash2, ArrowUp, ArrowDown, NotebookPen, Phone, Linkedin, MapPin, CalendarClock, Banknote, ShieldCheck, Timer, Check } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import {
   ApiClientError,
   createSubmission,
   saveCandidateInterview,
+  updateCandidate,
   useCandidate,
   useCurrentProfile,
   useJobs,
   useSubmissions,
 } from '@/lib/data/hooks';
+import type { CandidateInlineUpdate } from '@/lib/data/hooks';
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { SUBMISSION_STATUS_BADGE_CLASS, SUBMISSION_STATUS_LABEL } from '@/lib/submissions-ui';
 import {
@@ -37,6 +39,31 @@ import {
   QUESTIONS_KEY,
   parseScreeningQuestions,
 } from '@/lib/screening-questions';
+
+type ContactFieldKey =
+  | 'phone'
+  | 'linkedinUrl'
+  | 'location'
+  | 'noticePeriod'
+  | 'salaryExpectation'
+  | 'availabilityDate'
+  | 'workAuthorization';
+
+const CONTACT_FIELDS: Array<{
+  key: ContactFieldKey;
+  label: string;
+  placeholder: string;
+  icon: typeof Phone;
+  type?: string;
+}> = [
+  { key: 'phone', label: 'Phone', placeholder: 'Add phone number', icon: Phone, type: 'tel' },
+  { key: 'linkedinUrl', label: 'LinkedIn', placeholder: 'Add LinkedIn URL', icon: Linkedin, type: 'url' },
+  { key: 'location', label: 'Location', placeholder: 'Add location', icon: MapPin },
+  { key: 'noticePeriod', label: 'Notice Period', placeholder: 'e.g. 30 days', icon: Timer },
+  { key: 'salaryExpectation', label: 'Salary Expectation', placeholder: 'Add salary expectation', icon: Banknote },
+  { key: 'availabilityDate', label: 'Availability Date', placeholder: 'e.g. Immediately / 2026-07-01', icon: CalendarClock },
+  { key: 'workAuthorization', label: 'Work Authorization', placeholder: 'Add work authorization', icon: ShieldCheck },
+];
 
 export default function CandidateDetailPage() {
     const params = useParams();
@@ -55,6 +82,17 @@ export default function CandidateDetailPage() {
       candidateId ? { candidateId } : undefined,
       submissionRefresh,
     );
+
+    // Contact-details inline editing. `contact` mirrors the saved values, `editingField`
+    // tracks which field is currently an open input, and `savingField` drives the
+    // per-field saving/saved indicator.
+    const [contact, setContact] = useState<Record<ContactFieldKey, string>>({
+      phone: '', linkedinUrl: '', location: '', noticePeriod: '',
+      salaryExpectation: '', availabilityDate: '', workAuthorization: '',
+    });
+    const [editingField, setEditingField] = useState<ContactFieldKey | null>(null);
+    const [savingField, setSavingField] = useState<ContactFieldKey | null>(null);
+    const [savedField, setSavedField] = useState<ContactFieldKey | null>(null);
 
     const [notes, setNotes] = useState<Record<string, string>>({});
     const [scores, setScores] = useState<Record<string, number | null>>({});
@@ -122,8 +160,40 @@ export default function CandidateDetailPage() {
             setSummary(candidate.aiSummary || '');
             setQuestions(parseScreeningQuestions(interviewNotes));
             setGeneralNotes(interviewNotes[GENERAL_NOTES_KEY] || '');
+            setContact({
+              phone: candidate.phone || '',
+              linkedinUrl: candidate.linkedinUrl || '',
+              location: candidate.location || '',
+              noticePeriod: candidate.noticePeriod || '',
+              salaryExpectation: candidate.salaryExpectation || '',
+              availabilityDate: candidate.availabilityDate || '',
+              workAuthorization: candidate.workAuthorization || '',
+            });
         }
     }, [candidate]);
+
+    // Persist a single contact field on blur. Skips the network call when the
+    // value is unchanged from what's already saved on the candidate record.
+    const handleContactBlur = async (key: ContactFieldKey) => {
+        setEditingField(null);
+        if (!companyId || !candidateId) return;
+        const next = contact[key].trim();
+        const previous = (candidate?.[key] as string | undefined) || '';
+        if (next === previous) return;
+
+        setSavingField(key);
+        try {
+            await updateCandidate(companyId, candidateId, { [key]: next } as CandidateInlineUpdate);
+            setSavedField(key);
+            setTimeout(() => setSavedField((current) => (current === key ? null : current)), 2000);
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Could not save', description: err?.message || 'Please try again.' });
+            // Roll back to the last saved value so the UI doesn't show an unsaved edit.
+            setContact((prev) => ({ ...prev, [key]: previous }));
+        } finally {
+            setSavingField((current) => (current === key ? null : current));
+        }
+    };
     
     const { completionPercentage, averageScore, answeredCount, hasNotes, hasScores } = useMemo(() => {
         // Count only answered questions in the active question set — ignore the
@@ -350,6 +420,60 @@ export default function CandidateDetailPage() {
             </header>
 
             <Breadcrumb items={[{ label: "Talent Pool", href: "/candidates" }, { label: candidate.name }]} />
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Phone className="h-5 w-5 text-primary" /> Contact Details</CardTitle>
+                    <CardDescription>Click any value to edit. Changes save automatically when you click away.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                        {CONTACT_FIELDS.map((field) => {
+                            const Icon = field.icon;
+                            const value = contact[field.key];
+                            const isEditing = editingField === field.key;
+                            return (
+                                <div key={field.key} className="space-y-1">
+                                    <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                                        <Icon className="h-3.5 w-3.5" /> {field.label}
+                                        {savingField === field.key && <Spinner size={12} className="ml-1" />}
+                                        {savedField === field.key && <span className="ml-1 flex items-center gap-0.5 text-green-600"><Check className="h-3 w-3" /> Saved</span>}
+                                    </Label>
+                                    {isEditing ? (
+                                        <Input
+                                            autoFocus
+                                            type={field.type || 'text'}
+                                            value={value}
+                                            placeholder={field.placeholder}
+                                            onChange={(e) => setContact((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                                            onBlur={() => handleContactBlur(field.key)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                                if (e.key === 'Escape') {
+                                                    setContact((prev) => ({ ...prev, [field.key]: (candidate?.[field.key] as string | undefined) || '' }));
+                                                    setEditingField(null);
+                                                }
+                                            }}
+                                        />
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => setEditingField(field.key)}
+                                            className="block w-full rounded-md border border-transparent px-2 py-1.5 text-left text-sm hover:border-input hover:bg-muted/50"
+                                        >
+                                            {value ? (
+                                                <span className="break-words">{value}</span>
+                                            ) : (
+                                                <span className="text-muted-foreground/70 italic">{field.placeholder}</span>
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </CardContent>
+            </Card>
 
             <div className="grid md:grid-cols-2 gap-6">
                  <Card>

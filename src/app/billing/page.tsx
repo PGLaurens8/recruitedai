@@ -123,7 +123,7 @@ function InAppPlanCard({ plan, currency, cycle, isCurrent }: InAppPlanCardProps)
 
 export default function BillingPage() {
   const { user } = useAuth();
-  const [currency, setCurrency] = useState<Currency>('USD');
+  const [currency, setCurrency] = useState<Currency>('ZAR');
   const [cycle, setCycle] = useState<BillingCycle>('annual');
 
   useEffect(() => {

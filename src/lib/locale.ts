@@ -5,7 +5,10 @@ export type Currency = 'USD' | 'ZAR';
 const STORAGE_KEY = 'recruitedai.currency';
 
 export function detectDefaultCurrency(): Currency {
-  if (typeof window === 'undefined') return 'USD';
+  // ZAR is the default — RecruitedAI's primary market is South Africa, so the
+  // SSR fallback and the no-signal case both show ZAR pricing first. A stored
+  // preference or a non-ZA locale signal can still switch it to USD below.
+  if (typeof window === 'undefined') return 'ZAR';
 
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === 'USD' || stored === 'ZAR') return stored;
@@ -20,7 +23,7 @@ export function detectDefaultCurrency(): Currency {
     // Intl may not be available — fall through to default.
   }
 
-  return 'USD';
+  return 'ZAR';
 }
 
 export function persistCurrency(currency: Currency): void {

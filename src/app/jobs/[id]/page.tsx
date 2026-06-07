@@ -12,11 +12,17 @@ import { Spinner } from '@/components/ui/spinner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { AlertTriangle, ArrowLeft, Briefcase, MapPin, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertTriangle, ArrowLeft, Briefcase, DollarSign, MapPin, Pencil, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import {
+  updateJob,
   updateSubmission,
+  useClients,
   useCurrentProfile,
   useJobSubmissions,
   useJobs,
@@ -46,7 +52,9 @@ export default function JobDetailPage() {
 
   const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
-  const { data: jobs, isLoading: isJobsLoading, error: jobsError } = useJobs(companyId);
+  const [jobsRefresh, setJobsRefresh] = useState(0);
+  const { data: jobs, isLoading: isJobsLoading, error: jobsError } = useJobs(companyId, jobsRefresh);
+  const { data: clients } = useClients(companyId);
   const [refreshKey, setRefreshKey] = useState(0);
   const { data: submissions, isLoading: isSubsLoading, error: subsError } = useJobSubmissions(
     companyId,
@@ -59,6 +67,61 @@ export default function JobDetailPage() {
   const job = useMemo(() => (jobs || []).find((item) => item.id === jobId) || null, [jobs, jobId]);
 
   const [pendingId, setPendingId] = useState<string | null>(null);
+
+  const NO_CLIENT = 'none';
+  const JOB_STATUS_OPTIONS = [
+    { value: 'draft', label: 'Draft' },
+    { value: 'pending', label: 'Pending Approval' },
+    { value: 'active', label: 'Active' },
+    { value: 'closed', label: 'Closed' },
+  ];
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [isSavingJob, setIsSavingJob] = useState(false);
+  const [jobForm, setJobForm] = useState({
+    title: '',
+    description: '',
+    location: '',
+    salary: '',
+    status: 'draft',
+    clientId: NO_CLIENT,
+  });
+
+  const openEdit = () => {
+    if (!job) return;
+    setJobForm({
+      title: job.title || '',
+      description: job.description || '',
+      location: job.location || '',
+      salary: job.salary || '',
+      status: job.status || 'draft',
+      clientId: job.clientId || NO_CLIENT,
+    });
+    setEditOpen(true);
+  };
+
+  const handleSaveJob = async () => {
+    if (!companyId || !jobId || !jobForm.title.trim()) return;
+    setIsSavingJob(true);
+    try {
+      await updateJob(companyId, jobId, {
+        title: jobForm.title.trim(),
+        description: jobForm.description.trim() || null,
+        location: jobForm.location.trim() || null,
+        salary: jobForm.salary.trim() || null,
+        status: jobForm.status,
+        clientId: jobForm.clientId === NO_CLIENT ? null : jobForm.clientId,
+      });
+      toast({ title: 'Job updated', description: 'Your changes have been saved.' });
+      setEditOpen(false);
+      setJobsRefresh((prev) => prev + 1);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Could not update job.';
+      toast({ variant: 'destructive', title: 'Update failed', description: message });
+    } finally {
+      setIsSavingJob(false);
+    }
+  };
 
   const handleStatusChange = async (submissionId: string, nextStatus: SubmissionStatus) => {
     if (!companyId) return;
@@ -135,20 +198,43 @@ export default function JobDetailPage() {
             )}
           </div>
         </div>
+        <Button variant="outline" onClick={openEdit} className="shrink-0">
+          <Pencil className="mr-2 h-4 w-4" /> Edit Job
+        </Button>
       </header>
 
       <Breadcrumb items={[{ label: 'Jobs', href: '/jobs' }, { label: job.title }]} />
 
-      {job.description && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Job Description</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap text-sm text-muted-foreground">{job.description}</p>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Job Specification</CardTitle>
+          <CardDescription>The full spec for this vacancy. Use <span className="font-medium">Edit Job</span> to update it.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> Location</p>
+              <p className="text-sm font-medium">{job.location || '—'}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><DollarSign className="h-3.5 w-3.5" /> Salary</p>
+              <p className="text-sm font-medium">{job.salary || '—'}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Briefcase className="h-3.5 w-3.5" /> Client</p>
+              <p className="text-sm font-medium">{job.clientName || job.company || '—'}</p>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Description</p>
+            {job.description ? (
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">{job.description}</p>
+            ) : (
+              <p className="text-sm italic text-muted-foreground/70">No description yet. Click Edit Job to add one.</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -231,6 +317,67 @@ export default function JobDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={editOpen} onOpenChange={(open) => { if (!isSavingJob) setEditOpen(open); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Job</DialogTitle>
+            <DialogDescription>Update the vacancy details. Changes are saved to this job.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Title *</Label>
+              <Input id="edit-title" value={jobForm.title} onChange={(e) => setJobForm((f) => ({ ...f, title: e.target.value }))} placeholder="Senior Frontend Engineer" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea id="edit-description" value={jobForm.description} onChange={(e) => setJobForm((f) => ({ ...f, description: e.target.value }))} placeholder="Role responsibilities, requirements, and context..." className="min-h-[120px]" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="edit-location">Location</Label>
+                <Input id="edit-location" value={jobForm.location} onChange={(e) => setJobForm((f) => ({ ...f, location: e.target.value }))} placeholder="Remote, US" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-salary">Salary</Label>
+                <Input id="edit-salary" value={jobForm.salary} onChange={(e) => setJobForm((f) => ({ ...f, salary: e.target.value }))} placeholder="$140k-$170k" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <Select value={jobForm.status} onValueChange={(v) => setJobForm((f) => ({ ...f, status: v }))}>
+                  <SelectTrigger id="edit-status"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {JOB_STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-client">Client</Label>
+                <Select value={jobForm.clientId} onValueChange={(v) => setJobForm((f) => ({ ...f, clientId: v }))}>
+                  <SelectTrigger id="edit-client"><SelectValue placeholder="No client" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_CLIENT}>No client</SelectItem>
+                    {(clients || []).map((client) => (
+                      <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={isSavingJob}>Cancel</Button>
+            <Button onClick={handleSaveJob} disabled={isSavingJob || !jobForm.title.trim()}>
+              {isSavingJob ? <Spinner size={16} className="mr-2" /> : <Pencil className="mr-2 h-4 w-4" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

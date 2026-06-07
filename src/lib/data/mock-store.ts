@@ -243,6 +243,30 @@ export function listMockJobs(companyId: string) {
   return readDatabase().jobs.filter((item) => item.companyId === companyId);
 }
 
+export function getMockJob(companyId: string, jobId: string) {
+  return (
+    readDatabase().jobs.find(
+      (item) => item.companyId === companyId && item.id === jobId,
+    ) || null
+  );
+}
+
+export function saveMockJob(
+  companyId: string,
+  jobId: string,
+  updates: Partial<JobRecord>,
+) {
+  const database = readDatabase();
+  const index = database.jobs.findIndex(
+    (item) => item.companyId === companyId && item.id === jobId,
+  );
+
+  if (index >= 0) {
+    database.jobs[index] = { ...database.jobs[index], ...updates };
+    writeDatabase(database);
+  }
+}
+
 export function listMockClients(companyId: string) {
   return readDatabase().clients.filter((item) => item.companyId === companyId);
 }

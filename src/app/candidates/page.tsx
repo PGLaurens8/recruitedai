@@ -32,12 +32,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Clock, Eye, Plus, RefreshCw, Search, Star, Trash2, Upload, UserPlus } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check, Clock, Eye, Plus, RefreshCw, Search, Star, Trash2, Upload, UserPlus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/auth-context";
-import { createCandidate, removeCandidate, useCandidates, useCurrentProfile } from "@/lib/data/hooks";
+import { createCandidate, removeCandidate, updateCandidate, useCandidates, useCurrentProfile } from "@/lib/data/hooks";
 import type { CandidateRecord } from "@/lib/data/types";
 
 const QUICK_ADD_STATUS_OPTIONS = ['Sourced', 'Applied', 'Interviewing', 'Offer', 'Hired', 'Rejected'] as const;
@@ -76,6 +76,11 @@ function CandidatesPageContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  // Inline status editing: optimistic overrides keep the dropdown responsive
+  // without a full list refetch, plus per-row saving/saved indicators.
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
+  const [savingStatusId, setSavingStatusId] = useState<string | null>(null);
+  const [savedStatusId, setSavedStatusId] = useState<string | null>(null);
 
   const { data: profile } = useCurrentProfile(user);
   const companyId = profile?.companyId;
@@ -184,6 +189,27 @@ function CandidatesPageContent() {
             </div>
         </TableHead>
     );
+  };
+
+  const handleStatusChange = async (candidateId: string, nextStatus: string) => {
+    if (!companyId) return;
+    setStatusOverrides((prev) => ({ ...prev, [candidateId]: nextStatus }));
+    setSavingStatusId(candidateId);
+    try {
+      await updateCandidate(companyId, candidateId, { status: nextStatus });
+      setSavedStatusId(candidateId);
+      setTimeout(() => setSavedStatusId((current) => (current === candidateId ? null : current)), 2000);
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Could not update status', description: err?.message || 'Please try again.' });
+      // Drop the optimistic override so the row reverts to the persisted value.
+      setStatusOverrides((prev) => {
+        const next = { ...prev };
+        delete next[candidateId];
+        return next;
+      });
+    } finally {
+      setSavingStatusId((current) => (current === candidateId ? null : current));
+    }
   };
 
   const confirmDelete = (candidateId: string) => {
@@ -333,7 +359,24 @@ function CandidatesPageContent() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={getStatusBadgeVariant(candidate.status)}>{candidate.status}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={statusOverrides[candidate.id] ?? candidate.status}
+                          onValueChange={(value) => handleStatusChange(candidate.id, value)}
+                          disabled={savingStatusId === candidate.id}
+                        >
+                          <SelectTrigger className={`h-8 w-[140px] border ${getStatusBadgeVariant(statusOverrides[candidate.id] ?? candidate.status)}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {QUICK_ADD_STATUS_OPTIONS.map((s) => (
+                              <SelectItem key={s} value={s}>{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {savingStatusId === candidate.id && <Spinner size={14} />}
+                        {savedStatusId === candidate.id && <Check className="h-4 w-4 text-green-600" />}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {candidate.aiScore != null ? (

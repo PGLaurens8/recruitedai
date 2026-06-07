@@ -26,6 +26,7 @@ import {
   getMockCandidate,
   getMockClient,
   getMockCompany,
+  getMockJob,
   getMockMasterResume,
   getMockModelRegistry,
   getMockProfile,
@@ -36,6 +37,7 @@ import {
   saveMockCandidate,
   saveMockClient,
   saveMockCompany,
+  saveMockJob,
   saveMockMasterResume,
   saveMockModelRegistry,
   updateMockSubmission,
@@ -186,6 +188,13 @@ function toCandidateRecord(row: any): CandidateRecord {
     currentJob: row.current_job || undefined,
     currentCompany: row.current_company || undefined,
     appliedFor: row.applied_for || undefined,
+    phone: row.phone || undefined,
+    linkedinUrl: row.linkedin_url || undefined,
+    location: row.location || undefined,
+    noticePeriod: row.notice_period || undefined,
+    salaryExpectation: row.salary_expectation || undefined,
+    availabilityDate: row.availability_date || undefined,
+    workAuthorization: row.work_authorization || undefined,
     fullResumeText: row.full_resume_text || undefined,
     skills: row.skills || [],
     interviewNotes: (row.interview_notes as Record<string, string> | null) || {},
@@ -412,6 +421,42 @@ export async function saveCandidateInterview(
   }
 }
 
+/** Fields editable inline from the candidate list (status) and detail page (contact details). */
+export type CandidateInlineUpdate = Partial<
+  Pick<
+    CandidateRecord,
+    | 'status'
+    | 'phone'
+    | 'linkedinUrl'
+    | 'location'
+    | 'noticePeriod'
+    | 'salaryExpectation'
+    | 'availabilityDate'
+    | 'workAuthorization'
+  >
+>;
+
+export async function updateCandidate(
+  companyId: string,
+  candidateId: string,
+  updates: CandidateInlineUpdate,
+): Promise<CandidateRecord | null> {
+  if (isMockMode()) {
+    saveMockCandidate(companyId, candidateId, updates);
+    return getMockCandidate(companyId, candidateId);
+  }
+
+  if (isSupabaseMode()) {
+    const data = await requestApi<any>(`/api/candidates/${candidateId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+    return toCandidateRecord(data);
+  }
+
+  return null;
+}
+
 export async function removeCandidate(companyId: string, candidateId: string) {
   if (isMockMode()) {
     deleteMockCandidate(companyId, candidateId);
@@ -442,6 +487,53 @@ export function useJobs(companyId: string | undefined, refreshKey = 0) {
 
     return [];
   }, [companyId, refreshKey]);
+}
+
+export interface JobUpdate {
+  title?: string;
+  description?: string | null;
+  location?: string | null;
+  salary?: string | null;
+  status?: string;
+  // `null` explicitly unlinks the job from its client.
+  clientId?: string | null;
+}
+
+export async function updateJob(
+  companyId: string,
+  jobId: string,
+  updates: JobUpdate,
+): Promise<JobRecord | null> {
+  if (isMockMode()) {
+    const patch: Partial<JobRecord> = {};
+    if (updates.title !== undefined) patch.title = updates.title;
+    if (updates.description !== undefined) patch.description = updates.description ?? undefined;
+    if (updates.location !== undefined) patch.location = updates.location ?? undefined;
+    if (updates.salary !== undefined) patch.salary = updates.salary ?? undefined;
+    if (updates.status !== undefined) patch.status = updates.status;
+    if (updates.clientId !== undefined) {
+      // Keep the denormalised clientName/company in sync when the link changes so
+      // the detail/list views stay consistent without a re-fetch round-trip.
+      const client = updates.clientId
+        ? listMockClients(companyId).find((c) => c.id === updates.clientId)
+        : undefined;
+      patch.clientId = updates.clientId ?? undefined;
+      patch.clientName = client?.name;
+      patch.company = client?.name ?? patch.company;
+    }
+    saveMockJob(companyId, jobId, patch);
+    return getMockJob(companyId, jobId);
+  }
+
+  if (isSupabaseMode()) {
+    const data = await requestApi<any>(`/api/jobs/${jobId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+    return toJobRecord(data);
+  }
+
+  return null;
 }
 
 export function useClients(companyId: string | undefined, refreshKey = 0) {
