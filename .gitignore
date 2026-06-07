@@ -48,3 +48,6 @@ firestore-debug.log
 
 # Throwaway live-site smoke script
 _smoke.mjs
+
+# Playwright MCP session artifacts (snapshots/screenshots)
+.playwright-mcp/
