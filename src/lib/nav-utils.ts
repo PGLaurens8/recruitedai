@@ -45,7 +45,7 @@ const navGroups: NavGroup[] = [
     links: [
       { href: '/dashboard/admin', label: 'Agency Overview', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
       { href: '/dashboard/recruiter', label: 'Recruiter Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Recruiter'] },
-      { href: '/dashboard/sales', label: 'Sales Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Sales'] },
+      { href: '/dashboard/sales', label: 'Sales Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Admin', 'Developer', 'Sales'] },
       { href: '/dashboard', label: 'Candidate Dashboard', icon: React.createElement(LayoutDashboard, { size: 18 }), roles: ['Candidate'] },
     ]
   },
