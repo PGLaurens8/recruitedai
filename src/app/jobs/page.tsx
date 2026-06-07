@@ -209,7 +209,7 @@ export default function JobsPage() {
                 sortedJobs.map((job) => (
                   <TableRow key={job.id}>
                     <TableCell>
-                      <p className="font-medium">{job.title}</p>
+                      <Link href={`/jobs/${job.id}`} className="font-medium text-primary hover:underline">{job.title}</Link>
                       {job.salary && <p className="text-sm text-green-600 font-semibold">{job.salary}</p>}
                       {job.location && <p className="text-xs text-muted-foreground">{job.location}</p>}
                     </TableCell>

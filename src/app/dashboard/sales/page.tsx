@@ -191,7 +191,7 @@ export default function SalesDashboardPage() {
                 activePlacements.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell>
-                      <Link href={`/clients/${row.id}`} className="font-medium hover:underline">{row.name}</Link>
+                      <Link href={`/clients/${row.id}`} className="font-medium text-primary hover:underline">{row.name}</Link>
                     </TableCell>
                     <TableCell className="text-right">{row.openJobs}</TableCell>
                     <TableCell className="text-right">{row.submitted}</TableCell>
@@ -227,7 +227,7 @@ export default function SalesDashboardPage() {
             <div className="space-y-2">
               {pipelineByClient.map((client) => (
                 <div key={client.id} className="flex flex-col gap-1 rounded-md border px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-                  <Link href={`/clients/${client.id}`} className="font-medium hover:underline">{client.name}</Link>
+                  <Link href={`/clients/${client.id}`} className="font-medium text-primary hover:underline">{client.name}</Link>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="rounded-full bg-blue-100 px-2 py-0.5 font-medium text-blue-800">
                       {client.openJobs} open {client.openJobs === 1 ? "vacancy" : "vacancies"}

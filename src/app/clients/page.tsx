@@ -254,7 +254,7 @@ export default function ClientsPage() {
                           <AvatarImage src={client.logo} data-ai-hint="company logo"/>
                           <AvatarFallback className="rounded-md bg-muted"><Building className="h-5 w-5 text-muted-foreground"/></AvatarFallback>
                         </Avatar>
-                        <Link href={`/clients/${client.id}`} className="font-medium hover:underline">{client.name}</Link>
+                        <Link href={`/clients/${client.id}`} className="font-medium text-primary hover:underline">{client.name}</Link>
                       </div>
                     </TableCell>
                     <TableCell>

@@ -337,7 +337,7 @@ function CandidatesPageContent() {
                           <AvatarFallback>{candidate.name?.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <Link href={`/candidates/${candidate.id}`} className="font-medium hover:underline">{candidate.name}</Link>
+                          <Link href={`/candidates/${candidate.id}`} className="font-medium text-primary hover:underline">{candidate.name}</Link>
                           <p className="text-sm text-muted-foreground">{candidate.email}</p>
                           {(candidate.yearsOfExperience != null || candidate.hasDegreeLevelEducation != null) && (
                             <div className="mt-1 flex items-center gap-2">
