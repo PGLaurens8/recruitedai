@@ -274,7 +274,11 @@ export default function AiParserPage() {
         skillsFirstMode,
       };
 
-      const result = await postJson<AssessJobMatchOutput>("/api/ai/match-job", input);
+      // Suppress the global outage toast — this page shows its own inline
+      // retry card for provider outages instead.
+      const result = await postJson<AssessJobMatchOutput>("/api/ai/match-job", input, {
+        suppressOutageToast: true,
+      });
       setAssessmentOutput(result);
       toast({
         title: "Match Assessed!",
@@ -282,9 +286,9 @@ export default function AiParserPage() {
       });
     } catch (err: any) {
       if (isProviderUnavailableError(err)) {
-        // Provider outage: surface an inline retry card instead of a red error.
-        // The global warning toast already fired via the fetch helper, and the
-        // parsed CV remains in state so the user can retry without re-uploading.
+        // Provider outage: surface an inline retry card instead of a red error
+        // or the global warning toast (suppressed via suppressOutageToast above).
+        // The parsed CV remains in state so the user can retry without re-uploading.
         setAiUnavailable(true);
       } else {
         setError(err.message || "An unexpected error occurred during matching.");
