@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { extractCVData } from '@/ai/flows/extract-cv-data';
 import { reformatResume } from '@/ai/flows/reformat-resume';
+import { logAICall, estimateTokens } from '@/server/api/ai-logger';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 import { resolveMedia } from '@/server/api/media';
@@ -26,6 +27,11 @@ const parseCvSchema = z.object({
 
 export async function POST(request: Request) {
   const requestId = getRequestId(request);
+  const startTime = Date.now();
+  // Set just before the AI calls so auth/rate-limit/validation failures aren't
+  // counted as AI invocations. Both flows are logged as one 'parse-cv' call.
+  // Logging is best-effort and never throws.
+  let aiLog: { companyId: string; userId: string; inputTokenEstimate: number } | null = null;
 
   try {
     const { userId, companyId } = await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Developer', 'Candidate']);
@@ -47,17 +53,44 @@ export async function POST(request: Request) {
     // Base64 data URIs pass through unchanged.
     const resumeDataUri = await resolveMedia(payload.data.resumeDataUri);
 
+    // The two flows share the same resume input; double the estimate to account
+    // for the CV being sent to Gemini twice (reformat + extract).
+    aiLog = {
+      companyId,
+      userId,
+      inputTokenEstimate: estimateTokens(resumeDataUri) * 2,
+    };
+
     // Run the flows sequentially (not Promise.all) so a failure names the
     // offending flow instead of collapsing into one opaque rejection. Each
     // flow's real error message is preserved and surfaced via ApiRouteError.
     const reformatted = await runFlow('reformatResume', () => reformatResume({ resumeDataUri }));
     const extracted = await runFlow('extractCVData', () => extractCVData({ resumeDataUri }));
 
+    await logAICall({
+      ...aiLog,
+      flowName: 'parse-cv',
+      durationMs: Date.now() - startTime,
+      outputTokenEstimate: estimateTokens(JSON.stringify({ reformatted, extracted })),
+      success: true,
+      requestId,
+    });
+
     return jsonSuccess(requestId, {
       reformatted,
       extracted,
     });
   } catch (error) {
+    if (aiLog) {
+      await logAICall({
+        ...aiLog,
+        flowName: 'parse-cv',
+        durationMs: Date.now() - startTime,
+        success: false,
+        errorCode: error instanceof ApiRouteError ? error.code : 'INTERNAL_ERROR',
+        requestId,
+      });
+    }
     // Explicit log so the real cause is visible in Vercel function logs even
     // when the client receives a sanitized message in production.
     console.error('[parse-cv] request failed', {
