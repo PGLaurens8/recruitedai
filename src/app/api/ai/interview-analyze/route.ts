@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { analyzeInterview } from '@/ai/flows/analyze-interview';
+import { withProviderErrorGuard } from '@/server/api/ai-errors';
 import { logAICall, estimateTokens } from '@/server/api/ai-logger';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
       ),
     };
 
-    const result = await analyzeInterview(payload.data);
+    const result = await withProviderErrorGuard(() => analyzeInterview(payload.data));
 
     await logAICall({
       ...aiLog,

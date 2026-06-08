@@ -41,6 +41,9 @@ export interface LogAICallParams {
   inputTokenEstimate?: number;
   outputTokenEstimate?: number;
   success: boolean;
+  // Error code when success is false. AI provider outages flow through here as
+  // 'AI_PROVIDER_UNAVAILABLE' (the routes pass `ApiRouteError.code`), so outage
+  // frequency can be tracked over time by querying ai_logs for that code.
   errorCode?: string;
   requestId?: string;
 }

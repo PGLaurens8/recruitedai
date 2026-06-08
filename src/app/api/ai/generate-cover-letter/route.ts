@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { generateCoverLetter } from '@/ai/flows/generate-cover-letter';
+import { withProviderErrorGuard } from '@/server/api/ai-errors';
 import { logAICall, estimateTokens } from '@/server/api/ai-logger';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
@@ -52,11 +53,11 @@ export async function POST(request: Request) {
     };
 
     // Inline any storage URLs so Gemini can read the files (data URIs pass through).
-    const result = await generateCoverLetter({
-      ...payload.data,
-      masterResumeDataUri: await resolveMedia(payload.data.masterResumeDataUri),
-      jobSpecDataUri: await resolveOptionalMedia(payload.data.jobSpecDataUri),
-    });
+    const masterResumeDataUri = await resolveMedia(payload.data.masterResumeDataUri);
+    const jobSpecDataUri = await resolveOptionalMedia(payload.data.jobSpecDataUri);
+    const result = await withProviderErrorGuard(() =>
+      generateCoverLetter({ ...payload.data, masterResumeDataUri, jobSpecDataUri })
+    );
 
     await logAICall({
       ...aiLog,

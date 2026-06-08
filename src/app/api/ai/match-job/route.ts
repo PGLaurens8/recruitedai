@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { assessJobMatch } from '@/ai/flows/assess-job-match';
+import { withProviderErrorGuard } from '@/server/api/ai-errors';
 import { logAICall, estimateTokens } from '@/server/api/ai-logger';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
@@ -50,11 +51,11 @@ export async function POST(request: Request) {
     };
 
     // Inline any storage URLs so Gemini can read the files (data URIs pass through).
-    const result = await assessJobMatch({
-      ...payload.data,
-      masterResumeDataUri: await resolveMedia(payload.data.masterResumeDataUri),
-      jobSpecDataUri: await resolveOptionalMedia(payload.data.jobSpecDataUri),
-    });
+    const masterResumeDataUri = await resolveMedia(payload.data.masterResumeDataUri);
+    const jobSpecDataUri = await resolveOptionalMedia(payload.data.jobSpecDataUri);
+    const result = await withProviderErrorGuard(() =>
+      assessJobMatch({ ...payload.data, masterResumeDataUri, jobSpecDataUri })
+    );
 
     await logAICall({
       ...aiLog,

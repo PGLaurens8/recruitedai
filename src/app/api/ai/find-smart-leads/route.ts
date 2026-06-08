@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { findSmartLeads } from '@/ai/flows/find-smart-leads';
+import { withProviderErrorGuard } from '@/server/api/ai-errors';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 import { enforceRateLimit, enforceTrialQuota } from '@/server/api/rate-limit';
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
       throw new ApiRouteError(400, 'VALIDATION_ERROR', 'Invalid smart leads payload.', payload.error.flatten());
     }
 
-    const result = await findSmartLeads(payload.data);
+    const result = await withProviderErrorGuard(() => findSmartLeads(payload.data));
     return jsonSuccess(requestId, result);
   } catch (error) {
     return jsonError(requestId, error);

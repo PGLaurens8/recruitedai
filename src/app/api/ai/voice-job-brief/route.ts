@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { withProviderErrorGuard } from '@/server/api/ai-errors';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
 import { parseVoiceJobBrief } from '@/ai/flows/voiceJobBriefFlow';
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
   try {
     await requireUserAndCompanyRole(['Admin', 'Recruiter', 'Sales', 'Developer']);
     const payload = voiceJobBriefSchema.parse(await request.json());
-    const parsed = await parseVoiceJobBrief(payload);
+    const parsed = await withProviderErrorGuard(() => parseVoiceJobBrief(payload));
     return jsonSuccess(requestId, parsed);
   } catch (error) {
     return jsonError(requestId, error);

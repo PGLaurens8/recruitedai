@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { extractCVData } from '@/ai/flows/extract-cv-data';
 import { reformatResume } from '@/ai/flows/reformat-resume';
+import { withProviderErrorGuard } from '@/server/api/ai-errors';
 import { logAICall, estimateTokens } from '@/server/api/ai-logger';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
@@ -64,8 +65,13 @@ export async function POST(request: Request) {
     // Run the flows sequentially (not Promise.all) so a failure names the
     // offending flow instead of collapsing into one opaque rejection. Each
     // flow's real error message is preserved and surfaced via ApiRouteError.
-    const reformatted = await runFlow('reformatResume', () => reformatResume({ resumeDataUri }));
-    const extracted = await runFlow('extractCVData', () => extractCVData({ resumeDataUri }));
+    // withProviderErrorGuard converts a Gemini outage into a clean 503.
+    const reformatted = await withProviderErrorGuard(() =>
+      runFlow('reformatResume', () => reformatResume({ resumeDataUri }))
+    );
+    const extracted = await withProviderErrorGuard(() =>
+      runFlow('extractCVData', () => extractCVData({ resumeDataUri }))
+    );
 
     await logAICall({
       ...aiLog,

@@ -33,10 +33,12 @@ import {
   CheckCircle2,
   Building,
   UserPlus,
+  RefreshCw,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { postJson } from "@/lib/api-client";
+import { isProviderUnavailableError } from "@/lib/error-handler";
 import { uploadResumeDirect } from "@/lib/storage-client";
 import { fileToDataURI, textToDataURI } from "@/lib/file-utils";
 import type { ReformatResumeOutput } from "@/ai/flows/reformat-resume";
@@ -69,6 +71,9 @@ export default function AiParserPage() {
   const [isParsing, setIsParsing] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // True when the last match attempt failed because the AI provider was down.
+  // The parsed CV stays in state, so "Try Again" can re-run without re-upload.
+  const [aiUnavailable, setAiUnavailable] = useState(false);
   
   const [dragActiveResume, setDragActiveResume] = useState(false);
   const [dragActiveJobSpec, setDragActiveJobSpec] = useState(false);
@@ -255,6 +260,7 @@ export default function AiParserPage() {
 
     setIsMatching(true);
     setError(null);
+    setAiUnavailable(false);
     setAssessmentOutput(null);
 
     try {
@@ -275,12 +281,19 @@ export default function AiParserPage() {
         description: "The AI has analyzed the candidate's fit for the role.",
       });
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred during matching.");
-      toast({
-        variant: "destructive",
-        title: "Matching Failed",
-        description: err.message || "Could not assess the job match.",
-      });
+      if (isProviderUnavailableError(err)) {
+        // Provider outage: surface an inline retry card instead of a red error.
+        // The global warning toast already fired via the fetch helper, and the
+        // parsed CV remains in state so the user can retry without re-uploading.
+        setAiUnavailable(true);
+      } else {
+        setError(err.message || "An unexpected error occurred during matching.");
+        toast({
+          variant: "destructive",
+          title: "Matching Failed",
+          description: err.message || "Could not assess the job match.",
+        });
+      }
     } finally {
       setIsMatching(false);
     }
@@ -725,6 +738,27 @@ export default function AiParserPage() {
           <Spinner size={48} className="text-primary" />
           <p className="ml-4 text-lg text-muted-foreground">AI is assessing the match...</p>
         </div>
+      )}
+
+      {aiUnavailable && !isMatching && (
+        <Card className="mt-8 border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950">
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg text-amber-900 dark:text-amber-100">
+              <AlertTriangle className="mr-2 h-5 w-5 text-amber-500" />
+              AI provider temporarily unavailable
+            </CardTitle>
+            <CardDescription className="text-amber-800 dark:text-amber-200">
+              Our AI provider is temporarily unavailable. Your CV has been uploaded
+              successfully — try matching again in a few minutes.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button onClick={handleMatch} disabled={isMatching} className="bg-amber-600 hover:bg-amber-700">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try Again
+            </Button>
+          </CardFooter>
+        </Card>
       )}
 
       {assessmentOutput && (

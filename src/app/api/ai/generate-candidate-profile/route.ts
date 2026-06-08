@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { generateCandidateProfile } from '@/ai/flows/generate-candidate-profile';
+import { withProviderErrorGuard } from '@/server/api/ai-errors';
 import { logAICall, estimateTokens } from '@/server/api/ai-logger';
 import { requireUserAndCompanyRole } from '@/server/api/auth';
 import { ApiRouteError, getRequestId, jsonError, jsonSuccess } from '@/server/api/http';
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
       ),
     };
 
-    const result = await generateCandidateProfile(payload.data);
+    const result = await withProviderErrorGuard(() => generateCandidateProfile(payload.data));
 
     await logAICall({
       ...aiLog,
