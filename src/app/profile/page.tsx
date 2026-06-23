@@ -10,12 +10,17 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreditCard, Building, User, UploadCloud, Save, Globe, Mail, MapPin, Zap, CheckCircle2 } from 'lucide-react';
+import { CreditCard, Building, User, UploadCloud, Save, Globe, Mail, MapPin, Zap, CheckCircle2, BarChart } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { fileToDataURI } from '@/lib/file-utils';
 import { saveCompany, useCompany } from '@/lib/data/hooks';
+import { VacancySubmissionReport } from '@/components/feature/vacancy-submission-report';
+
+// Roles that run a recruiting business and should see the vacancy submission
+// report (a Sales manager being the primary audience). Candidates do not.
+const BUSINESS_ROLES = ['Admin', 'Recruiter', 'Sales', 'Developer'];
 
 const PLAN_FEATURES = {
   Free: ["Basic Resume Builder", "Single Profile", "Community Support"],
@@ -85,6 +90,8 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
+  const showReport = BUSINESS_ROLES.includes(user.role);
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-end">
@@ -98,9 +105,12 @@ export default function ProfilePage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-xl">
+        <TabsList className={`grid w-full ${showReport ? 'grid-cols-4 max-w-2xl' : 'grid-cols-3 max-w-xl'}`}>
           <TabsTrigger value="user" className="flex items-center gap-2"><User size={16} /> Profile</TabsTrigger>
           <TabsTrigger value="company" className="flex items-center gap-2"><Building size={16} /> Branding</TabsTrigger>
+          {showReport && (
+            <TabsTrigger value="report" className="flex items-center gap-2"><BarChart size={16} /> Vacancy Report</TabsTrigger>
+          )}
           <TabsTrigger value="plans" className="flex items-center gap-2"><Zap size={16} /> Plans</TabsTrigger>
         </TabsList>
 
@@ -182,6 +192,13 @@ export default function ProfilePage() {
             </Card>
           </div>
         </TabsContent>
+
+        {/* VACANCY REPORT TAB */}
+        {showReport && (
+          <TabsContent value="report" className="mt-6">
+            <VacancySubmissionReport companyId={user.companyId} companyName={companyName || companyDoc?.name} />
+          </TabsContent>
+        )}
 
         {/* PLANS TAB */}
         <TabsContent value="plans" className="mt-6">

@@ -1,7 +1,9 @@
 import { Redis } from '@upstash/redis';
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { getFeatureLimit, isPlan, type PlanFeature } from '@/lib/plan-limits';
+import { isInternalUser } from '@/lib/internal-access';
 import { ApiRouteError } from '@/server/api/http';
 
 interface RateLimitBucket {
@@ -204,6 +206,34 @@ export async function enforceTrialQuota(
   companyId: string
 ): Promise<{ plan: string; current: number; limit: number }> {
   const supabase = createSupabaseAdminClient();
+
+  // Internal/developer accounts are exempt from plan quotas so the team can
+  // demo and dogfood without hitting trial caps. We check the *current* signed-in
+  // user (not the company plan) — the internal email follows the person, and the
+  // Developer role is a closed, server-assigned role that cannot be self-granted.
+  try {
+    const serverClient = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await serverClient.auth.getUser();
+
+    if (user) {
+      if (isInternalUser(user.email)) {
+        return { plan: 'internal', current: 0, limit: Infinity };
+      }
+      const { data: profile } = await serverClient
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (profile?.role === 'Developer') {
+        return { plan: 'developer', current: 0, limit: Infinity };
+      }
+    }
+  } catch {
+    // If the user lookup fails for any reason, fall through to normal quota
+    // enforcement rather than accidentally granting an unlimited bypass.
+  }
 
   const { data: company, error: companyError } = await supabase
     .from('companies')

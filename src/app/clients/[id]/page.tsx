@@ -295,7 +295,7 @@ export default function ClientDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Open Jobs</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Open Vacancies</CardTitle>
           <CardDescription>Vacancies linked to this client.</CardDescription>
         </CardHeader>
         <CardContent>

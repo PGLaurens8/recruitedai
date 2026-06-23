@@ -78,7 +78,7 @@ export default function RecruiterDashboardPage() {
         {[
           { label: "Candidates", value: metrics.totalCandidates, border: "border-l-4 border-l-blue-500", trend: "+2 this week", trendClass: "text-green-600" },
           { label: "Interviewing", value: metrics.interviewingCandidates, border: "border-l-4 border-l-amber-500", trend: "+3 this week", trendClass: "text-green-600" },
-          { label: "Active Jobs", value: metrics.activeJobs, border: "border-l-4 border-l-green-500", trend: "+1 this week", trendClass: "text-green-600" },
+          { label: "Active Vacancies", value: metrics.activeJobs, border: "border-l-4 border-l-green-500", trend: "+1 this week", trendClass: "text-green-600" },
           { label: "Clients", value: metrics.totalClients, border: "border-l-4 border-l-purple-500", trend: "No change", trendClass: "text-muted-foreground" },
           { label: "Avg AI Score", value: metrics.averageAiScore, border: "border-l-4 border-l-indigo-500", trend: "No change", trendClass: "text-muted-foreground" },
         ].map(({ label, value, border, trend, trendClass }) => (
@@ -109,7 +109,7 @@ export default function RecruiterDashboardPage() {
           <CardContent className="grid gap-4">
             <Button className="w-full justify-start" variant="outline" asChild>
               <Link href="/jobs/new">
-                <Mic2 className="mr-2 h-4 w-4" /> Create Job Brief (Voice)
+                <Mic2 className="mr-2 h-4 w-4" /> Create Vacancy Brief (Voice)
               </Link>
             </Button>
             <Button className="w-full justify-start" variant="outline" asChild>

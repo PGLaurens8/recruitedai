@@ -52,7 +52,7 @@ function SignupForm() {
   const redirectTo = searchParams?.get('redirectTo') ?? undefined;
   const planParam = searchParams?.get('plan') ?? undefined;
   const planBanner = planParam ? planBanners[planParam] : undefined;
-  const [accountType, setAccountType] = useState<AccountType>('personal');
+  const [accountType, setAccountType] = useState<AccountType>('company');
   const [companyName, setCompanyName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -121,25 +121,25 @@ function SignupForm() {
                 <form onSubmit={handleSubmit} className="grid gap-4">
                   <div className="grid gap-2">
                     <Label>Account Type</Label>
-                    <RadioGroup defaultValue="personal" onValueChange={(value) => setAccountType(value as AccountType)} className="grid grid-cols-2 gap-4">
-                      <div>
-                        <RadioGroupItem value="personal" id="personal" className="peer sr-only" />
-                        <Label
-                          htmlFor="personal"
-                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                        >
-                          <User className="mb-3 h-6 w-6" />
-                          Personal
-                        </Label>
-                      </div>
+                    <RadioGroup value={accountType} defaultValue="company" onValueChange={(value) => setAccountType(value as AccountType)} className="grid grid-cols-2 gap-4">
                       <div>
                         <RadioGroupItem value="company" id="company" className="peer sr-only" />
                         <Label
                           htmlFor="company"
-                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 text-center hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                         >
                           <Briefcase className="mb-3 h-6 w-6" />
-                          Company
+                          Company / Recruiter
+                        </Label>
+                      </div>
+                      <div>
+                        <RadioGroupItem value="personal" id="personal" className="peer sr-only" />
+                        <Label
+                          htmlFor="personal"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 text-center hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                        >
+                          <User className="mb-3 h-6 w-6" />
+                          Personal / Job Seeker
                         </Label>
                       </div>
                     </RadioGroup>

@@ -112,7 +112,7 @@ export default function JobDetailPage() {
         status: jobForm.status,
         clientId: jobForm.clientId === NO_CLIENT ? null : jobForm.clientId,
       });
-      toast({ title: 'Job updated', description: 'Your changes have been saved.' });
+      toast({ title: 'Vacancy updated', description: 'Your changes have been saved.' });
       setEditOpen(false);
       setJobsRefresh((prev) => prev + 1);
     } catch (err: unknown) {
@@ -164,11 +164,11 @@ export default function JobDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] text-center">
         <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
-        <p className="text-lg font-bold">Job Not Found</p>
-        <p className="mt-1 text-muted-foreground">This job does not exist or has been removed.</p>
+        <p className="text-lg font-bold">Vacancy Not Found</p>
+        <p className="mt-1 text-muted-foreground">This vacancy does not exist or has been removed.</p>
         <Button variant="outline" className="mt-4" onClick={() => router.push('/jobs')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Jobs
+          Back to Vacancies
         </Button>
       </div>
     );
@@ -199,16 +199,16 @@ export default function JobDetailPage() {
           </div>
         </div>
         <Button variant="outline" onClick={openEdit} className="shrink-0">
-          <Pencil className="mr-2 h-4 w-4" /> Edit Job
+          <Pencil className="mr-2 h-4 w-4" /> Edit Vacancy
         </Button>
       </header>
 
-      <Breadcrumb items={[{ label: 'Jobs', href: '/jobs' }, { label: job.title }]} />
+      <Breadcrumb items={[{ label: 'Vacancies', href: '/jobs' }, { label: job.title }]} />
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Job Specification</CardTitle>
-          <CardDescription>The full spec for this vacancy. Use <span className="font-medium">Edit Job</span> to update it.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Vacancy Specification</CardTitle>
+          <CardDescription>The full spec for this vacancy. Use <span className="font-medium">Edit Vacancy</span> to update it.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-3">
@@ -230,7 +230,7 @@ export default function JobDetailPage() {
             {job.description ? (
               <p className="whitespace-pre-wrap text-sm text-muted-foreground">{job.description}</p>
             ) : (
-              <p className="text-sm italic text-muted-foreground/70">No description yet. Click Edit Job to add one.</p>
+              <p className="text-sm italic text-muted-foreground/70">No description yet. Click Edit Vacancy to add one.</p>
             )}
           </div>
         </CardContent>
@@ -321,7 +321,7 @@ export default function JobDetailPage() {
       <Dialog open={editOpen} onOpenChange={(open) => { if (!isSavingJob) setEditOpen(open); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Job</DialogTitle>
+            <DialogTitle>Edit Vacancy</DialogTitle>
             <DialogDescription>Update the vacancy details. Changes are saved to this job.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">

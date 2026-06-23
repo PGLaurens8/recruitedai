@@ -133,7 +133,7 @@ export default function SalesDashboardPage() {
         {[
           { label: "Clients", value: metrics.totalClients },
           { label: "Active Clients", value: metrics.activeClients },
-          { label: "Active Jobs", value: metrics.activeJobs },
+          { label: "Active Vacancies", value: metrics.activeJobs },
           { label: "Pending Approvals", value: metrics.pendingApprovals },
           { label: "Pipeline Candidates", value: metrics.activePipelineCandidates },
         ].map(({ label, value }) => (
@@ -162,7 +162,7 @@ export default function SalesDashboardPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Client</TableHead>
-                <TableHead className="text-right">Open Jobs</TableHead>
+                <TableHead className="text-right">Open Vacancies</TableHead>
                 <TableHead className="text-right">Submitted</TableHead>
                 <TableHead className="text-right">Interviewing</TableHead>
                 <TableHead className="text-right">Offers</TableHead>
@@ -222,7 +222,7 @@ export default function SalesDashboardPage() {
               ))}
             </div>
           ) : pipelineByClient.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No active clients yet. Add a client and link jobs to build your pipeline.</p>
+            <p className="text-sm text-muted-foreground">No active clients yet. Add a client and link vacancies to build your pipeline.</p>
           ) : (
             <div className="space-y-2">
               {pipelineByClient.map((client) => (
@@ -284,7 +284,7 @@ export default function SalesDashboardPage() {
               <Link href="/clients"><Building className="mr-2 h-4 w-4" /> Manage Clients</Link>
             </Button>
             <Button className="w-full justify-start" variant="outline" asChild>
-              <Link href="/jobs"><Users className="mr-2 h-4 w-4" /> View Job Board</Link>
+              <Link href="/jobs"><Users className="mr-2 h-4 w-4" /> View Vacancies</Link>
             </Button>
             <Button className="w-full justify-start" variant="outline" asChild>
               <Link href="/company-finder"><Users className="mr-2 h-4 w-4" /> Smart Lead Finder</Link>

@@ -76,7 +76,7 @@ export default function AdminDashboardPage() {
 
   const statCards = [
     { title: "Total Candidates", value: metrics.totalCandidates, icon: <Users className="h-5 w-5 text-blue-500" />, iconBg: "bg-blue-100", border: "border-l-4 border-l-blue-500", trend: "+2 this week", trendClass: "text-green-600" },
-    { title: "Active Jobs", value: metrics.activeJobs, icon: <Briefcase className="h-5 w-5 text-green-500" />, iconBg: "bg-green-100", border: "border-l-4 border-l-green-500", trend: "+1 this week", trendClass: "text-green-600" },
+    { title: "Active Vacancies", value: metrics.activeJobs, icon: <Briefcase className="h-5 w-5 text-green-500" />, iconBg: "bg-green-100", border: "border-l-4 border-l-green-500", trend: "+1 this week", trendClass: "text-green-600" },
     { title: "Active Clients", value: metrics.totalClients, icon: <Contact className="h-5 w-5 text-purple-500" />, iconBg: "bg-purple-100", border: "border-l-4 border-l-purple-500", trend: "No change", trendClass: "text-muted-foreground" },
     { title: "Interviewing", value: metrics.interviewing, icon: <Star className="h-5 w-5 text-orange-500" />, iconBg: "bg-orange-100", border: "border-l-4 border-l-amber-500", trend: "+3 this week", trendClass: "text-green-600" },
   ];
