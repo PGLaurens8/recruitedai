@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Briefcase, User, AlertTriangle, Zap } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  detectDefaultCurrency,
+  persistCurrency,
+  CURRENCIES,
+  type Currency,
+} from '@/lib/locale';
 
 const planBanners: Record<string, { title: string; description: string }> = {
   starter: {
@@ -52,24 +59,36 @@ function SignupForm() {
   const redirectTo = searchParams?.get('redirectTo') ?? undefined;
   const planParam = searchParams?.get('plan') ?? undefined;
   const planBanner = planParam ? planBanners[planParam] : undefined;
-  const [accountType, setAccountType] = useState<AccountType>('personal');
+  const [accountType, setAccountType] = useState<AccountType>('company');
   const [companyName, setCompanyName] = useState('');
+  const [currency, setCurrency] = useState<Currency>('ZAR');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Seed from the same locale signal the pricing page uses (defaults to ZAR),
+  // so the pre-selected currency matches what the visitor already saw.
+  useEffect(() => {
+    setCurrency(detectDefaultCurrency());
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
       const fullName = `${firstName} ${lastName}`.trim();
+      // Persist the choice client-side too, so billing/pricing reflect it
+      // immediately after signup (they read localStorage); the company row is
+      // the server-side source of truth going forward.
+      persistCurrency(currency);
       const result = await signup(email, password, fullName || undefined, {
         accountType,
         companyName: accountType === 'company' ? companyName.trim() : undefined,
         firstName: firstName.trim() || undefined,
         lastName: lastName.trim() || undefined,
+        currency,
       }, redirectTo);
       if (result.requiresEmailConfirmation) {
         toast({
@@ -121,30 +140,46 @@ function SignupForm() {
                 <form onSubmit={handleSubmit} className="grid gap-4">
                   <div className="grid gap-2">
                     <Label>Account Type</Label>
-                    <RadioGroup defaultValue="personal" onValueChange={(value) => setAccountType(value as AccountType)} className="grid grid-cols-2 gap-4">
-                      <div>
-                        <RadioGroupItem value="personal" id="personal" className="peer sr-only" />
-                        <Label
-                          htmlFor="personal"
-                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                        >
-                          <User className="mb-3 h-6 w-6" />
-                          Personal
-                        </Label>
-                      </div>
+                    <RadioGroup value={accountType} defaultValue="company" onValueChange={(value) => setAccountType(value as AccountType)} className="grid grid-cols-2 gap-4">
                       <div>
                         <RadioGroupItem value="company" id="company" className="peer sr-only" />
                         <Label
                           htmlFor="company"
-                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 text-center hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                         >
                           <Briefcase className="mb-3 h-6 w-6" />
-                          Company
+                          Company / Recruiter
+                        </Label>
+                      </div>
+                      <div>
+                        <RadioGroupItem value="personal" id="personal" className="peer sr-only" />
+                        <Label
+                          htmlFor="personal"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 text-center hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                        >
+                          <User className="mb-3 h-6 w-6" />
+                          Personal / Job Seeker
                         </Label>
                       </div>
                     </RadioGroup>
                   </div>
-                
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="currency">Preferred currency</Label>
+                    <Tabs value={currency} onValueChange={(value) => setCurrency(value as Currency)}>
+                      <TabsList className="grid w-full grid-cols-2">
+                        {CURRENCIES.map((code) => (
+                          <TabsTrigger key={code} value={code}>
+                            {code === 'ZAR' ? 'ZAR (R)' : 'USD ($)'}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </Tabs>
+                    <p className="text-xs text-muted-foreground">
+                      Used for billing, placement fees and reports. You can change this later in settings.
+                    </p>
+                  </div>
+
                   {accountType === 'company' && (
                     <div className="grid gap-2">
                       <Label htmlFor="organization-name">Company Name</Label>

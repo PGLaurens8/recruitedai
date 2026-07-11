@@ -140,11 +140,11 @@ export default function JobsPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight">Job Management</h1>
-            <InfoTooltip text="Active vacancies you are filling for clients. Link jobs to clients to track the full placement pipeline" />
+            <h1 className="text-3xl font-bold tracking-tight">Vacancy Management</h1>
+            <InfoTooltip text="Active vacancies you are filling for clients. Link vacancies to clients to track the full placement pipeline" />
           </div>
           <p className="mt-1 text-muted-foreground">
-            Manage and create AI-powered job postings.
+            Manage and create AI-powered vacancies.
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
@@ -155,7 +155,7 @@ export default function JobsPage() {
           </Button>
           <Button className="flex-1 sm:flex-none" asChild>
             <Link href="/jobs/new">
-              <Plus className="mr-2 h-4 w-4" /> New Job
+              <Plus className="mr-2 h-4 w-4" /> New Vacancy
             </Link>
           </Button>
         </div>
@@ -164,9 +164,9 @@ export default function JobsPage() {
       {error ? (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Failed to load jobs</AlertTitle>
+          <AlertTitle>Failed to load vacancies</AlertTitle>
           <AlertDescription className="space-y-3">
-            <p>Failed to load jobs. Please refresh the page or try again.</p>
+            <p>Failed to load vacancies. Please refresh the page or try again.</p>
             <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
               <RefreshCw className="mr-2 h-4 w-4" /> Refresh
             </Button>
@@ -176,8 +176,8 @@ export default function JobsPage() {
       <Card>
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle>{isLoading ? "Job Postings" : `All Job Postings (${sortedJobs.length})`}</CardTitle>
-            <CardDescription>View and manage all active, pending, and closed job postings.</CardDescription>
+            <CardTitle>{isLoading ? "Vacancies" : `All Vacancies (${sortedJobs.length})`}</CardTitle>
+            <CardDescription>View and manage all active, pending, and closed vacancies.</CardDescription>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative">
@@ -208,7 +208,7 @@ export default function JobsPage() {
           <Table className="hidden sm:table">
             <TableHeader>
               <TableRow>
-                <SortableTableHeader sortKey="title">Job Details</SortableTableHeader>
+                <SortableTableHeader sortKey="title">Vacancy Details</SortableTableHeader>
                 <SortableTableHeader sortKey="clientName">Client</SortableTableHeader>
                 <SortableTableHeader sortKey="status">Status</SortableTableHeader>
                 <SortableTableHeader sortKey="approval">Approval</SortableTableHeader>

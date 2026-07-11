@@ -171,6 +171,7 @@ function toCompanyRecord(row: any): CompanyRecord {
     email: row.email || undefined,
     address: row.address || undefined,
     plan: row.plan || undefined,
+    currency: row.currency === 'USD' || row.currency === 'ZAR' ? row.currency : undefined,
     trialStartedAt: row.trial_started_at || undefined,
     trialExpiresAt: row.trial_expires_at || undefined,
   };
@@ -352,6 +353,7 @@ export async function saveCompany(company: CompanyRecord) {
         website: company.website || '',
         email: company.email || '',
         address: company.address || '',
+        ...(company.currency ? { currency: company.currency } : {}),
       }),
     });
   }

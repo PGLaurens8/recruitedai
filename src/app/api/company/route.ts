@@ -11,6 +11,7 @@ const updateCompanySchema = z.object({
   website: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
   address: z.string().optional(),
+  currency: z.enum(['USD', 'ZAR']).optional(),
 });
 
 export async function GET(request: Request) {
@@ -62,6 +63,7 @@ export async function PATCH(request: Request) {
             website: payload.website || null,
             email: payload.email || null,
             address: payload.address || null,
+            ...(payload.currency ? { currency: payload.currency } : {}),
             updated_at: new Date().toISOString(),
           })
           .eq('id', companyId)

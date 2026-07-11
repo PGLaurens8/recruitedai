@@ -1,4 +1,4 @@
-import { formatPrice, type Currency } from '@/lib/locale';
+import { formatPrice, type Currency } from '@/lib/currency';
 
 export type BillingCycle = 'monthly' | 'annual';
 

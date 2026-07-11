@@ -225,7 +225,7 @@ export default function ClientsPage() {
                 <SortableTableHeader sortKey="name">Client</SortableTableHeader>
                 <SortableTableHeader sortKey="contactName">Contact</SortableTableHeader>
                 <SortableTableHeader sortKey="status">Status</SortableTableHeader>
-                <SortableTableHeader sortKey="openJobs" className="text-center">Open Jobs</SortableTableHeader>
+                <SortableTableHeader sortKey="openJobs" className="text-center">Open Vacancies</SortableTableHeader>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>

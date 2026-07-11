@@ -22,6 +22,7 @@ interface SignupMetadata {
   companyName?: string;
   firstName?: string;
   lastName?: string;
+  currency?: "USD" | "ZAR";
 }
 
 interface AuthContextType {
@@ -307,6 +308,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             company_name: metadata?.companyName || undefined,
             first_name: metadata?.firstName || undefined,
             last_name: metadata?.lastName || undefined,
+            currency: metadata?.currency || "ZAR",
           },
         },
       });

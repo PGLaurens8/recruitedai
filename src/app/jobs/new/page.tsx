@@ -123,12 +123,12 @@ export default function NewJobPage() {
         throw new Error(payload?.error?.message || 'Failed to create job.');
       }
 
-      toast({ title: 'Job created', description: 'Your job has been saved.' });
+      toast({ title: 'Vacancy created', description: 'Your vacancy has been saved.' });
       setFormState(initialFormState);
       setStatus('draft');
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to create job.';
-      toast({ variant: 'destructive', title: 'Unable to save job', description: message });
+      const message = error instanceof Error ? error.message : 'Failed to create vacancy.';
+      toast({ variant: 'destructive', title: 'Unable to save vacancy', description: message });
     } finally {
       setIsSubmitting(false);
     }
@@ -137,15 +137,15 @@ export default function NewJobPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6 py-10">
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold">Create Job Brief</h1>
-        <p className="text-sm text-muted-foreground">Capture the job specification and publish when ready.</p>
+        <h1 className="text-3xl font-semibold">Create Vacancy Brief</h1>
+        <p className="text-sm text-muted-foreground">Capture the vacancy specification and publish when ready.</p>
       </div>
 
       <Card>
         <form onSubmit={handleSubmit} className="space-y-6">
           <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <CardTitle>Create Job Brief</CardTitle>
+              <CardTitle>Create Vacancy Brief</CardTitle>
               <CardDescription>Use voice or type to describe the opportunity.</CardDescription>
             </div>
             <VoiceJobBriefButton onBriefCaptured={handleVoiceResult} />
@@ -153,7 +153,7 @@ export default function NewJobPage() {
 
           <CardContent className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="job-title">Job Title</Label>
+              <Label htmlFor="job-title">Vacancy Title</Label>
               <Input
                 id="job-title"
                 value={formState.title}
@@ -248,9 +248,9 @@ export default function NewJobPage() {
           <Separator />
 
           <CardFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">You can update this job later in Job Management.</p>
+            <p className="text-sm text-muted-foreground">You can update this vacancy later in Vacancy Management.</p>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving…' : 'Save Job Brief'}
+              {isSubmitting ? 'Saving…' : 'Save Vacancy Brief'}
             </Button>
           </CardFooter>
         </form>

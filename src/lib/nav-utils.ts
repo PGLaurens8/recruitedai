@@ -63,7 +63,7 @@ const navGroups: NavGroup[] = [
     title: 'Business',
     roles: ['Admin', 'Recruiter', 'Sales', 'Developer'],
     links: [
-      { href: '/jobs', label: 'Jobs', icon: React.createElement(Briefcase, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
+      { href: '/jobs', label: 'Vacancies', icon: React.createElement(Briefcase, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
       { href: '/clients', label: 'Clients', icon: React.createElement(Building, { size: 18 }), roles: ['Admin', 'Recruiter', 'Sales', 'Developer'] },
       { href: '/company-finder', label: 'Lead Finder', icon: React.createElement(Search, { size: 18 }), roles: ['Admin', 'Sales', 'Developer'] },
     ]
