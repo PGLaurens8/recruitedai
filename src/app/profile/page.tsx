@@ -10,12 +10,14 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CreditCard, Building, User, UploadCloud, Save, Globe, Mail, MapPin, Zap, CheckCircle2, BarChart } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { fileToDataURI } from '@/lib/file-utils';
 import { saveCompany, useCompany } from '@/lib/data/hooks';
+import { persistCurrency, CURRENCIES, type Currency } from '@/lib/locale';
 import { VacancySubmissionReport } from '@/components/feature/vacancy-submission-report';
 
 // Roles that run a recruiting business and should see the vacancy submission
@@ -41,6 +43,7 @@ export default function ProfilePage() {
   const [companyWebsite, setCompanyWebsite] = useState('');
   const [companyEmail, setCompanyEmail] = useState('');
   const [companyAddress, setCompanyAddress] = useState('');
+  const [companyCurrency, setCompanyCurrency] = useState<Currency>('ZAR');
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: companyDoc } = useCompany(user?.companyId, refreshKey);
@@ -52,6 +55,7 @@ export default function ProfilePage() {
     setCompanyWebsite(companyDoc.website || '');
     setCompanyEmail(companyDoc.email || '');
     setCompanyAddress(companyDoc.address || '');
+    setCompanyCurrency(companyDoc.currency || 'ZAR');
   }, [companyDoc]);
 
   const handleSaveCompany = async () => {
@@ -64,7 +68,11 @@ export default function ProfilePage() {
         website: companyWebsite,
         email: companyEmail,
         address: companyAddress,
+        currency: companyCurrency,
       });
+      // Keep the client-side pricing/billing preference in step with the tenant
+      // currency the user just saved.
+      persistCurrency(companyCurrency);
       
       toast({
         title: "Company Profile Saved",
@@ -164,6 +172,24 @@ export default function ProfilePage() {
                   <div className="space-y-2">
                     <Label htmlFor="companyWebsite">Website</Label>
                     <Input id="companyWebsite" value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="companyCurrency">Primary Currency</Label>
+                    <Select value={companyCurrency} onValueChange={(value) => setCompanyCurrency(value as Currency)}>
+                      <SelectTrigger id="companyCurrency">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCIES.map((code) => (
+                          <SelectItem key={code} value={code}>
+                            {code === 'ZAR' ? 'ZAR — South African Rand (R)' : 'USD — US Dollar ($)'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Used for billing, placement fees and reports.</p>
                   </div>
                 </div>
                 <div className="space-y-2">

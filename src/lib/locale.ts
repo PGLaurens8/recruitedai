@@ -1,6 +1,18 @@
 'use client';
 
-export type Currency = 'USD' | 'ZAR';
+// Client-only currency detection & persistence. The pure formatting primitives
+// (Currency type, formatPrice, currencySymbol, toCurrency) live in
+// src/lib/currency.ts so server code can use them too; they are re-exported here
+// for backwards compatibility with existing imports from '@/lib/locale'.
+export {
+  type Currency,
+  CURRENCIES,
+  currencySymbol,
+  formatPrice,
+  toCurrency,
+} from './currency';
+
+import { type Currency, toCurrency } from './currency';
 
 const STORAGE_KEY = 'recruitedai.currency';
 
@@ -28,12 +40,5 @@ export function detectDefaultCurrency(): Currency {
 
 export function persistCurrency(currency: Currency): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, currency);
+  window.localStorage.setItem(STORAGE_KEY, toCurrency(currency));
 }
-
-export function formatPrice(amount: number, currency: Currency): string {
-  if (currency === 'ZAR') return `R${amount.toLocaleString('en-ZA')}`;
-  return `$${amount}`;
-}
-
-export const currencySymbol: Record<Currency, string> = { USD: '$', ZAR: 'R' };

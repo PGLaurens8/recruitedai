@@ -1,4 +1,5 @@
 import type { Role } from '@/lib/roles';
+import type { Currency } from '@/lib/currency';
 
 export interface AppProfile {
   id: string;
@@ -16,6 +17,7 @@ export interface CompanyRecord {
   email?: string;
   address?: string;
   plan?: 'trial' | 'starter' | 'agency' | 'scale';
+  currency?: Currency;
   trialStartedAt?: string;
   trialExpiresAt?: string;
 }

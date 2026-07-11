@@ -43,6 +43,7 @@ const seedDatabase: MockDatabase = {
       website: 'https://demo.recruitedai.local',
       email: 'hello@demotalentpartners.com',
       address: 'Remote',
+      currency: 'ZAR',
     },
   ],
   candidates: [
@@ -170,6 +171,7 @@ function ensureProfile(database: MockDatabase, profile: AppProfile) {
     database.companies.push({
       id: profile.companyId,
       name: `${profile.name}'s Workspace`,
+      currency: 'ZAR',
     });
   }
 }

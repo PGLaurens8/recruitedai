@@ -152,7 +152,7 @@ export default function AdminDashboardPage() {
                   <div className="text-2xl font-bold">
                     ${(aiStats?.estimatedCostUsd ?? 0).toFixed(4)}
                   </div>
-                  <p className="text-xs text-muted-foreground">Estimated cost</p>
+                  <p className="text-xs text-muted-foreground">Est. AI provider cost (USD)</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">

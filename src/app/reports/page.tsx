@@ -32,7 +32,8 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/context/auth-context"
-import { useCandidates, useCurrentProfile, useSubmissions } from "@/lib/data/hooks"
+import { useCandidates, useCompany, useCurrentProfile, useSubmissions } from "@/lib/data/hooks"
+import { formatPrice } from "@/lib/currency"
 
 const recruiterStats = [
   { name: "Anna Smith", placements: 12, timeToFill: 28 },
@@ -89,6 +90,8 @@ export default function ReportsPage() {
   const { data: profile } = useCurrentProfile(user);
   const { data: candidates } = useCandidates(profile?.companyId);
   const { data: submissions } = useSubmissions(profile?.companyId);
+  const { data: company } = useCompany(profile?.companyId);
+  const currency = company?.currency ?? 'ZAR';
   const showSampleDataBanner = (candidates?.length ?? 0) < 20;
 
   // Successful placements metric: real submissions in the placed state. Compares
@@ -469,7 +472,7 @@ export default function ReportsPage() {
                         {salesPipeline.map((item) => (
                           <TableRow key={item.stage}>
                             <TableCell className="font-medium">{item.stage}</TableCell>
-                            <TableCell className="text-right">${item.value.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">{formatPrice(item.value, currency)}</TableCell>
                             <TableCell className="text-right">{item.count}</TableCell>
                           </TableRow>
                         ))}
