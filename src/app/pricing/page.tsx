@@ -34,6 +34,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
+import { useCompany } from '@/lib/data/hooks';
 import {
   detectDefaultCurrency,
   persistCurrency,
@@ -46,6 +47,7 @@ import {
   getPrice,
   getPlanFeatures,
   annualSavingsPercent,
+  formatCvOverage,
   type BillingCycle,
   type Plan,
 } from '@/lib/pricing';
@@ -61,7 +63,7 @@ const faqs = [
   },
   {
     q: 'How do the CV screening limits work?',
-    a: 'Limits are pooled across your team on the Agency plan — if you have 5 seats, you get 2,500 CV screenings per month, usable by anyone on the team. Overage is billed at $0.05 per CV.',
+    a: 'Limits are pooled across your team on the Agency plan — if you have 5 seats, you get 2,500 CV screenings per month, usable by anyone on the team. Overage is billed at {cvOverage} per CV.',
   },
   {
     q: 'Can I cancel any time?',
@@ -252,16 +254,22 @@ function PlanCard({ plan, currency, cycle }: PlanCardProps) {
 }
 
 export default function PricingPage() {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { data: company } = useCompany(user?.companyId);
   const [currency, setCurrency] = useState<Currency>('ZAR');
   const [cycle, setCycle] = useState<BillingCycle>('annual');
+  const [currencyTouched, setCurrencyTouched] = useState(false);
 
+  // A logged-in tenant's saved company currency wins; anonymous visitors fall
+  // back to locale detection. A manual toggle overrides both for this session.
   useEffect(() => {
-    setCurrency(detectDefaultCurrency());
-  }, []);
+    if (currencyTouched) return;
+    setCurrency(company?.currency ?? detectDefaultCurrency());
+  }, [company?.currency, currencyTouched]);
 
   const onCurrencyChange = (value: string) => {
     const next = value === 'ZAR' ? 'ZAR' : 'USD';
+    setCurrencyTouched(true);
     setCurrency(next);
     persistCurrency(next);
   };
@@ -414,7 +422,9 @@ export default function PricingPage() {
             {faqs.map((faq, i) => (
               <AccordionItem key={faq.q} value={`item-${i}`}>
                 <AccordionTrigger className="text-left">{faq.q}</AccordionTrigger>
-                <AccordionContent className="text-muted-foreground">{faq.a}</AccordionContent>
+                <AccordionContent className="text-muted-foreground">
+                  {faq.a.replace('{cvOverage}', formatCvOverage(currency))}
+                </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>

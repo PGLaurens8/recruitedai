@@ -17,7 +17,8 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { fileToDataURI } from '@/lib/file-utils';
 import { saveCompany, useCompany } from '@/lib/data/hooks';
-import { persistCurrency, CURRENCIES, type Currency } from '@/lib/locale';
+import { persistCurrency, CURRENCIES, formatPrice, type Currency } from '@/lib/locale';
+import { agencyPlans, candidatePlans, getPrice, type Plan } from '@/lib/pricing';
 import { VacancySubmissionReport } from '@/components/feature/vacancy-submission-report';
 
 // Roles that run a recruiting business and should see the vacancy submission
@@ -57,6 +58,18 @@ export default function ProfilePage() {
     setCompanyAddress(companyDoc.address || '');
     setCompanyCurrency(companyDoc.currency || 'ZAR');
   }, [companyDoc]);
+
+  // Plan prices come from the canonical pricing table (src/lib/pricing.ts) and
+  // render in the tenant's currency, so this tab never drifts from /pricing or
+  // /billing. Professional maps to the candidate Pro plan; Agency Enterprise to
+  // the top agency (Scale) tier.
+  const monthlyPriceLabel = (plan?: Plan): string => {
+    if (!plan) return '';
+    const value = getPrice(plan, companyCurrency, 'monthly');
+    return value == null ? '' : `${formatPrice(value, companyCurrency)}/mo`;
+  };
+  const professionalPrice = monthlyPriceLabel(candidatePlans.find((p) => p.id === 'candidate-pro'));
+  const enterprisePrice = monthlyPriceLabel(agencyPlans.find((p) => p.id === 'scale'));
 
   const handleSaveCompany = async () => {
     if (!user) return;
@@ -237,15 +250,15 @@ export default function ProfilePage() {
               isCurrent={user.role === 'Candidate'}
             />
             <PlanCard 
-              name="Professional" 
-              price="$19/mo" 
+              name="Professional"
+              price={professionalPrice}
               description="Advanced candidate branding toolkit."
               features={PLAN_FEATURES.Professional}
               highlight
             />
             <PlanCard 
-              name="Agency Enterprise" 
-              price="$199/mo" 
+              name="Agency Enterprise"
+              price={enterprisePrice}
               description="Full Talent Engine & Business Hub modules."
               features={PLAN_FEATURES.Agency}
               isCurrent={['Admin', 'Recruiter', 'Sales', 'Developer'].includes(user.role)}

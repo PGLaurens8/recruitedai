@@ -75,12 +75,13 @@ export default function RecruiterDashboardPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        {/* Sublabels are honest descriptors, not fabricated week-over-week deltas. */}
         {[
-          { label: "Candidates", value: metrics.totalCandidates, border: "border-l-4 border-l-blue-500", trend: "+2 this week", trendClass: "text-green-600" },
-          { label: "Interviewing", value: metrics.interviewingCandidates, border: "border-l-4 border-l-amber-500", trend: "+3 this week", trendClass: "text-green-600" },
-          { label: "Active Vacancies", value: metrics.activeJobs, border: "border-l-4 border-l-green-500", trend: "+1 this week", trendClass: "text-green-600" },
-          { label: "Clients", value: metrics.totalClients, border: "border-l-4 border-l-purple-500", trend: "No change", trendClass: "text-muted-foreground" },
-          { label: "Avg AI Score", value: metrics.averageAiScore, border: "border-l-4 border-l-indigo-500", trend: "No change", trendClass: "text-muted-foreground" },
+          { label: "Candidates", value: metrics.totalCandidates, border: "border-l-4 border-l-blue-500", trend: "In your pipeline", trendClass: "text-muted-foreground" },
+          { label: "Interviewing", value: metrics.interviewingCandidates, border: "border-l-4 border-l-amber-500", trend: "In interview stage", trendClass: "text-muted-foreground" },
+          { label: "Active Vacancies", value: metrics.activeJobs, border: "border-l-4 border-l-green-500", trend: "Currently active", trendClass: "text-muted-foreground" },
+          { label: "Clients", value: metrics.totalClients, border: "border-l-4 border-l-purple-500", trend: "Total client accounts", trendClass: "text-muted-foreground" },
+          { label: "Avg AI Score", value: metrics.averageAiScore, border: "border-l-4 border-l-indigo-500", trend: "Across scored candidates", trendClass: "text-muted-foreground" },
         ].map(({ label, value, border, trend, trendClass }) => (
           <Card key={label} className={border}>
             <CardHeader className="pb-2">

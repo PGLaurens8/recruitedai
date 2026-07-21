@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { addDays, format } from "date-fns"
 import { DateRange } from "react-day-picker"
 
@@ -32,31 +32,22 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/context/auth-context"
-import { useCandidates, useCompany, useCurrentProfile, useSubmissions } from "@/lib/data/hooks"
-import { formatPrice } from "@/lib/currency"
+import { useCandidates, useClients, useCompany, useCurrentProfile, useJobs, useSubmissions } from "@/lib/data/hooks"
+import { getJson } from "@/lib/api-client"
+import type { CompanyMemberRecord } from "@/server/api/company-members"
+import { currencySymbol, formatPrice } from "@/lib/currency"
 
-const recruiterStats = [
-  { name: "Anna Smith", placements: 12, timeToFill: 28 },
-  { name: "John Doe", placements: 9, timeToFill: 35 },
-  { name: "Maria Garcia", placements: 8, timeToFill: 31 },
+
+// Submission statuses grouped into the client-facing sales funnel. Values are
+// summed from real submissions' placementFee (company currency); see salesMetrics.
+const FUNNEL_STAGES: { label: string; statuses: string[] }[] = [
+  { label: "Submitted", statuses: ["submitted"] },
+  { label: "Client Reviewing", statuses: ["client_reviewing"] },
+  { label: "Interviewing", statuses: ["interview_scheduled", "interview_completed"] },
+  { label: "Offer", statuses: ["offer_extended", "offer_accepted"] },
+  { label: "Placed", statuses: ["placed"] },
 ]
 
-const salesPipeline = [
-  { stage: "Prospecting", value: 150000, count: 25 },
-  { stage: "Qualification", value: 120000, count: 20 },
-  { stage: "Proposal Sent", value: 95000, count: 15 },
-  { stage: "Negotiation", value: 60000, count: 8 },
-  { stage: "Closed-Won", value: 45000, count: 5 },
-]
-
-const monthlyPlacements = [
-  { month: "Jan", placements: 5 },
-  { month: "Feb", placements: 8 },
-  { month: "Mar", placements: 12 },
-  { month: "Apr", placements: 10 },
-  { month: "May", placements: 15 },
-  { month: "Jun", placements: 18 },
-]
 const placementsChartConfig = {
   placements: {
     label: "Placements",
@@ -64,35 +55,30 @@ const placementsChartConfig = {
   },
 } satisfies ChartConfig
 
-const executiveData = [
-    { month: "Jan", revenue: 50000, placements: 5 },
-    { month: "Feb", revenue: 80000, placements: 8 },
-    { month: "Mar", revenue: 120000, placements: 12 },
-    { month: "Apr", revenue: 100000, placements: 10 },
-    { month: "May", revenue: 150000, placements: 15 },
-    { month: "Jun", revenue: 180000, placements: 18 },
-]
-const executiveChartConfig = {
-    revenue: {
-        label: "Revenue ($)",
-        color: "hsl(var(--primary))",
-    },
-    placements: {
-        label: "Placements",
-        color: "hsl(var(--accent-foreground))",
-    },
-} satisfies ChartConfig
-
-
 export default function ReportsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { data: profile } = useCurrentProfile(user);
   const { data: candidates } = useCandidates(profile?.companyId);
   const { data: submissions } = useSubmissions(profile?.companyId);
+  const { data: jobs } = useJobs(profile?.companyId);
+  const { data: clients } = useClients(profile?.companyId);
   const { data: company } = useCompany(profile?.companyId);
   const currency = company?.currency ?? 'ZAR';
   const showSampleDataBanner = (candidates?.length ?? 0) < 20;
+
+  // Team members, used to attribute placements to real recruiters in the
+  // leaderboard and to populate the recruiter/sales-rep filters. Best-effort:
+  // on failure (e.g. mock mode) the leaderboard simply shows an empty state.
+  const [members, setMembers] = useState<CompanyMemberRecord[]>([]);
+  useEffect(() => {
+    if (!profile?.companyId) return;
+    let cancelled = false;
+    getJson<CompanyMemberRecord[]>('/api/company/members')
+      .then((data) => { if (!cancelled) setMembers(data); })
+      .catch(() => { if (!cancelled) setMembers([]); });
+    return () => { cancelled = true; };
+  }, [profile?.companyId]);
 
   // Successful placements metric: real submissions in the placed state. Compares
   // this calendar month against last month so the delta line stays meaningful as
@@ -127,6 +113,146 @@ export default function ReportsPage() {
 
     return { total: placed.length, deltaLabel };
   }, [submissions]);
+
+  // Real money metrics, all in the company's currency. placementFee is only
+  // populated once a submission reaches placement, so pipeline potential and
+  // funnel values stay at 0 until fees are recorded — that's the honest state,
+  // and the "Sample Data" banner already warns early-stage tenants.
+  const feeOf = (fee?: number) => (typeof fee === 'number' && Number.isFinite(fee) ? fee : 0);
+
+  const salesMetrics = useMemo(() => {
+    const subs = submissions || [];
+    const terminal = new Set(['placed', 'rejected', 'withdrew']);
+    const pipelineValue = subs
+      .filter((s) => !terminal.has(s.status))
+      .reduce((sum, s) => sum + feeOf(s.placementFee), 0);
+    const funnel = FUNNEL_STAGES.map((stage) => {
+      const inStage = subs.filter((s) => stage.statuses.includes(s.status));
+      return {
+        stage: stage.label,
+        value: inStage.reduce((sum, s) => sum + feeOf(s.placementFee), 0),
+        count: inStage.length,
+      };
+    });
+    return { pipelineValue, funnel };
+  }, [submissions]);
+
+  const executiveMetrics = useMemo(() => {
+    const placed = (submissions || []).filter((s) => s.status === 'placed');
+    const withFee = placed.filter((s) => typeof s.placementFee === 'number');
+    const totalRevenue = withFee.reduce((sum, s) => sum + feeOf(s.placementFee), 0);
+    const avgFee = withFee.length ? totalRevenue / withFee.length : 0;
+
+    // Last 6 calendar months of placement revenue, oldest first.
+    const now = new Date();
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      return {
+        key: `${d.getFullYear()}-${d.getMonth()}`,
+        month: d.toLocaleString('en-US', { month: 'short' }),
+        revenue: 0,
+        placements: 0,
+      };
+    });
+    const byKey = new Map(months.map((m) => [m.key, m]));
+    for (const s of placed) {
+      if (!s.placementDate) continue;
+      const d = new Date(s.placementDate);
+      if (Number.isNaN(d.getTime())) continue;
+      const bucket = byKey.get(`${d.getFullYear()}-${d.getMonth()}`);
+      if (bucket) {
+        bucket.revenue += feeOf(s.placementFee);
+        bucket.placements += 1;
+      }
+    }
+    return { totalRevenue, avgFee, totalPlacements: placed.length, monthly: months };
+  }, [submissions]);
+
+  const executiveChartConfig = useMemo(
+    () =>
+      ({
+        revenue: {
+          label: `Revenue (${currencySymbol[currency]})`,
+          color: 'hsl(var(--primary))',
+        },
+        placements: {
+          label: 'Placements',
+          color: 'hsl(var(--accent-foreground))',
+        },
+      }) satisfies ChartConfig,
+    [currency]
+  );
+
+  // Recruiter-tab KPIs, computed from the tenant's real candidates & submissions.
+  const recruiterKpis = useMemo(() => {
+    const subs = submissions || [];
+    const candidateCount = (candidates || []).length;
+    const interviews = subs.filter(
+      (s) => s.status === 'interview_scheduled' || s.status === 'interview_completed'
+    ).length;
+    const offers = subs.filter(
+      (s) => s.status === 'offer_extended' || s.status === 'offer_accepted'
+    ).length;
+    const placements = subs.filter((s) => s.status === 'placed').length;
+    const sourcedToPlacement = candidateCount > 0 ? (placements / candidateCount) * 100 : 0;
+    return { candidateCount, interviews, offers, sourcedToPlacement };
+  }, [submissions, candidates]);
+
+  // Leaderboard: placed submissions attributed to the recruiter who submitted
+  // them (submittedBy), with average time-to-fill (placementDate − createdAt).
+  const recruiterLeaderboard = useMemo(() => {
+    const nameById = new Map(members.map((m) => [m.id, m.name || m.email || 'Unknown']));
+    const byRecruiter = new Map<
+      string,
+      { name: string; placements: number; totalDays: number; filled: number }
+    >();
+    for (const s of submissions || []) {
+      if (s.status !== 'placed' || !s.submittedBy) continue;
+      const entry =
+        byRecruiter.get(s.submittedBy) ??
+        { name: nameById.get(s.submittedBy) ?? 'Unknown', placements: 0, totalDays: 0, filled: 0 };
+      entry.placements += 1;
+      if (s.placementDate && s.createdAt) {
+        const days =
+          (new Date(s.placementDate).getTime() - new Date(s.createdAt).getTime()) / 86_400_000;
+        if (Number.isFinite(days) && days >= 0) {
+          entry.totalDays += days;
+          entry.filled += 1;
+        }
+      }
+      byRecruiter.set(s.submittedBy, entry);
+    }
+    return Array.from(byRecruiter.values())
+      .map((e) => ({
+        name: e.name,
+        placements: e.placements,
+        timeToFill: e.filled ? String(Math.round(e.totalDays / e.filled)) : '—',
+      }))
+      .sort((a, b) => b.placements - a.placements);
+  }, [submissions, members]);
+
+  // Sales-tab KPIs from real clients, jobs and submissions.
+  const salesKpis = useMemo(() => {
+    const subs = submissions || [];
+    const allJobs = jobs || [];
+    const activeJobs = allJobs.filter((j) => String(j.status).toLowerCase() === 'active').length;
+    const clientCount = (clients || []).length;
+    const placed = subs.filter((s) => s.status === 'placed').length;
+    const conversionRate = subs.length > 0 ? (placed / subs.length) * 100 : 0;
+    const fillRate = allJobs.length > 0 ? (placed / allJobs.length) * 100 : 0;
+    return { activeJobs, clientCount, conversionRate, fillRate };
+  }, [jobs, clients, submissions]);
+
+  // Real recruiter options for the report filters (falls back to empty).
+  const recruiterFilterOptions = useMemo(
+    () =>
+      members.map((m) => ({
+        value: m.id,
+        label: m.name || m.email || 'Unknown',
+      })),
+    [members]
+  );
+
   const [recruiterDate, setRecruiterDate] = useState<DateRange | undefined>({ from: addDays(new Date(), -30), to: new Date() });
   const [salesDate, setSalesDate] = useState<DateRange | undefined>({ from: addDays(new Date(), -90), to: new Date() });
   const [executiveDate, setExecutiveDate] = useState<DateRange | undefined>({ from: addDays(new Date(), -180), to: new Date() });
@@ -283,7 +409,7 @@ export default function ReportsPage() {
           <FilterBar
             date={recruiterDate}
             setDate={setRecruiterDate}
-            selectOptions={recruiterStats.map(r => ({ value: r.name.toLowerCase().replace(' ', '-'), label: r.name }))}
+            selectOptions={recruiterFilterOptions}
             selectPlaceholder="Filter by Recruiter"
             reportId="recruiter-report"
             reportName="recruiter_performance"
@@ -291,7 +417,7 @@ export default function ReportsPage() {
           <div id="recruiter-report" className="space-y-6 bg-background p-4 rounded-lg">
             <Card>
               <CardHeader>
-                <CardTitle>Recruiter KPIs (This Month)</CardTitle>
+                <CardTitle>Recruiter KPIs</CardTitle>
                 <CardDescription>Key performance indicators for the recruitment team.</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
@@ -301,8 +427,8 @@ export default function ReportsPage() {
                     <Users className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">452</div>
-                    <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                    <div className="text-2xl font-bold">{recruiterKpis.candidateCount}</div>
+                    <p className="text-xs text-muted-foreground">In your pipeline</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -311,8 +437,8 @@ export default function ReportsPage() {
                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">128</div>
-                    <p className="text-xs text-muted-foreground">+15.2% from last month</p>
+                    <div className="text-2xl font-bold">{recruiterKpis.interviews}</div>
+                    <p className="text-xs text-muted-foreground">Scheduled &amp; completed</p>
                   </CardContent>
                 </Card>
                  <Card>
@@ -321,8 +447,8 @@ export default function ReportsPage() {
                     <Briefcase className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">45</div>
-                    <p className="text-xs text-muted-foreground">+10% from last month</p>
+                    <div className="text-2xl font-bold">{recruiterKpis.offers}</div>
+                    <p className="text-xs text-muted-foreground">Extended &amp; accepted</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -341,8 +467,8 @@ export default function ReportsPage() {
                     <Target className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">5.1%</div>
-                    <p className="text-xs text-muted-foreground">-2% from last month</p>
+                    <div className="text-2xl font-bold">{recruiterKpis.sourcedToPlacement.toFixed(1)}%</div>
+                    <p className="text-xs text-muted-foreground">Placements ÷ candidates</p>
                   </CardContent>
                 </Card>
               </CardContent>
@@ -356,7 +482,7 @@ export default function ReportsPage() {
                 </CardHeader>
                 <CardContent>
                   <ChartContainer config={placementsChartConfig} className="h-[250px] w-full">
-                    <BarChart data={monthlyPlacements} accessibilityLayer>
+                    <BarChart data={executiveMetrics.monthly} accessibilityLayer>
                       <CartesianGrid vertical={false} />
                       <XAxis dataKey="month" tickLine={false} tickMargin={10} axisLine={false} />
                       <YAxis />
@@ -381,13 +507,21 @@ export default function ReportsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {recruiterStats.map((recruiter) => (
-                        <TableRow key={recruiter.name}>
-                          <TableCell className="font-medium">{recruiter.name}</TableCell>
-                          <TableCell className="text-right">{recruiter.placements}</TableCell>
-                          <TableCell className="text-right">{recruiter.timeToFill}</TableCell>
+                      {recruiterLeaderboard.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-6">
+                            No placements recorded yet.
+                          </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        recruiterLeaderboard.map((recruiter) => (
+                          <TableRow key={recruiter.name}>
+                            <TableCell className="font-medium">{recruiter.name}</TableCell>
+                            <TableCell className="text-right">{recruiter.placements}</TableCell>
+                            <TableCell className="text-right">{recruiter.timeToFill}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -400,7 +534,7 @@ export default function ReportsPage() {
             <FilterBar
                 date={salesDate}
                 setDate={setSalesDate}
-                selectOptions={[{ value: 'rep1', label: 'Sales Rep 1'}, { value: 'rep2', label: 'Sales Rep 2'}]}
+                selectOptions={recruiterFilterOptions}
                 selectPlaceholder="Filter by Sales Rep"
                 reportId="sales-report"
                 reportName="sales_pipeline"
@@ -408,18 +542,18 @@ export default function ReportsPage() {
             <div id="sales-report" className="space-y-6 bg-background p-4 rounded-lg">
                <Card>
                 <CardHeader>
-                  <CardTitle>Sales KPIs (This Quarter)</CardTitle>
+                  <CardTitle>Sales KPIs</CardTitle>
                    <CardDescription>Key performance indicators for the sales team.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium">New Clients Acquired</CardTitle>
+                      <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
                       <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">12</div>
-                       <p className="text-xs text-muted-foreground">+5 from last quarter</p>
+                      <div className="text-2xl font-bold">{salesKpis.clientCount}</div>
+                       <p className="text-xs text-muted-foreground">Active client accounts</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -428,8 +562,8 @@ export default function ReportsPage() {
                       <Briefcase className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">89</div>
-                      <p className="text-xs text-muted-foreground">Across 34 clients</p>
+                      <div className="text-2xl font-bold">{salesKpis.activeJobs}</div>
+                      <p className="text-xs text-muted-foreground">Across {salesKpis.clientCount} clients</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -438,7 +572,7 @@ export default function ReportsPage() {
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">$250,500</div>
+                      <div className="text-2xl font-bold">{formatPrice(salesMetrics.pipelineValue, currency)}</div>
                       <p className="text-xs text-muted-foreground">Estimated potential revenue</p>
                     </CardContent>
                   </Card>
@@ -448,8 +582,8 @@ export default function ReportsPage() {
                       <Percent className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">18%</div>
-                      <p className="text-xs text-muted-foreground">From prospect to client</p>
+                      <div className="text-2xl font-bold">{salesKpis.conversionRate.toFixed(0)}%</div>
+                      <p className="text-xs text-muted-foreground">Submissions to placements</p>
                     </CardContent>
                   </Card>
                 </CardContent>
@@ -469,7 +603,7 @@ export default function ReportsPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {salesPipeline.map((item) => (
+                        {salesMetrics.funnel.map((item) => (
                           <TableRow key={item.stage}>
                             <TableCell className="font-medium">{item.stage}</TableCell>
                             <TableCell className="text-right">{formatPrice(item.value, currency)}</TableCell>
@@ -498,7 +632,7 @@ export default function ReportsPage() {
                     </CardHeader>
                     <CardContent>
                         <ChartContainer config={executiveChartConfig} className="h-[300px] w-full">
-                            <LineChart data={executiveData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                            <LineChart data={executiveMetrics.monthly} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                                 <CartesianGrid vertical={false} />
                                 <XAxis dataKey="month" />
                                 <YAxis yAxisId="left" stroke="var(--color-revenue)" />
@@ -515,12 +649,12 @@ export default function ReportsPage() {
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                    <Card>
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Total Revenue (Q2)</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold">$450,231.89</div>
-                        <p className="text-xs text-muted-foreground">+20.1% from last quarter</p>
+                        <div className="text-2xl font-bold">{formatPrice(executiveMetrics.totalRevenue, currency)}</div>
+                        <p className="text-xs text-muted-foreground">From completed placements</p>
                       </CardContent>
                     </Card>
                      <Card>
@@ -529,18 +663,18 @@ export default function ReportsPage() {
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold">$19,575</div>
-                        <p className="text-xs text-muted-foreground">Up 5% from last quarter</p>
+                        <div className="text-2xl font-bold">{formatPrice(Math.round(executiveMetrics.avgFee), currency)}</div>
+                        <p className="text-xs text-muted-foreground">Across placed candidates</p>
                       </CardContent>
                     </Card>
                      <Card>
                       <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Total Placements (Q2)</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total Placements</CardTitle>
                         <UserCheck className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold">43</div>
-                        <p className="text-xs text-muted-foreground">+12 from last quarter</p>
+                        <div className="text-2xl font-bold">{executiveMetrics.totalPlacements}</div>
+                        <p className="text-xs text-muted-foreground">Completed placements</p>
                       </CardContent>
                     </Card>
                      <Card>
@@ -549,7 +683,7 @@ export default function ReportsPage() {
                         <Target className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold">75%</div>
+                        <div className="text-2xl font-bold">{salesKpis.fillRate.toFixed(0)}%</div>
                         <p className="text-xs text-muted-foreground">Placements vs. Openings</p>
                       </CardContent>
                     </Card>

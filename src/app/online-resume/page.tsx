@@ -123,10 +123,16 @@ export default function OnlineResumePage() {
     toast({ title: "Coming Soon!", description: "PDF download functionality is under development." });
   }
 
-  const displayName = loadedExtractedName || sampleResumeData.name;
-  const displayJobTitle = loadedExtractedJobTitle || sampleResumeData.title;
-  const displayContactInfo = loadedContactInfo || sampleResumeData.contactInfo;
-  const displaySkills = loadedSkills && loadedSkills.length > 0 ? loadedSkills : sampleResumeData.skills;
+  // Once a real Master Resume is loaded, never fall back to sample values —
+  // show the user's own data (with graceful empty states for missing fields).
+  // Sample data appears only in the no-resume case, where the banner warns it.
+  const hasRealResume = Boolean(loadedResumeText);
+  const displayName = loadedExtractedName || (hasRealResume ? '' : sampleResumeData.name);
+  const displayJobTitle = loadedExtractedJobTitle || (hasRealResume ? '' : sampleResumeData.title);
+  const displayContactInfo = hasRealResume ? (loadedContactInfo ?? {}) : sampleResumeData.contactInfo;
+  const displaySkills = hasRealResume
+    ? (loadedSkills ?? [])
+    : sampleResumeData.skills;
   const avatarFallbackText = displayName?.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() || sampleResumeData.avatarFallback;
 
   if (isLoading) {
@@ -199,22 +205,27 @@ export default function OnlineResumePage() {
               {displayContactInfo.email && <p className="flex items-start"><Mail className="mr-2 h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> <span className="break-all">{displayContactInfo.email}</span></p>}
               {displayContactInfo.linkedin && displayContactInfo.linkedin !== 'null' && (
                 <p className="flex items-start">
-                  <Linkedin className="mr-2 h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> 
+                  <Linkedin className="mr-2 h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                   <Link href={!displayContactInfo.linkedin.startsWith('http') ? `https://${displayContactInfo.linkedin}` : displayContactInfo.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
                     {displayContactInfo.linkedin.replace(/^https?:\/\//, '')}
                   </Link>
                 </p>
               )}
+              {!displayContactInfo.location && !displayContactInfo.phone && !displayContactInfo.email && !displayContactInfo.linkedin && (
+                <p className="text-muted-foreground">No contact details on your Master Resume yet.</p>
+              )}
             </CardContent>
           </Card>
 
-          {sampleResumeData.professionalLinks && sampleResumeData.professionalLinks.filter(link => link.url && link.url !== '#').length > 0 && (
+          {/* Sample "My Links" is illustrative only — there is no real data
+              source for professional links yet, so show it only in sample mode. */}
+          {!hasRealResume && sampleResumeData.professionalLinks && sampleResumeData.professionalLinks.filter(link => link.url && link.url !== '#').length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg font-semibold">My Links</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {sampleResumeData.professionalLinks.map((link) => 
+                {sampleResumeData.professionalLinks.map((link) =>
                   link.url && link.url !== '#' ? ( 
                     <Button
                       key={link.label}
@@ -239,9 +250,13 @@ export default function OnlineResumePage() {
               <CardTitle className="text-lg font-semibold">Skills</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
-              {displaySkills.map((skill, index) => (
-                <Badge key={`${skill}-${index}`} variant="secondary" className="text-xs">{skill}</Badge>
-              ))}
+              {displaySkills.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No skills on your Master Resume yet.</p>
+              ) : (
+                displaySkills.map((skill, index) => (
+                  <Badge key={`${skill}-${index}`} variant="secondary" className="text-xs">{skill}</Badge>
+                ))
+              )}
             </CardContent>
           </Card>
         </aside>

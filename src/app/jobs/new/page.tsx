@@ -209,7 +209,7 @@ export default function NewJobPage() {
                   id="job-salary"
                   value={formState.salary}
                   onChange={(event) => setFormState((prev) => ({ ...prev, salary: event.target.value }))}
-                  placeholder="$100k - $130k"
+                  placeholder="R600k - R850k"
                 />
               </div>
               <div className="space-y-2 md:col-span-1">

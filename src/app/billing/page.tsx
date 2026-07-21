@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { CreditCard, ExternalLink, Mail, Sparkles, Zap } from 'lucide-react';
 
 import { useAuth } from '@/context/auth-context';
+import { useCompany } from '@/lib/data/hooks';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -124,12 +125,18 @@ function InAppPlanCard({ plan, currency, cycle, isCurrent }: InAppPlanCardProps)
 
 export default function BillingPage() {
   const { user } = useAuth();
+  const { data: company } = useCompany(user?.companyId);
   const [currency, setCurrency] = useState<Currency>('ZAR');
   const [cycle, setCycle] = useState<BillingCycle>('annual');
+  const [currencyTouched, setCurrencyTouched] = useState(false);
 
+  // The tenant's saved company currency is the source of truth for in-app
+  // billing; fall back to locale detection only if no company is loaded. A
+  // manual toggle overrides both for this session.
   useEffect(() => {
-    setCurrency(detectDefaultCurrency());
-  }, []);
+    if (currencyTouched) return;
+    setCurrency(company?.currency ?? detectDefaultCurrency());
+  }, [company?.currency, currencyTouched]);
 
   const isAgencyUser = user?.role && (agencyRoles as readonly string[]).includes(user.role);
   const plans = isAgencyUser ? agencyPlans : candidatePlans;
@@ -137,6 +144,7 @@ export default function BillingPage() {
 
   const onCurrencyChange = (value: string) => {
     const next = value === 'ZAR' ? 'ZAR' : 'USD';
+    setCurrencyTouched(true);
     setCurrency(next);
     persistCurrency(next);
   };

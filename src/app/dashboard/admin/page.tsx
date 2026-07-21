@@ -74,12 +74,84 @@ export default function AdminDashboardPage() {
     };
   }, [candidatesState.data, jobsState.data, clientsState.data]);
 
+  // Sublabels are honest descriptors, not fabricated week-over-week deltas —
+  // there is no historical time-series to compute a real trend from yet.
   const statCards = [
-    { title: "Total Candidates", value: metrics.totalCandidates, icon: <Users className="h-5 w-5 text-blue-500" />, iconBg: "bg-blue-100", border: "border-l-4 border-l-blue-500", trend: "+2 this week", trendClass: "text-green-600" },
-    { title: "Active Vacancies", value: metrics.activeJobs, icon: <Briefcase className="h-5 w-5 text-green-500" />, iconBg: "bg-green-100", border: "border-l-4 border-l-green-500", trend: "+1 this week", trendClass: "text-green-600" },
-    { title: "Active Clients", value: metrics.totalClients, icon: <Contact className="h-5 w-5 text-purple-500" />, iconBg: "bg-purple-100", border: "border-l-4 border-l-purple-500", trend: "No change", trendClass: "text-muted-foreground" },
-    { title: "Interviewing", value: metrics.interviewing, icon: <Star className="h-5 w-5 text-orange-500" />, iconBg: "bg-orange-100", border: "border-l-4 border-l-amber-500", trend: "+3 this week", trendClass: "text-green-600" },
+    { title: "Total Candidates", value: metrics.totalCandidates, icon: <Users className="h-5 w-5 text-blue-500" />, iconBg: "bg-blue-100", border: "border-l-4 border-l-blue-500", trend: "In your company", trendClass: "text-muted-foreground" },
+    { title: "Active Vacancies", value: metrics.activeJobs, icon: <Briefcase className="h-5 w-5 text-green-500" />, iconBg: "bg-green-100", border: "border-l-4 border-l-green-500", trend: "Currently active", trendClass: "text-muted-foreground" },
+    { title: "Active Clients", value: metrics.totalClients, icon: <Contact className="h-5 w-5 text-purple-500" />, iconBg: "bg-purple-100", border: "border-l-4 border-l-purple-500", trend: "Total client accounts", trendClass: "text-muted-foreground" },
+    { title: "Interviewing", value: metrics.interviewing, icon: <Star className="h-5 w-5 text-orange-500" />, iconBg: "bg-orange-100", border: "border-l-4 border-l-amber-500", trend: "In interview stage", trendClass: "text-muted-foreground" },
   ];
+
+  // The AI-usage panel is an operational metric (provider cost is genuinely in
+  // USD — Gemini bills in USD). It's most relevant to the Developer/operator
+  // account, so we keep it prominent (up top) for Developers and tuck it at the
+  // bottom of the page for regular agency admins.
+  const isDeveloper = user?.role === "Developer";
+  const aiUsageCard = (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Activity className="h-5 w-5 text-indigo-500" />
+          AI Usage This Month
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {aiStatsLoading ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-14 w-full" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100">
+                <Zap className="h-4 w-4 text-indigo-500" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold">{aiStats?.totalCalls ?? 0}</div>
+                <p className="text-xs text-muted-foreground">Total AI calls</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100">
+                <DollarSign className="h-4 w-4 text-green-500" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold">
+                  ${(aiStats?.estimatedCostUsd ?? 0).toFixed(4)}
+                </div>
+                <p className="text-xs text-muted-foreground">Est. AI provider cost (USD)</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-100">
+                <Star className="h-4 w-4 text-purple-500" />
+              </div>
+              <div>
+                <div className="truncate text-2xl font-bold">
+                  {aiStats?.mostUsedFlow ?? "—"}
+                </div>
+                <p className="text-xs text-muted-foreground">Most used flow</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100">
+                <Clock className="h-4 w-4 text-amber-500" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold">
+                  {((aiStats?.averageDurationMs ?? 0) / 1000).toFixed(1)}s
+                </div>
+                <p className="text-xs text-muted-foreground">Avg response time</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-8">
@@ -119,68 +191,7 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Activity className="h-5 w-5 text-indigo-500" />
-            AI Usage This Month
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {aiStatsLoading ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-14 w-full" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100">
-                  <Zap className="h-4 w-4 text-indigo-500" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">{aiStats?.totalCalls ?? 0}</div>
-                  <p className="text-xs text-muted-foreground">Total AI calls</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100">
-                  <DollarSign className="h-4 w-4 text-green-500" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">
-                    ${(aiStats?.estimatedCostUsd ?? 0).toFixed(4)}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Est. AI provider cost (USD)</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-100">
-                  <Star className="h-4 w-4 text-purple-500" />
-                </div>
-                <div>
-                  <div className="truncate text-2xl font-bold">
-                    {aiStats?.mostUsedFlow ?? "—"}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Most used flow</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100">
-                  <Clock className="h-4 w-4 text-amber-500" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">
-                    {((aiStats?.averageDurationMs ?? 0) / 1000).toFixed(1)}s
-                  </div>
-                  <p className="text-xs text-muted-foreground">Avg response time</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {isDeveloper && aiUsageCard}
 
       <div className="grid lg:grid-cols-2 gap-8">
         <Card>
@@ -237,6 +248,8 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {!isDeveloper && aiUsageCard}
     </div>
   );
 }
