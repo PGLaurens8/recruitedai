@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Github, Linkedin, Briefcase, ExternalLink, Mail, FileText, Link as LinkIconLucide, Save, Edit, UploadCloud } from "lucide-react";
+import { Linkedin, ExternalLink, Mail, FileText, Link as LinkIconLucide, Save, Edit, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { fileToDataURI } from '@/lib/file-utils';
@@ -25,12 +25,11 @@ const defaultBioData = {
   coverUrl: placeholders.bioCover.url,
   avatarFallback: "YN",
   bio: "Create a Master Resume to automatically populate your bio, or edit it directly here.",
+  // Only the internal resume link is a real default. LinkedIn / Email links are
+  // derived from the user's Master Resume contact info in the effect below —
+  // never fabricated placeholders.
   links: [
     { id: 1, label: "My Online Resume", url: "/online-resume", icon: <FileText className="h-5 w-5" /> },
-    { id: 2, label: "Portfolio Website", url: "#", icon: <Briefcase className="h-5 w-5" /> },
-    { id: 3, label: "LinkedIn Profile", url: "#", icon: <Linkedin className="h-5 w-5" /> },
-    { id: 4, label: "GitHub Projects", url: "#", icon: <Github className="h-5 w-5" /> },
-    { id: 5, label: "Email Me", url: "mailto:your.email@example.com", icon: <Mail className="h-5 w-5" /> },
   ],
 };
 
@@ -67,12 +66,32 @@ export default function LinkTreeBioPage() {
 
     const name = storedName || defaultBioData.name;
 
+    // Build the link list from real contact info — starting with the internal
+    // resume link, then appending LinkedIn / Email only when present.
+    const links: typeof defaultBioData.links = [
+      { id: 1, label: "My Online Resume", url: "/online-resume", icon: <FileText className="h-5 w-5" /> },
+    ];
+    const linkedin = storedResume?.contactInfo?.linkedin;
+    if (linkedin && linkedin !== 'null') {
+      links.push({
+        id: 2,
+        label: "LinkedIn Profile",
+        url: linkedin.startsWith('http') ? linkedin : `https://${linkedin}`,
+        icon: <Linkedin className="h-5 w-5" />,
+      });
+    }
+    const email = storedResume?.contactInfo?.email;
+    if (email) {
+      links.push({ id: 3, label: "Email Me", url: `mailto:${email}`, icon: <Mail className="h-5 w-5" /> });
+    }
+
     setBioData(prev => ({
       ...prev,
       name: name,
       title: storedTitle || defaultBioData.title,
       avatarUrl: storedAvatar || defaultBioData.avatarUrl,
       bio: summary,
+      links,
       avatarFallback: name.split(' ').map((n: string) => n[0]).join('').substring(0,2).toUpperCase() || '??'
     }));
 
