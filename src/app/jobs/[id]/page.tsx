@@ -340,7 +340,7 @@ export default function JobDetailPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-salary">Salary</Label>
-                <Input id="edit-salary" value={jobForm.salary} onChange={(e) => setJobForm((f) => ({ ...f, salary: e.target.value }))} placeholder="$140k-$170k" />
+                <Input id="edit-salary" value={jobForm.salary} onChange={(e) => setJobForm((f) => ({ ...f, salary: e.target.value }))} placeholder="R600k-R850k" />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

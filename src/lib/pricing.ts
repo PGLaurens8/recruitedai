@@ -147,6 +147,17 @@ export const candidatePlans: Plan[] = [
 // to the plan data so the feature copy and the pricing stay in one place.
 const ADDITIONAL_SEAT_PRICE: Record<Currency, number> = { USD: 29, ZAR: 529 };
 
+// Per-CV overage rate once a plan's monthly screening allowance is exhausted.
+// ZAR mirrors the seat-price ratio (~18×) rather than a raw FX conversion, in
+// line with the PPP-based ZAR pricing. Adjust here if the commercial rate changes.
+export const CV_OVERAGE_PRICE: Record<Currency, number> = { USD: 0.05, ZAR: 0.9 };
+
+/** Formats the per-CV overage rate with two decimals (e.g. "$0.05", "R0.90"). */
+export function formatCvOverage(currency: Currency): string {
+  const symbol = currency === 'ZAR' ? 'R' : '$';
+  return `${symbol}${CV_OVERAGE_PRICE[currency].toFixed(2)}`;
+}
+
 /**
  * Returns a plan's feature bullets with currency-dependent placeholders (e.g.
  * the additional-seat price) resolved for the given currency.

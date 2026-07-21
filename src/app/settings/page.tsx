@@ -40,8 +40,8 @@ const SEED_DATA = {
     { name: "Aisha Khan", email: "aisha.k@example.com", status: "Interviewing", aiScore: 95, currentJob: "Backend Engineer", currentCompany: "CloudNet" }
   ],
   jobs: [
-    { title: "Senior Frontend Developer", salary: "$120k - $150k", location: "San Francisco, CA", status: "active", approval: "approved", description: "Modern React expert needed." },
-    { title: "Data Scientist", salary: "$100k - $130k", location: "Remote", status: "pending", approval: "pending", description: "ML models focus." }
+    { title: "Senior Frontend Developer", salary: "R720k - R900k", location: "Cape Town, WC", status: "active", approval: "approved", description: "Modern React expert needed." },
+    { title: "Data Scientist", salary: "R600k - R780k", location: "Remote", status: "pending", approval: "pending", description: "ML models focus." }
   ],
   clients: [
     { name: "TechCorp", contactName: "John Doe", contactEmail: "john.doe@techcorp.com", status: "Active" },
