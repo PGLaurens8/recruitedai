@@ -191,6 +191,12 @@ not do anything in the background.** There's nothing to wait for.
   for that feature.
 - **If an AI step shows "AI temporarily unavailable,"** the AI service was briefly
   unreachable. Your uploaded file is kept — just click **"Try Again."**
+- **Shared resumes are private by default.** A resume or online profile is **not** publicly
+  viewable until you switch on the **"Public share link"** toggle on the Master Resume or
+  Online Resume page. Before you enable it, the `/resume/…` link shows "not found"; switching
+  the toggle off again disables the link straight away. Contact details (email, phone,
+  LinkedIn) are never shown on the public page — only when you turn sharing on does the link
+  work, and even then contact info stays private.
 
 ---
 
