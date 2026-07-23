@@ -115,7 +115,10 @@ export async function middleware(request: NextRequest) {
     roleValue = profile?.role as string | undefined;
   }
 
-  const role = toAppRole(roleValue || (user.user_metadata?.role as string | undefined));
+  // Do NOT fall back to user_metadata.role — it is client-controlled at signup
+  // and trusting it would reopen the role-injection class fixed in the
+  // handle_new_user trigger. profiles.role (server-derived) is the authority.
+  const role = toAppRole(roleValue);
 
   if (isPublic) {
     const redirectUrl = request.nextUrl.clone();
