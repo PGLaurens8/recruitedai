@@ -1,6 +1,6 @@
 # Key Rotation Tracker
 
-Last updated: 2026-03-22
+Last updated: 2026-07-23
 Owner: Engineering + Security
 
 Use this tracker to close the remaining "Rotate any exposed local/test API keys" roadmap item.
@@ -11,7 +11,7 @@ Use this tracker to close the remaining "Rotate any exposed local/test API keys"
 |---|---|---|---|---|---|---|
 | Supabase | NEXT_PUBLIC_SUPABASE_ANON_KEY | Local / Staging / Prod | Y | 2026-03-22T15:05:00Z | Security | Rotated in provider console and propagated to all environments. |
 | Supabase | SUPABASE_SERVICE_ROLE_KEY | Local / Staging / Prod | Y | 2026-03-22T15:07:00Z | Security | Rotated and old service-role key revoked. |
-| Google AI | GOOGLE_GENAI_API_KEY | Local / Staging / Prod | Y | 2026-03-22T15:10:00Z | Security | Rotated and redeployed dependent services. |
+| Google AI | GOOGLE_GENAI_API_KEY | Prod (Vercel) | Y | 2026-07-23T10:49:00Z | Engineering | Rotated to a billing-enabled Gemini key to remove the free-tier quota ceiling on assess-job-match scoring; set in Vercel env and redeployed (env changes require redeploy per VERCEL_DEPLOYMENTS.md). Prior rotation 2026-03-22T15:10:00Z. |
 | Google AI | GEMINI_API_KEY (legacy) | Local / Staging / Prod | Y | 2026-03-22T15:12:00Z | Security | Legacy key rotated/revoked; compatibility usage verified. |
 | Stripe | STRIPE_SECRET_KEY | Staging / Prod | Y | 2026-03-22T15:15:00Z | Security | Rotated for staging/prod and tested webhook + payment auth flow. |
 | Stripe | STRIPE_WEBHOOK_SECRET | Staging / Prod | Y | 2026-03-22T15:17:00Z | Security | Webhook signing secret rotated; signature validation rechecked. |

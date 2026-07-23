@@ -58,6 +58,7 @@ Legend:
 - [ ] **P1: Billing Activation**: Connect `payment-dialog.tsx` to real Stripe checkout sessions
 - [ ] **P1: Tenant Governance**: Implement owner-transfer policy and invite revoke/expiry UX
 - [ ] **P2: Refactor**: Split `src/lib/data/hooks.ts` into domain-specific modules
+- [ ] **P3: Docs cleanup — payment processor**: The processor is **Paddle** (confirmed 2026-07-23), not Stripe. Four stale "Stripe" references remain and should be updated to Paddle (not done today): the **P1 Billing Activation** line above, the billing UI (`src/app/billing/page.tsx`), `README.md`, and `CLAUDE.md`. Context in `docs/faq-known-issues.md`.
 
 ## 4) Release Readiness Definition
 
