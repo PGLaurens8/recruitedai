@@ -774,7 +774,7 @@ export default function InterviewAnalysisPage() {
                         <section>
                           <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-4 font-sans">Interview Core Insights</h3>
                           <div className="space-y-4 text-xs">
-                            {analysis.questionsAnswers.slice(0, 4).map((qa, i) => (
+                            {analysis.questionsAnswers.map((qa, i) => (
                               <div key={i}>
                                 <p className="font-bold text-gray-500 mb-1">{qa.question}</p>
                                 <p className="leading-relaxed">{qa.answer}</p>
@@ -786,7 +786,7 @@ export default function InterviewAnalysisPage() {
                         <section>
                           <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-4 font-sans">Technical Proficiencies</h3>
                           <div className="flex flex-wrap gap-2">
-                            {selectedCandidate?.skills?.slice(0, 15).map((s: string, i: number) => (
+                            {selectedCandidate?.skills?.map((s: string, i: number) => (
                               <span key={i} className="text-[9px] font-bold bg-gray-100 px-2 py-1 rounded-sm uppercase">{s}</span>
                             ))}
                           </div>
@@ -801,7 +801,7 @@ export default function InterviewAnalysisPage() {
 
                         <section>
                           <h3 className="text-[10px] font-black uppercase tracking-widest text-primary mb-4 font-sans">Professional Background (CV)</h3>
-                          <div className="text-[10px] text-gray-600 leading-normal whitespace-pre-wrap font-sans max-h-[400px] overflow-hidden">
+                          <div className="text-[10px] text-gray-600 leading-normal whitespace-pre-wrap font-sans">
                             {selectedCandidate?.fullResumeText || "Original CV content attached to subsequent pages."}
                           </div>
                         </section>
