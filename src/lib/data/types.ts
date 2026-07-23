@@ -125,6 +125,8 @@ export interface MasterResumeRecord {
   missingInformation: string[];
   questions: string[];
   processedAt?: string;
+  /** Opt-in flag for the public /resume/[id] share link. Defaults to false. */
+  isPublic?: boolean;
 }
 
 export interface ModelRegistryRecord {

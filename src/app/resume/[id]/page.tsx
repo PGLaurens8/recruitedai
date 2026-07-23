@@ -2,23 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from '@/components/ui/spinner';
-import { AlertTriangle, Copy, FileText, Linkedin, Mail, MapPin, Phone } from "lucide-react";
+import { AlertTriangle, Copy, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { isMockMode, isSupabaseMode } from '@/lib/runtime-mode';
 import { getMockMasterResumeById } from '@/lib/data/mock-store';
-
-interface ContactInfo {
-  email?: string;
-  phone?: string;
-  linkedin?: string;
-  location?: string;
-}
 
 interface PublicResume {
   fullName?: string | null;
@@ -27,7 +19,6 @@ interface PublicResume {
   skills: string[];
   avatarUri?: string | null;
   currentJobTitle?: string | null;
-  contactInfo?: ContactInfo | null;
 }
 
 type LoadState =
@@ -57,7 +48,9 @@ export default function PublicResumePage() {
         if (isMockMode()) {
           const record = getMockMasterResumeById(resumeId);
           if (!isActive) return;
-          if (!record) {
+          // Respect the opt-in flag in mock mode too — a private resume is
+          // treated as not found, mirroring the server-side is_public gate.
+          if (!record || !record.isPublic) {
             setState({ status: 'not-found' });
             return;
           }
@@ -70,7 +63,6 @@ export default function PublicResumePage() {
               skills: record.skills ?? [],
               avatarUri: record.avatarUri ?? null,
               currentJobTitle: record.currentJobTitle ?? null,
-              contactInfo: (record.contactInfo as ContactInfo) ?? {},
             },
           });
           return;
@@ -145,7 +137,6 @@ export default function PublicResumePage() {
   const { resume } = state;
   const displayName = resume.fullName || "Candidate";
   const displayJobTitle = resume.currentJobTitle || resume.userTitle || "";
-  const contactInfo = resume.contactInfo || {};
   const skills = resume.skills || [];
   const avatarFallback = displayName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() || "?";
 
@@ -172,27 +163,6 @@ export default function PublicResumePage() {
 
         <div className="grid md:grid-cols-3 gap-8">
           <aside className="md:col-span-1 space-y-6">
-            {(contactInfo.location || contactInfo.phone || contactInfo.email || contactInfo.linkedin) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold">Contact Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  {contactInfo.location && <p className="flex items-start"><MapPin className="mr-2 h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> <span className="break-all">{contactInfo.location}</span></p>}
-                  {contactInfo.phone && <p className="flex items-start"><Phone className="mr-2 h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> <span className="break-all">{contactInfo.phone}</span></p>}
-                  {contactInfo.email && <p className="flex items-start"><Mail className="mr-2 h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> <span className="break-all">{contactInfo.email}</span></p>}
-                  {contactInfo.linkedin && contactInfo.linkedin !== 'null' && (
-                    <p className="flex items-start">
-                      <Linkedin className="mr-2 h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                      <Link href={!contactInfo.linkedin.startsWith('http') ? `https://${contactInfo.linkedin}` : contactInfo.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
-                        {contactInfo.linkedin.replace(/^https?:\/\//, '')}
-                      </Link>
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
             {skills.length > 0 && (
               <Card>
                 <CardHeader>
