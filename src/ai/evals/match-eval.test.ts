@@ -10,20 +10,17 @@
  * Requires GOOGLE_GENAI_API_KEY (or GEMINI_API_KEY / GOOGLE_API_KEY) to be set;
  * otherwise every test is skipped with a clear message so CI does not fail when
  * the key is absent.
+ *
+ * The suite is data-driven off GOLDEN_PAIRS in ./golden-pairs. For every pair
+ * it asserts a well-formed structure, an in-range matchScore, and (when the
+ * fixture declares them) missing-skills detection. Pairs that share a `pair`
+ * key are additionally checked for the skills-first guarantee: the ON variant
+ * must not score below the OFF variant for the same CV + job.
  */
 
 import { beforeAll, describe, expect, it } from 'vitest';
 import { assessJobMatch, type AssessJobMatchOutput } from '@/ai/flows/assess-job-match';
-import {
-  MEDIUM_MATCH,
-  MISSING_SKILLS,
-  MISSING_SKILLS_EXPECTED,
-  SKILLS_FIRST_UPLIFT,
-  STRONG_MATCH,
-  WEAK_MATCH,
-  textToDataUri,
-  type GoldenPair,
-} from './golden-pairs';
+import { GOLDEN_PAIRS, textToDataUri, type GoldenPair } from './golden-pairs';
 
 // Generous per-call timeout — real network round-trips to Gemini.
 const EVAL_TIMEOUT_MS = 60_000;
@@ -46,98 +43,88 @@ beforeAll(() => {
 // Skip the whole suite (not fail) when the key is absent, so CI stays green.
 const describeEvals = hasApiKey ? describe : describe.skip;
 
-/** Run a golden pair through the flow. */
-async function runPair(pair: GoldenPair, skillsFirstMode = false): Promise<AssessJobMatchOutput> {
+/** Run a golden pair through the flow using its declared skillsFirstMode. */
+async function runPair(pair: GoldenPair): Promise<AssessJobMatchOutput> {
   return assessJobMatch({
     masterResumeDataUri: textToDataUri(pair.cv),
     jobSpecText: pair.job,
-    skillsFirstMode,
+    skillsFirstMode: pair.skillsFirstMode ?? false,
   });
 }
 
-/** Shared structural assertions every flow output must satisfy. */
-function assertWellFormed(output: AssessJobMatchOutput) {
+/**
+ * Shared structural assertions every flow output must satisfy.
+ *
+ * `matchedSkills` must always be an array, but is only required to be non-empty
+ * when the scenario expects some overlap. A genuinely weak-fit case (e.g. a
+ * graphic designer scored against a backend engineering role) can correctly
+ * surface zero matched skills, so requiring a match there would flag a correct
+ * result as malformed.
+ */
+function assertWellFormed(output: AssessJobMatchOutput, pair: GoldenPair) {
   expect(output.matchScore).toBeGreaterThanOrEqual(0);
   expect(output.matchScore).toBeLessThanOrEqual(100);
   expect(Array.isArray(output.matchedSkills)).toBe(true);
-  expect(output.matchedSkills.length).toBeGreaterThan(0);
+  if (pair.category !== 'weak-fit') {
+    expect(output.matchedSkills.length).toBeGreaterThan(0);
+  }
   expect(Array.isArray(output.missingSkills)).toBe(true);
   expect(typeof output.experienceAlignment).toBe('string');
   expect(output.experienceAlignment.trim().length).toBeGreaterThan(0);
 }
 
 describeEvals('assess-job-match eval harness', () => {
-  it(
-    'Pair 1 — strong match scores within range',
-    async () => {
-      const output = await runPair(STRONG_MATCH);
-      assertWellFormed(output);
-      expect(output.matchScore).toBeGreaterThanOrEqual(STRONG_MATCH.expectedScoreMin);
-      expect(output.matchScore).toBeLessThanOrEqual(STRONG_MATCH.expectedScoreMax);
+  // Cache each pair's output so paired-delta assertions reuse the same runs
+  // rather than paying for a second call per case.
+  const outputs = new Map<string, AssessJobMatchOutput>();
+
+  it.each(GOLDEN_PAIRS.map((pair) => [pair.id, pair] as const))(
+    '%s — well-formed, in range, and detects declared gaps',
+    async (_id, pair) => {
+      const output = await runPair(pair);
+      outputs.set(pair.id, output);
+
+      assertWellFormed(output, pair);
+
+      expect(output.matchScore).toBeGreaterThanOrEqual(pair.expectedScoreMin);
+      expect(output.matchScore).toBeLessThanOrEqual(pair.expectedScoreMax);
+
+      if (pair.missingSkillsExpected?.length) {
+        const haystack = output.missingSkills.join(' | ').toLowerCase();
+        const found = pair.missingSkillsExpected.some((skill) =>
+          haystack.includes(skill.toLowerCase())
+        );
+        expect(
+          found,
+          `Expected missingSkills ${JSON.stringify(
+            output.missingSkills
+          )} to include one of ${JSON.stringify(pair.missingSkillsExpected)}`
+        ).toBe(true);
+      }
     },
     EVAL_TIMEOUT_MS
   );
 
-  it(
-    'Pair 2 — medium match scores within range',
-    async () => {
-      const output = await runPair(MEDIUM_MATCH);
-      assertWellFormed(output);
-      expect(output.matchScore).toBeGreaterThanOrEqual(MEDIUM_MATCH.expectedScoreMin);
-      expect(output.matchScore).toBeLessThanOrEqual(MEDIUM_MATCH.expectedScoreMax);
-    },
-    EVAL_TIMEOUT_MS
-  );
+  // Behavioral guarantee: for each ON/OFF pair sharing a CV + job, enabling
+  // skillsFirstMode must not lower the score. Reuses the cached outputs above,
+  // so this depends on the per-case tests having run first (they enumerate in
+  // GOLDEN_PAIRS order, and both halves of every pair precede this block).
+  const pairKeys = [...new Set(GOLDEN_PAIRS.map((p) => p.pair).filter(Boolean))] as string[];
 
-  it(
-    'Pair 3 — skills-first mode does not lower the score for a degree-less candidate',
-    async () => {
-      const standard = await runPair(SKILLS_FIRST_UPLIFT, false);
-      const skillsFirst = await runPair(SKILLS_FIRST_UPLIFT, true);
+  it.each(pairKeys)(
+    'skills-first guarantee — "%s": ON score >= OFF score',
+    (pairKey) => {
+      const on = GOLDEN_PAIRS.find((p) => p.pair === pairKey && p.skillsFirstMode === true);
+      const off = GOLDEN_PAIRS.find((p) => p.pair === pairKey && p.skillsFirstMode !== true);
+      expect(on, `pair "${pairKey}" is missing its skillsFirstMode=ON case`).toBeDefined();
+      expect(off, `pair "${pairKey}" is missing its skillsFirstMode=OFF case`).toBeDefined();
 
-      assertWellFormed(standard);
-      assertWellFormed(skillsFirst);
+      const onOutput = outputs.get(on!.id);
+      const offOutput = outputs.get(off!.id);
+      expect(onOutput, `no cached output for ${on!.id} — did its case test run?`).toBeDefined();
+      expect(offOutput, `no cached output for ${off!.id} — did its case test run?`).toBeDefined();
 
-      // The core skills-first guarantee: enabling the mode must not penalize a
-      // strong-skills, no-degree candidate relative to the standard scoring.
-      expect(skillsFirst.matchScore).toBeGreaterThanOrEqual(standard.matchScore);
-    },
-    // Two sequential flow calls — double the budget.
-    EVAL_TIMEOUT_MS * 2
-  );
-
-  it(
-    'Pair 4 — weak match scores within range',
-    async () => {
-      const output = await runPair(WEAK_MATCH);
-      assertWellFormed(output);
-      expect(output.matchScore).toBeGreaterThanOrEqual(WEAK_MATCH.expectedScoreMin);
-      expect(output.matchScore).toBeLessThanOrEqual(WEAK_MATCH.expectedScoreMax);
-    },
-    EVAL_TIMEOUT_MS
-  );
-
-  it(
-    'Pair 5 — detects missing DevOps skills',
-    async () => {
-      const output = await runPair(MISSING_SKILLS);
-      assertWellFormed(output);
-      expect(output.matchScore).toBeGreaterThanOrEqual(MISSING_SKILLS.expectedScoreMin);
-      expect(output.matchScore).toBeLessThanOrEqual(MISSING_SKILLS.expectedScoreMax);
-
-      // The missingSkills array must surface at least one of the headline gaps.
-      // Match case-insensitively and tolerate substrings (e.g. "CI/CD pipelines").
-      const haystack = output.missingSkills.join(' | ').toLowerCase();
-      const found = MISSING_SKILLS_EXPECTED.some((skill) =>
-        haystack.includes(skill.toLowerCase())
-      );
-      expect(
-        found,
-        `Expected missingSkills ${JSON.stringify(output.missingSkills)} to include one of ${JSON.stringify(
-          MISSING_SKILLS_EXPECTED
-        )}`
-      ).toBe(true);
-    },
-    EVAL_TIMEOUT_MS
+      expect(onOutput!.matchScore).toBeGreaterThanOrEqual(offOutput!.matchScore);
+    }
   );
 });
