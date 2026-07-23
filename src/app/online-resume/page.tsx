@@ -13,9 +13,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
 import placeholders from '@/app/lib/placeholder-images.json';
 import { useAuth } from '@/context/auth-context';
-import { useMasterResume } from '@/lib/data/hooks';
+import { setMasterResumeVisibility, useMasterResume } from '@/lib/data/hooks';
 
 interface ContactInfo {
   email?: string;
@@ -75,6 +76,8 @@ export default function OnlineResumePage() {
   const [loadedSkills, setLoadedSkills] = useState<string[] | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPublic, setIsPublic] = useState(false);
+  const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
   const { data: storedResume } = useMasterResume(user?.id);
 
   useEffect(() => {
@@ -85,9 +88,30 @@ export default function OnlineResumePage() {
       setLoadedContactInfo(storedResume.contactInfo || null);
       setLoadedSkills(storedResume.skills || null);
       setAvatarUri(storedResume.avatarUri || null);
+      setIsPublic(Boolean(storedResume.isPublic));
     }
     setIsLoading(false);
   }, [storedResume]);
+
+  const handleToggleVisibility = async (next: boolean) => {
+    if (!user?.id || isTogglingVisibility) return;
+    setIsTogglingVisibility(true);
+    setIsPublic(next); // optimistic
+    try {
+      await setMasterResumeVisibility(user.id, next);
+      toast({
+        title: next ? "Public link enabled" : "Public link disabled",
+        description: next
+          ? "Anyone with the link can now view this resume (contact details are never shown on the public page)."
+          : "Your resume is private again — the public link no longer works.",
+      });
+    } catch (err: any) {
+      setIsPublic(!next); // revert on failure
+      toast({ variant: "destructive", title: "Could not update visibility", description: err?.message || "Please try again." });
+    } finally {
+      setIsTogglingVisibility(false);
+    }
+  };
 
   const handleCopyLink = () => {
     if (typeof window !== "undefined") {
@@ -158,7 +182,7 @@ export default function OnlineResumePage() {
           </div>
         </div>
         <div className="flex space-x-2">
-          {publicResumeUrl && (
+          {publicResumeUrl && isPublic && (
             <Button variant="default" size="sm" onClick={handleShareResume}><Share2 className="mr-2 h-4 w-4" /> Share Resume</Button>
           )}
           <Button variant="outline" size="sm" onClick={handleCopyLink}><Copy className="mr-2 h-4 w-4" /> Copy Link</Button>
@@ -166,19 +190,33 @@ export default function OnlineResumePage() {
         </div>
       </header>
 
-      {publicResumeUrl && (
-        <Alert className="mb-8 border-primary/30 bg-primary/5">
-          <Share2 className="h-5 w-5 !text-primary" />
-          <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-sm">
-              Your resume is publicly shareable at{' '}
-              <Link href={`/resume/${storedResume?.id}`} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline break-all">
-                /resume/{storedResume?.id}
-              </Link>
-            </span>
-            <Button variant="outline" size="sm" onClick={handleShareResume} className="shrink-0">
-              <Copy className="mr-2 h-4 w-4" /> Copy public link
-            </Button>
+      {storedResume?.id && (
+        <Alert className={`mb-8 ${isPublic ? 'border-primary/30 bg-primary/5' : 'border-muted'}`}>
+          <Share2 className={`h-5 w-5 ${isPublic ? '!text-primary' : '!text-muted-foreground'}`} />
+          <AlertDescription className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-sm">
+                {isPublic
+                  ? 'Your resume is publicly shareable. Contact details are never shown on the public page.'
+                  : 'Your resume is private. Turn this on to create a public link recruiters can open without logging in.'}
+              </span>
+              <Switch
+                checked={isPublic}
+                disabled={isTogglingVisibility}
+                onCheckedChange={handleToggleVisibility}
+                aria-label="Make resume publicly shareable"
+              />
+            </div>
+            {isPublic && publicResumeUrl && (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <Link href={`/resume/${storedResume?.id}`} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline break-all text-sm">
+                  /resume/{storedResume?.id}
+                </Link>
+                <Button variant="outline" size="sm" onClick={handleShareResume} className="shrink-0">
+                  <Copy className="mr-2 h-4 w-4" /> Copy public link
+                </Button>
+              </div>
+            )}
           </AlertDescription>
         </Alert>
       )}

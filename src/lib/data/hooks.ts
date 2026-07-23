@@ -39,6 +39,7 @@ import {
   saveMockCompany,
   saveMockJob,
   saveMockMasterResume,
+  setMockMasterResumeVisibility,
   saveMockModelRegistry,
   updateMockSubmission,
 } from '@/lib/data/mock-store';
@@ -275,6 +276,7 @@ function toMasterResumeRecord(row: any): MasterResumeRecord {
     missingInformation: row.missing_information || [],
     questions: row.questions || [],
     processedAt: row.processed_at || undefined,
+    isPublic: Boolean(row.is_public),
   };
 }
 
@@ -662,6 +664,24 @@ export async function saveMasterResume(
         questions: updates.questions || [],
         processedAt: updates.processedAt || '',
       }),
+    });
+  }
+}
+
+/**
+ * Toggle the public share visibility of the current user's master resume.
+ * The only path that changes is_public — never touched by a normal resume save.
+ */
+export async function setMasterResumeVisibility(userId: string, isPublic: boolean) {
+  if (isMockMode()) {
+    setMockMasterResumeVisibility(userId, isPublic);
+    return;
+  }
+
+  if (isSupabaseMode()) {
+    await requestApi('/api/master-resume/visibility', {
+      method: 'POST',
+      body: JSON.stringify({ isPublic }),
     });
   }
 }

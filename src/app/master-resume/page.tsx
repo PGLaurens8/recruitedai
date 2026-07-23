@@ -19,11 +19,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import {
   createCandidateFromResume,
   saveMasterResume,
+  setMasterResumeVisibility,
   useCurrentProfile,
   useMasterResume,
 } from '@/lib/data/hooks';
@@ -40,6 +42,8 @@ export default function MasterResumePage() {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isPublic, setIsPublic] = useState(false);
+  const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
 
   const { user } = useAuth();
   const { data: profile } = useCurrentProfile(user);
@@ -59,10 +63,31 @@ export default function MasterResumePage() {
       .catch(() => toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy the share link." }));
   };
 
+  const handleToggleVisibility = async (next: boolean) => {
+    if (!user?.id || isTogglingVisibility) return;
+    setIsTogglingVisibility(true);
+    setIsPublic(next); // optimistic
+    try {
+      await setMasterResumeVisibility(user.id, next);
+      toast({
+        title: next ? "Public link enabled" : "Public link disabled",
+        description: next
+          ? "Anyone with the link can now view this resume (contact details are never shown)."
+          : "Your resume is private again — the share link no longer works.",
+      });
+    } catch (err: any) {
+      setIsPublic(!next); // revert on failure
+      toast({ variant: "destructive", title: "Could not update visibility", description: err?.message || "Please try again." });
+    } finally {
+      setIsTogglingVisibility(false);
+    }
+  };
+
   useEffect(() => {
     if (!storedResume) return;
     setResumeUserTitle(storedResume.userTitle || "My Master Resume");
     setAvatarUri(storedResume.avatarUri || null);
+    setIsPublic(Boolean(storedResume.isPublic));
     if (storedResume.reformattedText) {
       setAiOutput({
         reformattedResume: storedResume.reformattedText,
@@ -378,21 +403,36 @@ export default function MasterResumePage() {
         </Alert>
       )}
 
-      {aiOutput && publicResumeUrl && storedResume?.id && (
-        <Alert className="mt-8 border-green-500/40 bg-green-500/5">
-          <Share2 className="h-5 w-5 !text-green-600" />
-          <AlertTitle className="text-green-700 dark:text-green-400">Your resume is live!</AlertTitle>
-          <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-sm">
-              Your resume is live at{' '}
-              <Link href={`/resume/${storedResume.id}`} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline break-all">
-                /resume/{storedResume.id}
-              </Link>{' '}
-              — share this link with recruiters.
-            </span>
-            <Button variant="outline" size="sm" onClick={handleCopyShareLink} className="shrink-0">
-              <Copy className="mr-2 h-4 w-4" /> Copy link
-            </Button>
+      {aiOutput && storedResume?.id && (
+        <Alert className={`mt-8 ${isPublic ? 'border-green-500/40 bg-green-500/5' : 'border-muted'}`}>
+          <Share2 className={`h-5 w-5 ${isPublic ? '!text-green-600' : '!text-muted-foreground'}`} />
+          <AlertTitle className={isPublic ? 'text-green-700 dark:text-green-400' : ''}>
+            Public share link
+          </AlertTitle>
+          <AlertDescription className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-sm">
+                {isPublic
+                  ? 'Your resume is publicly viewable by anyone with the link. Contact details (email, phone, LinkedIn) are never shown on it.'
+                  : 'Your resume is private. Turn this on to create a public link you can share with recruiters.'}
+              </span>
+              <Switch
+                checked={isPublic}
+                disabled={isTogglingVisibility}
+                onCheckedChange={handleToggleVisibility}
+                aria-label="Make resume publicly shareable"
+              />
+            </div>
+            {isPublic && publicResumeUrl && (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <Link href={`/resume/${storedResume.id}`} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline break-all text-sm">
+                  /resume/{storedResume.id}
+                </Link>
+                <Button variant="outline" size="sm" onClick={handleCopyShareLink} className="shrink-0">
+                  <Copy className="mr-2 h-4 w-4" /> Copy link
+                </Button>
+              </div>
+            )}
           </AlertDescription>
         </Alert>
       )}

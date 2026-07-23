@@ -313,6 +313,15 @@ export function getMockMasterResumeById(resumeId: string) {
   return readDatabase().masterResumes.find((item) => item.id === resumeId) || null;
 }
 
+export function setMockMasterResumeVisibility(userId: string, isPublic: boolean) {
+  const database = readDatabase();
+  const record = database.masterResumes.find((item) => item.userId === userId);
+  if (record) {
+    record.isPublic = isPublic;
+    writeDatabase(database);
+  }
+}
+
 export function saveMockMasterResume(resume: Omit<MasterResumeRecord, 'id'> & { id?: string }) {
   const database = readDatabase();
   const existingIndex = database.masterResumes.findIndex((item) => item.userId === resume.userId);
