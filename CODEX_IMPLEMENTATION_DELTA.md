@@ -3,6 +3,8 @@
 
 > This document SUPERSEDES conflicting sections of the original spec.
 > Where this file is silent, the original spec remains valid.
+>
+> **Payment processor note (2026-07-25):** this delta corrected the original spec's Firebase → Supabase architecture, but it did **not** correct the payment processor. The Stripe billing described in both this file and the original spec is **stale — the real processor is Paddle**. See `PROJECT_STATE_ROADMAP.md` **section F (Billing & Payments — Paddle)** for the actual plan; disregard any Stripe billing references here.
 
 ---
 
