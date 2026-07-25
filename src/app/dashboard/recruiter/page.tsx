@@ -115,7 +115,7 @@ export default function RecruiterDashboardPage() {
             </Button>
             <Button className="w-full justify-start" variant="outline" asChild>
               <Link href="/ai-parser">
-                <UserPlus className="mr-2 h-4 w-4" /> Smart Parse Resume
+                <UserPlus className="mr-2 h-4 w-4" /> CV Screening
               </Link>
             </Button>
             <Button className="w-full justify-start" variant="outline" asChild>

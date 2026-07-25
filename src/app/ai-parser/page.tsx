@@ -224,15 +224,15 @@ export default function AiParserPage() {
         });
 
         toast({
-          title: "Resume Parsed & Analyzed!",
+          title: "Resume Read & Analyzed!",
           description: "Candidate details and core metrics have been extracted.",
         });
       } catch (err: any) {
-        setError(err.message || "An unexpected error occurred during parsing.");
+        setError(err.message || "An unexpected error occurred while reading the resume.");
         toast({
           variant: "destructive",
-          title: "Parsing Failed",
-          description: err.message || "Could not parse the resume.",
+          title: "Reading Failed",
+          description: err.message || "Could not read the resume.",
         });
       } finally {
         setIsParsing(false);
@@ -253,7 +253,7 @@ export default function AiParserPage() {
       toast({
         variant: "destructive",
         title: "Missing Information",
-        description: "Please ensure a resume is parsed and a job spec is provided.",
+        description: "Please ensure a resume is read and a job spec is provided.",
       });
       return;
     }
@@ -360,10 +360,10 @@ export default function AiParserPage() {
     setIsSavingToTalentPool(true);
     try {
       const ext = parsedResume.extractedData;
-      // Schema-supported fields go in directly. The extra extracted fields
-      // (yearsOfExperience, education, certifications, hasDegreeLevelEducation,
-      // aiSummary) are sent too — the API's Zod schema strips them silently
-      // today, but they're available the moment a future migration adds them.
+      // The CV-enrichment fields (yearsOfExperience, education, certifications,
+      // hasDegreeLevelEducation, aiSummary) and the AI match result are persisted
+      // by the /api/candidates route. If a match was run this session, its score
+      // and full breakdown ride along so they survive beyond page state.
       const payload = {
         name: parsedResume.fullName || 'Unknown',
         email: parsedResume.contactInfo?.email || '',
@@ -377,6 +377,8 @@ export default function AiParserPage() {
         certifications: ext?.certifications,
         hasDegreeLevelEducation: ext?.hasDegreeLevelEducation,
         aiSummary: ext?.summary,
+        aiScore: assessmentOutput?.matchScore,
+        matchDetails: assessmentOutput ?? undefined,
       };
       const created = await postJson<{ id: string }>('/api/candidates', payload);
       setShowTalentPoolDialog(false);
@@ -423,7 +425,7 @@ export default function AiParserPage() {
         });
       }
     } else if (save) {
-        toast({ variant: "destructive", title: "Cannot Save", description: "Missing company ID or parsed data." });
+        toast({ variant: "destructive", title: "Cannot Save", description: "Missing company ID or resume data." });
     } else {
       toast({ description: "Branded CV downloaded. Record not saved." });
     }
@@ -521,7 +523,7 @@ export default function AiParserPage() {
              {isParsing && (
               <div className="mt-4 flex justify-center items-center gap-2 text-primary">
                 <Spinner size={16} />
-                <p>Parsing & Extracting Data...</p>
+                <p>Reading & Extracting Data...</p>
               </div>
             )}
           </CardContent>

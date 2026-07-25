@@ -229,7 +229,7 @@ function CandidatesPageContent() {
       <div className="border-b border-slate-100 pb-4">
         <div className="flex items-center gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Candidate Management</h1>
-          <InfoTooltip text="Your talent pool. Add candidates by uploading their CV through Smart Parser or manually via Add Candidate" />
+          <InfoTooltip text="Your talent pool. Add candidates by uploading their CV through CV Screening or manually via Add Candidate" />
         </div>
         <p className="mt-1 text-muted-foreground">
           View, manage, and track all candidates in your pipeline.
@@ -267,7 +267,7 @@ function CandidatesPageContent() {
             <UserPlus className="mr-2 h-4 w-4" /> Quick Add
           </Button>
           <Button asChild>
-            <Link href="/ai-parser"><Plus className="mr-2 h-4 w-4" /> Import via Smart Parser</Link>
+            <Link href="/ai-parser"><Plus className="mr-2 h-4 w-4" /> Import via CV Screening</Link>
           </Button>
         </div>
       </div>
@@ -322,7 +322,7 @@ function CandidatesPageContent() {
                       <div className="flex flex-col items-center gap-3 text-center">
                         <p className="font-medium">No candidates yet</p>
                         <Button asChild>
-                          <Link href="/ai-parser"><Plus className="mr-2 h-4 w-4" /> Add your first candidate via Smart Parser</Link>
+                          <Link href="/ai-parser"><Plus className="mr-2 h-4 w-4" /> Add your first candidate via CV Screening</Link>
                         </Button>
                       </div>
                     )}
@@ -430,7 +430,7 @@ function CandidatesPageContent() {
               <div className="flex flex-col items-center gap-3">
                 <p className="font-medium">No candidates yet</p>
                 <Button asChild>
-                  <Link href="/ai-parser"><Plus className="mr-2 h-4 w-4" /> Add your first candidate via Smart Parser</Link>
+                  <Link href="/ai-parser"><Plus className="mr-2 h-4 w-4" /> Add your first candidate via CV Screening</Link>
                 </Button>
               </div>
             )}

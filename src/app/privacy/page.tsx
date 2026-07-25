@@ -26,7 +26,7 @@ export default function PrivacyPage() {
       <p>We use personal information only to provide and improve the recruitment service, specifically to:</p>
       <ul>
         <li>Create and secure your account and authenticate access.</li>
-        <li>Parse, score, and analyse CVs against job descriptions to produce AI-assisted screening results.</li>
+        <li>Read, score, and analyse CVs against job descriptions to produce AI-assisted screening results.</li>
         <li>Provide support, send service-related communications, and process billing through Paddle.</li>
         <li>Maintain security, prevent abuse, and meet legal obligations.</li>
       </ul>

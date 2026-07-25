@@ -49,6 +49,18 @@ export interface CandidateRecord {
   interviewNotes?: Record<string, string>;
   interviewScores?: Record<string, number | null>;
   aiSummary?: string;
+  // Full assess-job-match output captured at save time (mirrors
+  // AssessJobMatchOutput). Persisted to the candidates.match_details column.
+  matchDetails?: {
+    matchScore: number;
+    summary: string;
+    strengths: string[];
+    areasForImprovement: string[];
+    matchedSkills: string[];
+    missingSkills: string[];
+    experienceAlignment: string;
+    educationNote: string;
+  };
   interviewAnalysis?: unknown;
   lastInterviewAt?: string;
 }
