@@ -215,7 +215,7 @@ export default function MasterResumePage() {
       toast({
         variant: "destructive",
         title: "Cannot Save",
-        description: !companyId ? "No agency profile found. Please ensure you are logged in correctly." : "No parsed data to save.",
+        description: !companyId ? "No agency profile found. Please ensure you are logged in correctly." : "No resume data to save.",
       });
       return;
     }

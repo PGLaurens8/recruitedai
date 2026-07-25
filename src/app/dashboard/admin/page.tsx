@@ -234,7 +234,7 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="grid gap-3">
             <Button className="w-full justify-start" variant="outline" asChild>
-              <Link href="/ai-parser"><UserPlus className="mr-2 h-4 w-4" /> Add Candidate via Smart Parser</Link>
+              <Link href="/ai-parser"><UserPlus className="mr-2 h-4 w-4" /> Add Candidate via CV Screening</Link>
             </Button>
             <Button className="w-full justify-start" variant="outline" asChild>
               <Link href="/jobs/new"><Mic2 className="mr-2 h-4 w-4" /> AI Brief Builder</Link>

@@ -19,6 +19,23 @@ const createCandidateSchema = z.object({
   fullResumeText: z.string().optional(),
   skills: z.array(z.string()).optional(),
   contactInfo: z.record(z.string(), z.unknown()).optional(),
+  // CV-enrichment fields extracted by the parse-cv flow. Columns already exist
+  // (migration 202605260010); before this they were dropped silently here.
+  yearsOfExperience: z.number().int().min(0).optional(),
+  education: z
+    .array(
+      z.object({
+        degree: z.string(),
+        institution: z.string(),
+        year: z.string().optional(),
+      })
+    )
+    .optional(),
+  certifications: z.array(z.string()).optional(),
+  hasDegreeLevelEducation: z.boolean().optional(),
+  aiSummary: z.string().optional(),
+  // Full assess-job-match output, persisted so the match survives page state.
+  matchDetails: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function GET(request: Request) {
@@ -77,6 +94,12 @@ export async function POST(request: Request) {
             full_resume_text: payload.fullResumeText || null,
             skills: payload.skills || [],
             contact_info: payload.contactInfo || {},
+            years_of_experience: payload.yearsOfExperience ?? null,
+            education: payload.education ?? null,
+            certifications: payload.certifications ?? null,
+            has_degree_level_education: payload.hasDegreeLevelEducation ?? null,
+            ai_summary: payload.aiSummary || null,
+            match_details: payload.matchDetails ?? null,
             created_by: userId,
           })
           .select('*')

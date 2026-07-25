@@ -34,8 +34,8 @@ const STEPS: StepDef[] = [
   },
   {
     id: "parse_cv",
-    title: "Parse your first candidate CV",
-    description: "Drop in a resume and let the Smart Parser extract the details.",
+    title: "Read your first candidate CV",
+    description: "Drop in a resume and let CV Screening extract the details.",
     href: "/ai-parser",
     manual: false,
   },

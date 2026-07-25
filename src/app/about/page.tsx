@@ -55,7 +55,7 @@ export default function AboutPage() {
           <ModuleItem 
             title="Talent Acquisition Suite" 
             audience="Recruitment Agencies & HR" 
-            features={["AI Resume Parsing", "Auto-Scoring", "Interview Note Taker", "Branded Packs"]}
+            features={["CV Screening", "Auto-Scoring", "Interview Note Taker", "Branded Packs"]}
             icon={<Users className="text-blue-500" />}
           />
           <ModuleItem 

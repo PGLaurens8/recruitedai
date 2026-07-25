@@ -1,6 +1,6 @@
 # Project State & Execution Roadmap
 
-Last updated: 2026-03-24
+Last updated: 2026-07-25
 Owner: Product + Engineering
 Status: In Progress
 
@@ -59,6 +59,23 @@ Legend:
 - [ ] **P1: Tenant Governance**: Implement owner-transfer policy and invite revoke/expiry UX
 - [ ] **P2: Refactor**: Split `src/lib/data/hooks.ts` into domain-specific modules
 - [ ] **P3: Docs cleanup — payment processor**: The processor is **Paddle** (confirmed 2026-07-23), not Stripe. Four stale "Stripe" references remain and should be updated to Paddle (not done today): the **P1 Billing Activation** line above, the billing UI (`src/app/billing/page.tsx`), `README.md`, and `CLAUDE.md`. Context in `docs/faq-known-issues.md`.
+
+### F) Vacancy-Linked Matching & Match History (Planned — not started)
+
+Two **separate** work items — do **not** conflate them. F1 is the vacancy-linking prerequisite; F2 is the history log + read views built on top of it. Verified 2026-07-25: an AI match today runs against free-form job-spec **text** (pasted or uploaded) with **no** reference to a saved Vacancy and **no** job title captured, so F1 is a hard prerequisite for F2's vacancy-side (reverse) view.
+
+**F1) P2 — Vacancy save-and-link (prerequisite)** — [ ] Not started
+- Let an AI match run against a **selected saved Vacancy** (`JobRecord`), not only pasted free text, and persist the vacancy link (`job_id`) on the match. Includes the vacancy picker in the match flow and a "Run match on an existing candidate" entry point on the candidate detail page.
+- This is the "job-picker" dependency surfaced during Path A scoping. **Shared with F2 chunk (c) — one piece of work, build once; do not double-count or double-build.**
+
+**F2) P2 — Persistent Match History + two read views (Path A — confirmed)** — [ ] Not started
+Full scoped breakdown as estimated (~2–3 focused days total; chunk (c) is the F1 work, so F1+F2 together ≈ this total, not the sum of two separate builds):
+- **(a) ~0.5 day** — Migration: new `match_history` table (`candidate_id`, `job_id`, job-title snapshot at match time, `score`, `skills_first_mode`, key strengths / missing-skills summary) + **RLS policy** keyed on `auth_company_id()` (mandatory per the 3-layer tenancy model) + camelCase types + snake_case hook mapping + **mock-store support** (app defaults to mock mode; e2e needs it).
+- **(b) ~0.5 day** — Record-match API route (envelope + Zod + idempotency + company scoping) + wire it to append a history row after each successful match + a round-trip unit test.
+- **(c) ~0.5–1 day** — Vacancy selector in the match flow + "Run match on an existing candidate" entry point. **This is F1 — same work, build once.**
+- **(d) ~0.5–1 day** — Two read-only views: candidate "Match History" table (most-recent first) + vacancy "Matched Candidates" table (sorted by score). No filtering/sorting controls/export in this pass.
+
+Design note: the committed `candidates.ai_score` / `match_details` columns stay as the denormalized "latest match" (drives the detail-page card + the sortable AI Score list column); `match_history` is the append-only log. Each match run writes **both**.
 
 ## 4) Release Readiness Definition
 

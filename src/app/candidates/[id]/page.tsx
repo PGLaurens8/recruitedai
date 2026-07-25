@@ -475,7 +475,7 @@ export default function CandidateDetailPage() {
                 </CardContent>
             </Card>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-3 gap-6">
                  <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium">Profile Completion</CardTitle>
@@ -513,6 +513,29 @@ export default function CandidateDetailPage() {
                             <>
                                 <p className="text-sm text-muted-foreground">No scores recorded yet</p>
                                 <p className="mt-1 text-xs text-muted-foreground">Scores appear after completing a screening session</p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">AI Match Score</CardTitle>
+                        <Brain className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        {candidate.aiScore != null ? (
+                            <>
+                                <div className="text-2xl font-bold text-primary">{candidate.aiScore}%</div>
+                                <p className="text-xs text-muted-foreground">
+                                    {candidate.matchDetails?.experienceAlignment
+                                        || candidate.matchDetails?.summary
+                                        || 'Latest AI job-match assessment'}
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-sm text-muted-foreground">No match assessed yet</p>
+                                <p className="mt-1 text-xs text-muted-foreground">Run AI matching on the CV Screening page to capture a score</p>
                             </>
                         )}
                     </CardContent>
@@ -584,7 +607,7 @@ export default function CandidateDetailPage() {
                         && !(candidate.skills && candidate.skills.length > 0)
                         && !(candidate.education && candidate.education.length > 0)
                         && !(candidate.certifications && candidate.certifications.length > 0) && (
-                        <p className="text-sm text-muted-foreground">No enriched profile data available yet. Re-parse this candidate's CV to populate this section.</p>
+                        <p className="text-sm text-muted-foreground">No enriched profile data available yet. Re-read this candidate's CV to populate this section.</p>
                     )}
                 </CardContent>
             </Card>

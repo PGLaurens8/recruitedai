@@ -178,7 +178,7 @@ function toCompanyRecord(row: any): CompanyRecord {
   };
 }
 
-function toCandidateRecord(row: any): CandidateRecord {
+export function toCandidateRecord(row: any): CandidateRecord {
   return {
     id: row.id,
     companyId: row.company_id,
@@ -199,10 +199,15 @@ function toCandidateRecord(row: any): CandidateRecord {
     workAuthorization: row.work_authorization || undefined,
     fullResumeText: row.full_resume_text || undefined,
     skills: row.skills || [],
+    yearsOfExperience: row.years_of_experience ?? undefined,
+    education: row.education || undefined,
+    certifications: row.certifications || undefined,
+    hasDegreeLevelEducation: row.has_degree_level_education ?? undefined,
     interviewNotes: (row.interview_notes as Record<string, string> | null) || {},
     interviewScores:
       (row.interview_scores as Record<string, number | null> | null) || {},
     aiSummary: row.ai_summary || undefined,
+    matchDetails: (row.match_details as CandidateRecord['matchDetails']) || undefined,
     interviewAnalysis: row.interview_analysis || undefined,
     lastInterviewAt: row.last_interview_at || undefined,
   };
