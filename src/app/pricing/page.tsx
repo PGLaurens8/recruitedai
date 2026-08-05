@@ -47,7 +47,6 @@ import {
   getPrice,
   getPlanFeatures,
   annualSavingsPercent,
-  formatCvOverage,
   type BillingCycle,
   type Plan,
 } from '@/lib/pricing';
@@ -63,7 +62,11 @@ const faqs = [
   },
   {
     q: 'How do the CV screening limits work?',
-    a: 'Limits are pooled across your team on the Agency plan — if you have 5 seats, you get 2,500 CV screenings per month, usable by anyone on the team. Overage is billed at {cvOverage} per CV.',
+    a: 'Limits are per account, not per person. The Agency plan’s 500 monthly CV screenings are shared by everyone on your team, whatever the team size, and reset at the start of each billing period. For now the allowance is a hard cap — when you hit it, AI screening pauses until the period resets or you move up a plan. We are not billing for overage yet; pay-as-you-go overage is planned, and we will tell you before it starts.',
+  },
+  {
+    q: 'Is pricing per seat?',
+    a: 'Not during early access. Each plan is a single flat monthly rate that covers your whole team. We may introduce per-seat pricing later; if we do, existing subscribers will hear from us before anything changes.',
   },
   {
     q: 'Can I cancel any time?',
@@ -207,7 +210,7 @@ function PlanCard({ plan, currency, cycle }: PlanCardProps) {
                   {formatPrice(price, currency)}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  /{plan.audience === 'agency' ? 'seat/mo' : 'mo'}
+                  /{plan.perSeat ? 'seat/mo' : 'mo'}
                 </span>
               </div>
               {cycle === 'annual' && savings !== null && savings > 0 && (
@@ -215,7 +218,7 @@ function PlanCard({ plan, currency, cycle }: PlanCardProps) {
                   Save {savings}% billed annually
                 </p>
               )}
-              {plan.minimumSeats && plan.minimumSeats > 1 && (
+              {plan.perSeat && plan.minimumSeats && plan.minimumSeats > 1 && (
                 <p className="text-xs text-muted-foreground mt-1">
                   From {formatPrice(price * plan.minimumSeats, currency)}/mo · {plan.minimumSeats} seats min.
                 </p>
@@ -294,7 +297,7 @@ export default function PricingPage() {
             Screen 200 CVs in the time it takes to read 10.
           </h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            Explainable, skills-first scoring for recruitment agencies. From {headlinePrice}/seat/month.
+            Explainable, skills-first scoring for recruitment agencies. From {headlinePrice}/month.
             Works alongside any ATS — no integration required.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -336,7 +339,7 @@ export default function PricingPage() {
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold">For recruitment agencies</h2>
             <p className="text-muted-foreground mt-2">
-              Per-seat pricing that scales with your team. Cancel any time.
+              One flat monthly rate per plan during early access — no per-seat charges. Cancel any time.
             </p>
           </div>
 
@@ -364,8 +367,9 @@ export default function PricingPage() {
           </div>
 
           <p className="text-center text-xs text-muted-foreground mt-8 max-w-2xl mx-auto">
-            All agency plans include unlimited jobs, unlimited candidates, and unlimited team CRUD.
-            AI features are metered to prevent abuse — overage is billed at fair, transparent rates.
+            All agency plans include unlimited jobs, unlimited candidates, and unlimited team members.
+            AI features are metered to prevent abuse — each plan&apos;s monthly allowance is a hard cap for
+            now, and we will tell you before any pay-as-you-go overage billing starts.
           </p>
         </section>
 
@@ -423,7 +427,7 @@ export default function PricingPage() {
               <AccordionItem key={faq.q} value={`item-${i}`}>
                 <AccordionTrigger className="text-left">{faq.q}</AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  {faq.a.replace('{cvOverage}', formatCvOverage(currency))}
+                  {faq.a}
                 </AccordionContent>
               </AccordionItem>
             ))}

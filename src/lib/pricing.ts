@@ -23,6 +23,14 @@ export interface Plan {
   audience: PlanAudience;
   price: { USD: PlanPrice; ZAR: PlanPrice } | null;
   highlight?: boolean;
+  /**
+   * True only for plans quoted per recruiter. The flat-rate launch plans
+   * (Starter, Agency) are false/absent — their price is a single monthly
+   * charge covering the whole team, matching the Paddle catalog, where those
+   * prices are created with a quantity of exactly 1.
+   */
+  perSeat?: boolean;
+  /** Only meaningful alongside `perSeat` — drives the "from N seats" line. */
   minimumSeats?: number;
   features: string[];
   ctaLabel: string;
@@ -40,8 +48,7 @@ export const agencyPlans: Plan[] = [
       ZAR: { monthly: 599, annual: 499 },
     },
     features: [
-      // {seatPrice} is interpolated per-currency by getPlanFeatures().
-      '1 seat included (additional seats {seatPrice} each)',
+      'Flat monthly rate — no per-seat charges',
       '100 CV screenings / month',
       '25 job match assessments / month',
       '5 branded CV exports / month',
@@ -62,15 +69,14 @@ export const agencyPlans: Plan[] = [
       ZAR: { monthly: 1199, annual: 999 },
     },
     highlight: true,
-    minimumSeats: 3,
     features: [
-      '3 seats minimum, scales per recruiter',
-      '500 CV screenings / seat / month (pooled)',
-      '150 job match assessments / seat / month',
-      '50 branded CV exports / seat / month',
-      '100 Smart Lead Finder queries / team / month',
+      'Flat monthly rate — no per-seat charges',
+      '500 CV screenings / month, shared across your team',
+      '150 job match assessments / month',
+      '50 branded CV exports / month',
+      '100 Smart Lead Finder queries / month',
       'Branded PDF templates with agency logo',
-      'Interview transcript analysis (10/seat/mo)',
+      'Interview transcript analysis (10 / month)',
       'Sales pipeline + client linking',
       'Team reporting & placement analytics',
       'Priority email + chat support (24hr)',
@@ -87,6 +93,7 @@ export const agencyPlans: Plan[] = [
       USD: { monthly: 129, annual: 109 },
       ZAR: { monthly: 1899, annual: 1599 },
     },
+    perSeat: true,
     minimumSeats: 10,
     features: [
       '10 seats minimum',
@@ -143,20 +150,19 @@ export const candidatePlans: Plan[] = [
   },
 ];
 
-// Per-currency price of an additional seat on the Starter plan. Kept here next
-// to the plan data so the feature copy and the pricing stay in one place.
+// Per-currency price of an additional seat. NOT charged today — the launch is
+// flat-rate per plan (roadmap section F(a)) and no plan's copy references it.
+// Retained as the agreed commercial rate for the per-seat billing fast-follow,
+// where it becomes a Paddle quantity price. No feature bullet currently uses
+// the {seatPrice} placeholder that getPlanFeatures() resolves.
 const ADDITIONAL_SEAT_PRICE: Record<Currency, number> = { USD: 29, ZAR: 529 };
 
-// Per-CV overage rate once a plan's monthly screening allowance is exhausted.
+// Per-CV rate for the planned metered-overage fast-follow. NOT charged today:
+// quota enforcement hard-stops at the plan cap (see plan-limits.ts) and no
+// metered billing exists, so this must not appear in customer-facing copy yet.
 // ZAR mirrors the seat-price ratio (~18×) rather than a raw FX conversion, in
 // line with the PPP-based ZAR pricing. Adjust here if the commercial rate changes.
 export const CV_OVERAGE_PRICE: Record<Currency, number> = { USD: 0.05, ZAR: 0.9 };
-
-/** Formats the per-CV overage rate with two decimals (e.g. "$0.05", "R0.90"). */
-export function formatCvOverage(currency: Currency): string {
-  const symbol = currency === 'ZAR' ? 'R' : '$';
-  return `${symbol}${CV_OVERAGE_PRICE[currency].toFixed(2)}`;
-}
 
 /**
  * Returns a plan's feature bullets with currency-dependent placeholders (e.g.

@@ -70,8 +70,21 @@ Real Paddle Billing checkout end-to-end. **Supersedes** the stub "P1: Billing Ac
 
 **Estimate: ~4 focused dev-days** (flat-rate scope), plus Paddle catalog/ops setup (chunk 0) and owner input. Entitlement already flows through `companies.plan` → `plan-limits.ts`, so once the webhook flips `plan`, quota enforcement follows automatically.
 
-**Chunk 0 — Paddle catalog + config** (~0.5 day + owner input · prerequisite, mostly ops) — [ ] Not started
+**Chunk 0 — Paddle catalog + config** (~0.5 day + owner input · prerequisite, mostly ops) — [x] Catalog done 2026-08-05 · credentials outstanding
 - Create products/prices per plan×cycle (Starter/Agency × monthly/annual, USD + ZAR) in Paddle **sandbox** first; record the `price_id → plan` mapping. Obtain client-side token, server API key, webhook secret. Webhook testing needs sandbox + a deployed preview (or tunnel), not pure local.
+- **Sandbox catalog created 2026-08-05.** Mapping table lives in `src/server/billing/paddle-catalog.ts` (server-only; the trusted `price_id → plan` source chunk C requires). Production entries are deliberately empty behind `PADDLE_ENVIRONMENT` so a live deploy fails to resolve rather than granting a plan off sandbox IDs.
+
+  | Plan · cycle | `price_id` | USD | ZAR (ZA) |
+  | --- | --- | --- | --- |
+  | Starter · monthly | `pri_01kz9e98ehk8hxs0jw8jncvb5b` | 3900 | 59900 |
+  | Starter · annual | `pri_01kz9e98jymvt1gb85p38ntena` | 38400 | 598800 |
+  | Agency · monthly | `pri_01kz9e98px8c0vtry3rwjcd2j1` | 7900 | 119900 |
+  | Agency · annual | `pri_01kz9e98v7xemzbf7xhx25ma19` | 78000 | 1198800 |
+
+  Products: Starter `pro_01kz9e984t6sz6y02me5hh9x4h`, Agency `pro_01kz9e98av6vvfq1eft53c5e64` (both `saas` tax category).
+
+  Decisions taken at creation (2026-08-05): **7-day trial, cardless** (`requires_payment_method: false`) to match the pricing-page promise of no card up front; **quantity fixed at 1–1** so per-seat billing is impossible by construction until the fast-follow deliberately widens it; **USD base + ZAR override for ZA only** — GBP/EUR overrides were created then removed, because `src/lib/currency.ts` models only USD and ZAR and the pricing page would have quoted those customers the wrong currency. Adding a currency means touching `Currency`, `formatPrice`, the plan price tables and `company.currency`, not just the catalog.
+- **Still outstanding:** client-side token, server API key, webhook secret (none obtained yet — chunks B and C are blocked on these).
 
 **Chunk A — Data model migration** (~0.5 day) — [ ] Not started
 - Add to `companies`: `paddle_customer_id`, `paddle_subscription_id`, `subscription_status`, `current_period_ends_at`, `cancel_at_period_end`. New `billing_events` table (`event_id` unique, type, payload, `occurred_at`, `processed_at`) for webhook **idempotency + audit**. RLS on both (service-role writes only). Types + hook mapping.

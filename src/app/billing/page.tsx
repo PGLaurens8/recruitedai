@@ -78,7 +78,7 @@ function InAppPlanCard({ plan, currency, cycle, isCurrent }: InAppPlanCardProps)
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-3xl font-extrabold">{formatPrice(price, currency)}</span>
                 <span className="text-sm text-muted-foreground">
-                  /{plan.audience === 'agency' ? 'seat/mo' : 'mo'}
+                  /{plan.perSeat ? 'seat/mo' : 'mo'}
                 </span>
               </div>
               {cycle === 'annual' && savings !== null && savings > 0 && (

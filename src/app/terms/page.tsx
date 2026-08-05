@@ -36,7 +36,7 @@ export default function TermsPage() {
         You must provide accurate account information and keep it up to date. You are responsible for
         safeguarding your login credentials and for all activity that occurs under your account. Notify us
         promptly if you suspect any unauthorised use. Accounts are intended for use by the registered user or
-        organisation and may not be shared in a way that circumvents seat-based pricing.
+        organisation and may not be shared across separate businesses or resold.
       </p>
 
       <h2>4. Acceptable Use</h2>
