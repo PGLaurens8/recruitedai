@@ -3,9 +3,11 @@
 
 > **Agent-Ready Specification** - All instructions use precise file paths, code snippets, and deterministic steps for automated execution.
 
-> **Status Sync (2026-03-23)**
+> **Status Sync (2026-03-23, billing note added 2026-07-25)**
 > This file is a legacy implementation draft; active execution state and near-term planning now live in `PROJECT_STATE_ROADMAP.md`.
 > Current production path in this repo is Supabase-backed multi-tenant APIs (not the Firestore draft below).
+>
+> **Billing — do not follow this file.** The Stripe billing design described below (checkout/webhook/subscription routes, `STRIPE_*` env vars, `subscriptions` collection) was **never built**. The real payment processor is **Paddle**, and the actual plan lives in `PROJECT_STATE_ROADMAP.md` **section F (Billing & Payments — Paddle)**. Ignore every Stripe reference in this document.
 
 ---
 
