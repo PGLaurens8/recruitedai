@@ -18,7 +18,7 @@ npm run security:secrets # Scan tree for leaked API keys / secrets
 ```
 
 Run a single unit test: `npx vitest run src/lib/rbac.test.ts` (or `npx vitest src/lib/rbac.test.ts` to watch).
-Unit tests live next to source as `*.test.ts` (vitest, node environment). E2e tests live in `e2e/` (currently `smoke.spec.ts`) and run via Playwright against its own dev server on **port 9010** forced into **mock** mode — independent of the 9002 dev server. The CI gate is `lint + typecheck + test + build` — all four must pass.
+Unit tests live next to source as `*.test.ts` (vitest, node environment). E2e tests live in `e2e/` (currently `smoke.spec.ts`) and run via Playwright against its own dev server on **port 9010** forced into **mock** mode — independent of the 9002 dev server. The CI gate (`.github/workflows/ci.yml`) runs six steps in order — `lint` → `security:secrets` → `typecheck` → `test` → `build` → `test:e2e:smoke` — and all six must pass.
 
 ## Runtime Modes
 
@@ -69,7 +69,6 @@ Schema lives only in `supabase/migrations/` (timestamped SQL, applied in order).
 - **P0 — Storage Migration:** replace Base64 Data URIs with Supabase Storage bucket uploads for resume files.
 - **P1 — Billing:** connect `payment-dialog.tsx` to real Stripe checkout sessions.
 - **P1 — Tenant Governance:** owner-transfer policy and invite revoke/expiry UX.
-- Pre-existing test failures in `src/lib/runtime-config.test.ts` are known and unrelated to feature work.
 
 See `PROJECT_STATE_ROADMAP.md` for the full execution tracker.
 
